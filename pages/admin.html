@@ -570,13 +570,30 @@
             <h3>Identidade</h3>
             <label>Nome da loja<input id="configNomeLoja" placeholder="Delícias da Vó"></label>
             <label>Slogan<input id="configSlogan" placeholder="Feito com carinho"></label>
-            <label>Instagram<input id="configInstagram" placeholder="@deliciasda_vo"></label>
+            <label>Nome exibido do Instagram
+              <input id="configInstagramNome" placeholder="Instagram da loja">
+              <small>Este é o texto que o cliente verá no site.</small>
+            </label>
+            <label>Link do Instagram
+              <input id="configInstagramUrl" type="url" inputmode="url" placeholder="https://www.instagram.com/deliciasda_vo/">
+              <small>Cole o endereço completo do perfil.</small>
+            </label>
+            <label class="config-legado" hidden>Usuário antigo do Instagram<input id="configInstagram" placeholder="@deliciasda_vo"></label>
           </div>
 
           <div class="panel">
             <h3>Contato</h3>
             <label>WhatsApp da loja<input id="configWhatsapp" placeholder="5518991178906"></label>
-            <label>Endereço<input id="configEndereco" placeholder="Endereço da loja"></label>
+            <label>Nome exibido do endereço
+              <input id="configEnderecoNome" placeholder="Endereço da loja">
+              <small>Exemplo: Endereço da loja ou Como chegar.</small>
+            </label>
+            <label>Link do Google Maps
+              <input id="configEnderecoUrl" type="url" inputmode="url" placeholder="https://maps.app.goo.gl/..."></label>
+            <label>Endereço completo
+              <input id="configEndereco" placeholder="Rua, número, bairro, Votuporanga - SP">
+              <small>Usado para criar o link automaticamente caso o campo acima fique vazio.</small>
+            </label>
             <label>Horário<input id="configHorario" placeholder="Segunda a sábado, 9h às 18h"></label>
           </div>
 

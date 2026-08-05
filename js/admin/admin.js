@@ -1097,13 +1097,27 @@ function salvarHorariosAutomaticamente() {
   }, 700);
 }
 
+function urlExternaValida(valor = "") {
+  if (!valor) return true;
+  try {
+    const url = new URL(valor);
+    return ["http:", "https:"].includes(url.protocol) && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 function preencherConfiguracoesLoja() {
   const campos = {
     configNomeLoja: lojaConfig.nomeLoja || "Delícias da Vó",
     configSlogan: lojaConfig.slogan || "Feito com carinho",
     configInstagram: lojaConfig.instagram || "@deliciasda_vo",
+    configInstagramNome: lojaConfig.instagramNome || "Instagram da loja",
+    configInstagramUrl: lojaConfig.instagramUrl || "",
     configWhatsapp: lojaConfig.whatsapp || "5518991178906",
     configEndereco: lojaConfig.endereco || "",
+    configEnderecoNome: lojaConfig.enderecoNome || "Endereço da loja",
+    configEnderecoUrl: lojaConfig.enderecoUrl || "",
     configHorario: lojaConfig.horario || "",
     configEntrega: lojaConfig.entrega || "Taxa conforme distância",
     configRetirada: lojaConfig.retirada || "Retirada na loja",
@@ -1125,12 +1139,31 @@ function preencherConfiguracoesLoja() {
 }
 
 async function salvarConfiguracoesLoja() {
+  const instagramUrl = limparTexto(document.getElementById("configInstagramUrl")?.value || "");
+  const enderecoUrl = limparTexto(document.getElementById("configEnderecoUrl")?.value || "");
+
+  if (!urlExternaValida(instagramUrl)) {
+    alert("Digite um link completo e válido do Instagram, começando com https://");
+    document.getElementById("configInstagramUrl")?.focus();
+    return;
+  }
+
+  if (!urlExternaValida(enderecoUrl)) {
+    alert("Digite um link completo e válido do Google Maps, começando com https://");
+    document.getElementById("configEnderecoUrl")?.focus();
+    return;
+  }
+
   const dados = {
     nomeLoja: limparTexto(document.getElementById("configNomeLoja").value) || "Delícias da Vó",
     slogan: limparTexto(document.getElementById("configSlogan").value),
     instagram: limparTexto(document.getElementById("configInstagram").value),
+    instagramNome: limparTexto(document.getElementById("configInstagramNome")?.value) || "Instagram da loja",
+    instagramUrl,
     whatsapp: limparTexto(document.getElementById("configWhatsapp").value) || "5518991178906",
     endereco: limparTexto(document.getElementById("configEndereco").value),
+    enderecoNome: limparTexto(document.getElementById("configEnderecoNome")?.value) || "Endereço da loja",
+    enderecoUrl,
     horario: limparTexto(document.getElementById("configHorario").value),
     entrega: limparTexto(document.getElementById("configEntrega").value),
     retirada: limparTexto(document.getElementById("configRetirada").value),

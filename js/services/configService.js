@@ -4,15 +4,19 @@ export let lojaConfig = {
   nomeLoja: "Delícias da Vó",
   slogan: "Feito com carinho",
   instagram: "@deliciasda_vo",
+  instagramNome: "Instagram da loja",
+  instagramUrl: "",
   whatsapp: "5518991178906",
   endereco: "",
+  enderecoNome: "Endereço da loja",
+  enderecoUrl: "",
   horario: "",
   entrega: "Taxa conforme distância",
   retirada: "Retirada na loja",
   statusLoja: "aberta"
 };
 
-const CACHE_CONFIG_LOJA = "deliciasConfigLojaV52";
+const CACHE_CONFIG_LOJA = "deliciasConfigLojaV53";
 
 function salvarCache(dados) {
   try {

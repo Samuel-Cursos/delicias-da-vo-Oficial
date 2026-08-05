@@ -2468,6 +2468,17 @@ button {
     overflow: visible;
   }
 }
+.config-grid label > small {
+  display:block;
+  margin-top:5px;
+  color:#806a5d;
+  font-size:.72rem;
+  font-weight:650;
+  line-height:1.4;
+}
+.config-grid .config-legado[hidden] {
+  display:none!important;
+}
 
 /* V5 — acabamento profissional e responsivo */
 :root {

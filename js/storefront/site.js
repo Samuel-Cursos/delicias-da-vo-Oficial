@@ -16,7 +16,14 @@ let pendingSaborProdutoId = null;
 let ultimoFocoAntesCarrinho = null;
 
 window.addEventListener("perfil-cliente-atualizado", event => {
-  preencherDadosCliente(event.detail?.perfil || null);
+  const perfil = event.detail?.perfil || null;
+  preencherDadosCliente(perfil);
+
+  if (!perfil) {
+    fecharPerfilCliente();
+  } else if (document.getElementById("modalPerfilCliente")?.classList.contains("aberto")) {
+    preencherFormularioPerfilCliente(perfil);
+  }
 });
 
 iniciarAuth();
@@ -45,12 +52,12 @@ observarPromocoes(() => {
   renderPromocoesSite();
 });
 
-function preencherSeVazio(id, valor) {
+function preencherCampo(id, valor, sobrescrever = false) {
   const campo = document.getElementById(id);
-  if (campo && !campo.value.trim() && valor) campo.value = valor;
+  if (campo && valor && (sobrescrever || !campo.value.trim())) campo.value = valor;
 }
 
-function preencherDadosCliente(perfil) {
+function preencherDadosCliente(perfil, sobrescrever = false) {
   const aviso = document.getElementById("perfilClienteAviso");
 
   if (!perfil) {
@@ -60,19 +67,19 @@ function preencherDadosCliente(perfil) {
 
   const endereco = perfil.endereco || {};
 
-  preencherSeVazio("nomeCliente", perfil.nome);
-  preencherSeVazio("telefoneCliente", perfil.telefone);
-  preencherSeVazio("ruaCliente", endereco.rua);
-  preencherSeVazio("numeroCliente", endereco.numero);
-  preencherSeVazio("bairroCliente", endereco.bairro);
-  preencherSeVazio("complementoCliente", endereco.complemento);
+  preencherCampo("nomeCliente", perfil.nome, sobrescrever);
+  preencherCampo("telefoneCliente", perfil.telefone, sobrescrever);
+  preencherCampo("ruaCliente", endereco.rua, sobrescrever);
+  preencherCampo("numeroCliente", endereco.numero, sobrescrever);
+  preencherCampo("bairroCliente", endereco.bairro, sobrescrever);
+  preencherCampo("complementoCliente", endereco.complemento, sobrescrever);
 
-  preencherSeVazio("nomeFestaCliente", perfil.nome);
-  preencherSeVazio("telefoneFestaCliente", perfil.telefone);
-  preencherSeVazio("ruaFesta", endereco.rua);
-  preencherSeVazio("numeroFesta", endereco.numero);
-  preencherSeVazio("bairroFesta", endereco.bairro);
-  preencherSeVazio("complementoFesta", endereco.complemento);
+  preencherCampo("nomeFestaCliente", perfil.nome, sobrescrever);
+  preencherCampo("telefoneFestaCliente", perfil.telefone, sobrescrever);
+  preencherCampo("ruaFesta", endereco.rua, sobrescrever);
+  preencherCampo("numeroFesta", endereco.numero, sobrescrever);
+  preencherCampo("bairroFesta", endereco.bairro, sobrescrever);
+  preencherCampo("complementoFesta", endereco.complemento, sobrescrever);
 
   if (aviso) {
     const perfilCompleto = Boolean(perfil.telefone && endereco.rua && endereco.numero && endereco.bairro);
@@ -110,6 +117,227 @@ async function salvarDadosCliente(origem = "normal") {
   }
 }
 
+const camposCepPorOrigem = {
+  normal: {
+    cep: "cepCliente",
+    botao: "btnCepCliente",
+    status: "statusCepCliente",
+    rua: "ruaCliente",
+    bairro: "bairroCliente",
+    numero: "numeroCliente"
+  },
+  festa: {
+    cep: "cepFesta",
+    botao: "btnCepFesta",
+    status: "statusCepFesta",
+    rua: "ruaFesta",
+    bairro: "bairroFesta",
+    numero: "numeroFesta"
+  },
+  perfil: {
+    cep: "cepPerfilCliente",
+    botao: "btnCepPerfilCliente",
+    status: "statusCepPerfilCliente",
+    rua: "ruaPerfilCliente",
+    bairro: "bairroPerfilCliente",
+    numero: "numeroPerfilCliente"
+  }
+};
+
+function formatarCep(valor = "") {
+  const digitos = String(valor).replace(/\D/g, "").slice(0, 8);
+  return digitos.length > 5 ? `${digitos.slice(0, 5)}-${digitos.slice(5)}` : digitos;
+}
+
+async function buscarCepEndereco(origem = "normal") {
+  const campos = camposCepPorOrigem[origem];
+  if (!campos) return;
+
+  const inputCep = document.getElementById(campos.cep);
+  const botao = document.getElementById(campos.botao);
+  const status = document.getElementById(campos.status);
+  const cep = String(inputCep?.value || "").replace(/\D/g, "");
+
+  if (cep.length !== 8) {
+    if (status) {
+      status.className = "cep-status erro";
+      status.textContent = "Digite um CEP com 8 números.";
+    }
+    inputCep?.focus();
+    return;
+  }
+
+  if (botao) {
+    botao.disabled = true;
+    botao.textContent = "Buscando...";
+  }
+  if (status) {
+    status.className = "cep-status";
+    status.textContent = "Consultando endereço...";
+  }
+
+  try {
+    const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      headers: { Accept: "application/json" }
+    });
+    if (!resposta.ok) throw new Error("Falha ao consultar o CEP");
+
+    const endereco = await resposta.json();
+    if (endereco.erro) throw new Error("CEP não encontrado");
+
+    const rua = document.getElementById(campos.rua);
+    const bairro = document.getElementById(campos.bairro);
+    if (rua) rua.value = limparTexto(endereco.logradouro || "");
+    if (bairro) bairro.value = limparTexto(endereco.bairro || "");
+
+    if (status) {
+      const localidade = [endereco.localidade, endereco.uf].filter(Boolean).join(" - ");
+      status.className = "cep-status sucesso";
+      status.textContent = localidade ? `Endereço encontrado em ${localidade}.` : "Endereço encontrado.";
+    }
+
+    document.getElementById(campos.numero)?.focus();
+  } catch (erro) {
+    if (status) {
+      status.className = "cep-status erro";
+      status.textContent = erro?.message === "CEP não encontrado"
+        ? "CEP não encontrado. Confira os números."
+        : "Não foi possível buscar agora. Preencha o endereço manualmente.";
+    }
+  } finally {
+    if (botao) {
+      botao.disabled = false;
+      botao.textContent = "Buscar CEP";
+    }
+  }
+}
+
+document.querySelectorAll("#cepCliente, #cepFesta, #cepPerfilCliente").forEach(input => {
+  input.addEventListener("input", () => {
+    input.value = formatarCep(input.value);
+  });
+  input.addEventListener("keydown", event => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const origem = input.id === "cepFesta" ? "festa" : input.id === "cepPerfilCliente" ? "perfil" : "normal";
+    buscarCepEndereco(origem);
+  });
+});
+
+function preencherFormularioPerfilCliente(perfil = window.perfilClienteAtual) {
+  if (!perfil) return;
+  const endereco = perfil.endereco || {};
+  const valores = {
+    nomePerfilCliente: perfil.nome || window.usuarioAtual?.displayName || "",
+    emailPerfilCliente: perfil.email || window.usuarioAtual?.email || "",
+    telefonePerfilCliente: perfil.telefone || "",
+    ruaPerfilCliente: endereco.rua || "",
+    numeroPerfilCliente: endereco.numero || "",
+    bairroPerfilCliente: endereco.bairro || "",
+    complementoPerfilCliente: endereco.complemento || ""
+  };
+
+  Object.entries(valores).forEach(([id, valor]) => {
+    const campo = document.getElementById(id);
+    if (campo) campo.value = valor;
+  });
+
+  const statusCep = document.getElementById("statusCepPerfilCliente");
+  if (statusCep) {
+    statusCep.className = "cep-status";
+    statusCep.textContent = "";
+  }
+}
+
+function abrirPerfilCliente() {
+  if (!window.usuarioAtual) {
+    window.loginGoogle?.();
+    return;
+  }
+
+  const modal = document.getElementById("modalPerfilCliente");
+  if (!modal) return;
+  preencherFormularioPerfilCliente();
+  const status = document.getElementById("statusPerfilCliente");
+  if (status) {
+    status.className = "perfil-salvar-status";
+    status.textContent = "";
+  }
+  document.body.classList.add("modal-em-foco");
+  modal.classList.add("aberto");
+  window.setTimeout(() => document.getElementById("telefonePerfilCliente")?.focus(), 50);
+}
+
+function fecharPerfilCliente() {
+  const modal = document.getElementById("modalPerfilCliente");
+  if (!modal?.classList.contains("aberto")) return;
+  modal.classList.remove("aberto");
+  document.body.classList.remove("modal-em-foco");
+}
+
+async function salvarFormularioPerfilCliente() {
+  const status = document.getElementById("statusPerfilCliente");
+  const botao = document.getElementById("btnSalvarPerfilCliente");
+  const nome = limparTexto(document.getElementById("nomePerfilCliente")?.value || "");
+  const telefone = limparTexto(document.getElementById("telefonePerfilCliente")?.value || "");
+  const endereco = {
+    rua: limparTexto(document.getElementById("ruaPerfilCliente")?.value || ""),
+    numero: limparTexto(document.getElementById("numeroPerfilCliente")?.value || ""),
+    bairro: limparTexto(document.getElementById("bairroPerfilCliente")?.value || ""),
+    complemento: limparTexto(document.getElementById("complementoPerfilCliente")?.value || "")
+  };
+
+  if (!nome) {
+    if (status) {
+      status.className = "perfil-salvar-status erro";
+      status.textContent = "Digite seu nome.";
+    }
+    document.getElementById("nomePerfilCliente")?.focus();
+    return;
+  }
+
+  const enderecoIniciado = Boolean(endereco.rua || endereco.numero || endereco.bairro || endereco.complemento);
+  if (enderecoIniciado && (!endereco.rua || !endereco.numero || !endereco.bairro)) {
+    if (status) {
+      status.className = "perfil-salvar-status erro";
+      status.textContent = "Para salvar o endereço, complete rua, número e bairro.";
+    }
+    return;
+  }
+
+  if (botao) {
+    botao.disabled = true;
+    botao.textContent = "Salvando...";
+  }
+
+  try {
+    const perfil = await window.salvarPerfilCliente?.({ nome, telefone, endereco });
+    if (!perfil) throw new Error("Faça login novamente para salvar.");
+    preencherDadosCliente(perfil, true);
+    if (status) {
+      status.className = "perfil-salvar-status sucesso";
+      status.textContent = "✓ Dados salvos. Seus próximos pedidos já serão preenchidos.";
+    }
+    window.setTimeout(fecharPerfilCliente, 850);
+  } catch (erro) {
+    console.error("Não foi possível salvar o perfil:", erro);
+    if (status) {
+      status.className = "perfil-salvar-status erro";
+      status.textContent = "Não foi possível salvar agora. Tente novamente.";
+    }
+  } finally {
+    if (botao) {
+      botao.disabled = false;
+      botao.textContent = "Salvar meus dados";
+    }
+  }
+}
+
+window.buscarCepEndereco = buscarCepEndereco;
+window.abrirPerfilCliente = abrirPerfilCliente;
+window.fecharPerfilCliente = fecharPerfilCliente;
+window.salvarFormularioPerfilCliente = salvarFormularioPerfilCliente;
+
 function atualizarEstadoCardapio(erro, usandoCache = false) {
   const status = document.getElementById("statusCardapioSite");
   if (!status) return;
@@ -134,6 +362,15 @@ function formatarTelefoneExibicao(numero = "") {
   return numero;
 }
 
+function normalizarUrlExterna(valor = "") {
+  try {
+    const url = new URL(limparTexto(valor));
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 
 function aplicarConfiguracoesSite() {
   document.querySelectorAll(".brand strong").forEach(el => {
@@ -152,25 +389,56 @@ function aplicarConfiguracoesSite() {
   const numeroWhatsApp = String(lojaConfig.whatsapp || APP_CONFIG.whatsapp).replace(/\D/g, "");
   const enderecoLoja = limparTexto(lojaConfig.endereco || "");
   const instagram = limparTexto(lojaConfig.instagram || "").replace(/^@/, "");
+  const enderecoNome = limparTexto(lojaConfig.enderecoNome || "") || "Endereço da loja";
+  const instagramNome = limparTexto(lojaConfig.instagramNome || "") || "Instagram da loja";
+  const enderecoUrlConfigurada = normalizarUrlExterna(lojaConfig.enderecoUrl || "");
+  const instagramUrlConfigurada = normalizarUrlExterna(lojaConfig.instagramUrl || "");
+  const enderecoHref = enderecoUrlConfigurada || (enderecoLoja
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enderecoLoja}, Votuporanga - SP`)}`
+    : "");
+  const instagramHref = instagramUrlConfigurada || (instagram
+    ? `https://www.instagram.com/${encodeURIComponent(instagram)}/`
+    : "");
   const footerWhatsApp = document.getElementById("footerWhatsApp");
   const footerEndereco = document.getElementById("footerEndereco");
   const footerInstagram = document.getElementById("footerInstagram");
+  const btnWhatsapp = document.getElementById("btnWhatsappLoja");
+  const btnEndereco = document.getElementById("btnEnderecoLoja");
+  const btnInstagram = document.getElementById("btnInstagramLoja");
 
   if (footerWhatsApp) {
     footerWhatsApp.href = `https://wa.me/${numeroWhatsApp}`;
     footerWhatsApp.textContent = `📱 ${formatarTelefoneExibicao(numeroWhatsApp)}`;
   }
 
+  if (btnWhatsapp) {
+    btnWhatsapp.href = `https://wa.me/${numeroWhatsApp}`;
+  }
+
   if (footerEndereco) {
-    footerEndereco.hidden = !enderecoLoja;
-    footerEndereco.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enderecoLoja}, Votuporanga - SP`)}`;
-    footerEndereco.textContent = enderecoLoja ? `📍 ${enderecoLoja}` : "";
+    footerEndereco.hidden = !enderecoHref;
+    footerEndereco.href = enderecoHref || "#";
+    footerEndereco.textContent = `📍 ${enderecoNome}`;
+  }
+
+  if (btnEndereco) {
+    btnEndereco.hidden = !enderecoHref;
+    btnEndereco.href = enderecoHref || "#";
+    const texto = btnEndereco.querySelector("strong");
+    if (texto) texto.textContent = enderecoNome;
   }
 
   if (footerInstagram) {
-    footerInstagram.hidden = !instagram;
-    footerInstagram.href = `https://www.instagram.com/${encodeURIComponent(instagram)}/`;
-    footerInstagram.textContent = instagram ? `📷 @${instagram}` : "";
+    footerInstagram.hidden = !instagramHref;
+    footerInstagram.href = instagramHref || "#";
+    footerInstagram.textContent = `📷 ${instagramNome}`;
+  }
+
+  if (btnInstagram) {
+    btnInstagram.hidden = !instagramHref;
+    btnInstagram.href = instagramHref || "#";
+    const texto = btnInstagram.querySelector("strong");
+    if (texto) texto.textContent = instagramNome;
   }
 
   if (status) {
@@ -606,6 +874,11 @@ window.adicionarCarrinho = adicionarCarrinhoImpl;
 window.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
 
+  if (document.getElementById("modalPerfilCliente")?.classList.contains("aberto")) {
+    fecharPerfilCliente();
+    return;
+  }
+
   if (document.getElementById("modalRevisaoPedido")?.classList.contains("aberto")) {
     fecharRevisaoPedido();
     return;
@@ -622,6 +895,10 @@ window.addEventListener("keydown", event => {
   }
 
   fecharCarrinhoImpl();
+});
+
+document.getElementById("modalPerfilCliente")?.addEventListener("click", event => {
+  if (event.target === event.currentTarget) fecharPerfilCliente();
 });
 
 function atualizarCarrinho() {

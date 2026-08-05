@@ -46,8 +46,8 @@
 
       let jaViu = false;
       try {
-        jaViu = sessionStorage.getItem("dvSplashV52") === "1";
-        sessionStorage.setItem("dvSplashV52", "1");
+        jaViu = sessionStorage.getItem("dvSplashV53") === "1";
+        sessionStorage.setItem("dvSplashV53", "1");
       } catch {}
 
       if (jaViu) {
@@ -107,6 +107,25 @@
       <div><strong>Loja online</strong><span id="statusLojaTexto">Carregando status...</span></div>
       <div><strong>🚚 Entrega</strong><span id="entregaTexto">Taxa conforme distância</span></div>
       <div><strong>🏪 Retirada</strong><span id="retiradaTexto">Disponível na loja</span></div>
+    </section>
+
+    <section class="contato-rapido" aria-labelledby="tituloContatoRapido">
+      <div class="contato-rapido-texto">
+        <span class="contato-rapido-eyebrow">Fale com a gente</span>
+        <h2 id="tituloContatoRapido">Tudo o que você precisa em um toque</h2>
+        <p>Atendimento, localização e novidades da Delícias da Vó.</p>
+      </div>
+      <div class="contato-rapido-acoes">
+        <a id="btnWhatsappLoja" class="contato-btn whatsapp" href="https://wa.me/5518991178906" target="_blank" rel="noopener">
+          <span aria-hidden="true">💬</span><strong>WhatsApp da loja</strong>
+        </a>
+        <a id="btnEnderecoLoja" class="contato-btn maps" href="#" target="_blank" rel="noopener" hidden>
+          <span aria-hidden="true">📍</span><strong>Endereço da loja</strong>
+        </a>
+        <a id="btnInstagramLoja" class="contato-btn instagram" href="#" target="_blank" rel="noopener" hidden>
+          <span aria-hidden="true">📷</span><strong>Instagram da loja</strong>
+        </a>
+      </div>
     </section>
 
 
@@ -181,6 +200,11 @@
         </select>
       </label>
       <div id="campoEnderecoFesta" class="endereco-form-grid festa-endereco-grid" hidden>
+        <div class="endereco-cep-busca">
+          <input id="cepFesta" inputmode="numeric" maxlength="9" placeholder="CEP" autocomplete="postal-code" aria-label="CEP da entrega">
+          <button id="btnCepFesta" type="button" onclick="buscarCepEndereco('festa')">Buscar CEP</button>
+          <small id="statusCepFesta" aria-live="polite"></small>
+        </div>
         <label class="endereco-rua">Rua
           <input id="ruaFesta" placeholder="Nome da rua" autocomplete="address-line1">
         </label>
@@ -225,6 +249,11 @@
       </select>
 
       <div id="camposEnderecoPedidoNormal" class="endereco-form-grid" hidden>
+        <div class="endereco-cep-busca">
+          <input id="cepCliente" inputmode="numeric" maxlength="9" placeholder="CEP" autocomplete="postal-code" aria-label="CEP da entrega" />
+          <button id="btnCepCliente" type="button" onclick="buscarCepEndereco('normal')">Buscar CEP</button>
+          <small id="statusCepCliente" aria-live="polite"></small>
+        </div>
         <input id="ruaCliente" class="endereco-rua" aria-label="Rua" placeholder="Rua" autocomplete="address-line1" />
         <input id="numeroCliente" class="endereco-numero" aria-label="Número do endereço" inputmode="numeric" placeholder="Número" autocomplete="address-line2" />
         <input id="bairroCliente" class="endereco-bairro" aria-label="Bairro" placeholder="Bairro" autocomplete="address-level3" />
@@ -261,6 +290,55 @@
   </aside>
 
   <button class="floating-cart" onclick="abrirCarrinho()">🛒 <span id="contadorItens">0</span></button>
+
+  <div class="modal perfil-modal" id="modalPerfilCliente" role="dialog" aria-modal="true" aria-labelledby="tituloPerfilCliente">
+    <div class="modal-box perfil-modal-box">
+      <button class="modal-close" type="button" onclick="fecharPerfilCliente()" aria-label="Fechar meus dados">✕</button>
+      <div class="perfil-modal-topo">
+        <span class="perfil-modal-icone" aria-hidden="true">👤</span>
+        <div>
+          <p>Seu perfil</p>
+          <h2 id="tituloPerfilCliente">Meus dados</h2>
+        </div>
+      </div>
+      <p class="perfil-modal-intro">Salve uma vez e seus dados serão preenchidos automaticamente nos próximos pedidos.</p>
+
+      <div class="perfil-form-grid">
+        <label class="perfil-campo-inteiro">Nome
+          <input id="nomePerfilCliente" autocomplete="name" placeholder="Seu nome">
+        </label>
+        <label class="perfil-campo-inteiro">E-mail do Google
+          <input id="emailPerfilCliente" type="email" readonly aria-readonly="true">
+        </label>
+        <label class="perfil-campo-inteiro">WhatsApp
+          <input id="telefonePerfilCliente" inputmode="tel" autocomplete="tel" placeholder="(17) 99999-9999">
+        </label>
+        <div class="endereco-cep-busca perfil-campo-inteiro">
+          <input id="cepPerfilCliente" inputmode="numeric" maxlength="9" placeholder="CEP" autocomplete="postal-code" aria-label="CEP">
+          <button id="btnCepPerfilCliente" type="button" onclick="buscarCepEndereco('perfil')">Buscar CEP</button>
+          <small id="statusCepPerfilCliente" aria-live="polite"></small>
+        </div>
+        <label class="perfil-campo-rua">Rua
+          <input id="ruaPerfilCliente" autocomplete="address-line1" placeholder="Nome da rua">
+        </label>
+        <label class="perfil-campo-numero">Número
+          <input id="numeroPerfilCliente" inputmode="numeric" autocomplete="address-line2" placeholder="Nº">
+        </label>
+        <label class="perfil-campo-inteiro">Bairro
+          <input id="bairroPerfilCliente" autocomplete="address-level3" placeholder="Nome do bairro">
+        </label>
+        <label class="perfil-campo-inteiro">Complemento
+          <input id="complementoPerfilCliente" autocomplete="address-line3" placeholder="Casa, bloco, referência...">
+        </label>
+      </div>
+
+      <p id="statusPerfilCliente" class="perfil-salvar-status" aria-live="polite"></p>
+      <div class="perfil-modal-acoes">
+        <button class="secondary-btn" type="button" onclick="fecharPerfilCliente()">Cancelar</button>
+        <button id="btnSalvarPerfilCliente" class="primary-btn" type="button" onclick="salvarFormularioPerfilCliente()">Salvar meus dados</button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal" id="modalSabores" role="dialog" aria-modal="true" aria-labelledby="tituloModalSabores">
     <div class="modal-box">
@@ -359,9 +437,9 @@
       <div><strong>Delícias da Vó</strong><span>Comida caseira feita com carinho</span></div>
     </div>
     <div class="footer-info">
-      <a id="footerEndereco" href="#" target="_blank" rel="noopener">📍 Votuporanga • SP</a>
+      <a id="footerEndereco" href="#" target="_blank" rel="noopener" hidden>📍 Endereço da loja</a>
       <a id="footerWhatsApp" href="https://wa.me/5518991178906" target="_blank" rel="noopener">📱 (18) 99117-8906</a>
-      <a id="footerInstagram" href="#" target="_blank" rel="noopener" hidden>📷 Instagram</a>
+      <a id="footerInstagram" href="#" target="_blank" rel="noopener" hidden>📷 Instagram da loja</a>
     </div>
   </footer>
 
