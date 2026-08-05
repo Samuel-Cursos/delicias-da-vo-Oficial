@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v5-3-perfil-localizacao";
+const CACHE_NAME = "delicias-da-vo-v5-3-entrega-automatica";
 
 const ARQUIVOS_CACHE = [
   "/",

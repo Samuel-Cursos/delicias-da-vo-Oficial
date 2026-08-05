@@ -105,7 +105,7 @@
   <main class="container">
     <section class="cards-resumo">
       <div><strong>Loja online</strong><span id="statusLojaTexto">Carregando status...</span></div>
-      <div><strong>🚚 Entrega</strong><span id="entregaTexto">Taxa conforme distância</span></div>
+      <div class="card-resumo-entrega"><strong>🚚 Entrega</strong><span id="entregaTexto">R$ 5 até 3 km • R$ 7 até 5 km</span><small>Calculada pelo endereço no carrinho.</small></div>
       <div><strong>🏪 Retirada</strong><span id="retiradaTexto">Disponível na loja</span></div>
     </section>
 
@@ -232,14 +232,15 @@
       <button onclick="fecharCarrinho()" aria-label="Fechar carrinho">✕</button>
     </div>
 
-    <div id="itensCarrinho" class="itens-carrinho"></div>
+    <div class="carrinho-conteudo">
+      <div id="itensCarrinho" class="itens-carrinho"></div>
 
-    <div class="total">
-      <span>Total</span>
-      <strong id="totalPedido">R$ 0,00</strong>
-    </div>
+      <div class="total">
+        <span id="rotuloTotalPedido">Total</span>
+        <strong id="totalPedido">R$ 0,00</strong>
+      </div>
 
-    <div class="formulario">
+      <div class="formulario">
       <p id="perfilClienteAviso" class="perfil-cliente-aviso" aria-live="polite">Entre com Google para reutilizar seus dados nas próximas compras.</p>
       <input id="nomeCliente" aria-label="Nome do cliente" placeholder="Nome" autocomplete="name" />
       <input id="telefoneCliente" aria-label="WhatsApp do cliente" inputmode="tel" placeholder="WhatsApp (opcional)" autocomplete="tel" />
@@ -258,6 +259,19 @@
         <input id="numeroCliente" class="endereco-numero" aria-label="Número do endereço" inputmode="numeric" placeholder="Número" autocomplete="address-line2" />
         <input id="bairroCliente" class="endereco-bairro" aria-label="Bairro" placeholder="Bairro" autocomplete="address-level3" />
         <input id="complementoCliente" class="endereco-complemento" aria-label="Complemento" placeholder="Complemento (opcional)" autocomplete="address-line3" />
+
+        <div id="taxaEntregaBox" class="taxa-entrega-box">
+          <div class="taxa-entrega-topo">
+            <span aria-hidden="true">🛵</span>
+            <div><strong>Taxa de entrega</strong><small id="taxaEntregaStatus">Complete o endereço para calcular.</small></div>
+          </div>
+          <div id="taxaEntregaResultado" class="taxa-entrega-resultado" hidden>
+            <span><small>Distância</small><strong id="distanciaEntregaTexto">—</strong></span>
+            <span><small>Taxa</small><strong id="valorTaxaEntregaTexto">—</strong></span>
+          </div>
+          <button id="btnCalcularTaxaEntrega" type="button" onclick="calcularTaxaEntrega(true)">Calcular entrega</button>
+          <a class="geoapify-credito" href="https://www.geoapify.com/" target="_blank" rel="noopener">Cálculo de rota por Geoapify</a>
+        </div>
       </div>
 
       <div class="pagamento-escolha">
@@ -284,9 +298,10 @@
         </div>
         <input id="pagamento" type="hidden" value="Pix">
       </div>
-    </div>
+      </div>
 
-    <button id="btnFinalizarPedido" class="btn-whatsapp" onclick="finalizarPedido()">Enviar pelo WhatsApp</button>
+      <button id="btnFinalizarPedido" class="btn-whatsapp" onclick="finalizarPedido()">Enviar pelo WhatsApp</button>
+    </div>
   </aside>
 
   <button class="floating-cart" onclick="abrirCarrinho()">🛒 <span id="contadorItens">0</span></button>
@@ -404,7 +419,7 @@
       <div id="revisaoDetalhesPedido" class="revisao-detalhes"></div>
 
       <div class="revisao-total">
-        <span>Total do pedido</span>
+        <span id="revisaoTotalRotulo">Total do pedido</span>
         <strong id="revisaoTotalPedido">R$ 0,00</strong>
       </div>
 

@@ -2479,6 +2479,25 @@ button {
 .config-grid .config-legado[hidden] {
   display:none!important;
 }
+.config-taxas-entrega {
+  margin-top:14px;
+  padding:13px;
+  border:1px solid #ead7c7;
+  border-radius:15px;
+  background:#fffaf3;
+}
+.config-taxas-entrega > p {
+  margin:0 0 4px;
+  color:#6b2b1f;
+  font-weight:900;
+}
+.config-taxas-entrega > small {
+  display:block;
+  margin-top:9px;
+  color:#806a5d;
+  font-size:.72rem;
+  line-height:1.4;
+}
 
 /* V5 — acabamento profissional e responsivo */
 :root {
