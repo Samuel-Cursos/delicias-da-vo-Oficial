@@ -1,95 +1,192 @@
 import { auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged, doc, getDoc, setDoc, serverTimestamp } from "./firebase.js";
 import { APP_CONFIG } from "./config.js";
 import { createUserChip } from "./templates.js";
+import { limparTexto } from "./utils.js";
 
 window.usuarioAtual = null;
 window.isAdmin = false;
+window.perfilClienteAtual = null;
 
-async function salvarUsuario(user) {
+function emailAdministrador(email = "") {
+  return APP_CONFIG.admins.some(admin => admin.toLowerCase() === String(email).toLowerCase());
+}
+
+function limparEndereco(endereco = {}) {
+  return {
+    rua: limparTexto(endereco.rua || "").slice(0, 160),
+    numero: limparTexto(endereco.numero || "").slice(0, 30),
+    bairro: limparTexto(endereco.bairro || "").slice(0, 100),
+    complemento: limparTexto(endereco.complemento || "").slice(0, 180)
+  };
+}
+
+function perfilComIdentidade(user, dados = {}) {
+  return {
+    uid: user.uid,
+    nome: limparTexto(dados.nome || user.displayName || "").slice(0, 120),
+    email: user.email || dados.email || "",
+    foto: user.photoURL || dados.foto || "",
+    tipo: emailAdministrador(user.email) ? "admin" : "cliente",
+    telefone: limparTexto(dados.telefone || "").slice(0, 30),
+    endereco: limparEndereco(dados.endereco || {})
+  };
+}
+
+function emitirPerfil(user, perfil) {
+  window.perfilClienteAtual = perfil;
+  window.dispatchEvent(new CustomEvent("perfil-cliente-atualizado", {
+    detail: { usuario: user, perfil }
+  }));
+}
+
+async function carregarOuCriarUsuario(user) {
   const ref = doc(db, "usuarios", user.uid);
   const snap = await getDoc(ref);
+
   if (!snap.exists()) {
+    const novoPerfil = perfilComIdentidade(user);
     await setDoc(ref, {
-      uid: user.uid,
-      nome: user.displayName || "",
-      email: user.email || "",
-      foto: user.photoURL || "",
-      tipo: APP_CONFIG.admins.includes(user.email) ? "admin" : "cliente",
-      criadoEm: serverTimestamp()
+      ...novoPerfil,
+      criadoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp()
     });
+    return novoPerfil;
   }
+
+  const perfil = perfilComIdentidade(user, snap.data());
+
+  await setDoc(ref, {
+    nome: perfil.nome,
+    foto: perfil.foto,
+    telefone: perfil.telefone,
+    endereco: perfil.endereco,
+    atualizadoEm: serverTimestamp()
+  }, { merge: true });
+
+  return perfil;
 }
+
+window.salvarPerfilCliente = async function (dados = {}) {
+  const user = auth.currentUser;
+  if (!user) return null;
+
+  const atual = window.perfilClienteAtual || {};
+  const perfil = perfilComIdentidade(user, {
+    ...atual,
+    ...dados,
+    endereco: dados.endereco || atual.endereco || {}
+  });
+
+  await setDoc(doc(db, "usuarios", user.uid), {
+    nome: perfil.nome,
+    foto: perfil.foto,
+    telefone: perfil.telefone,
+    endereco: perfil.endereco,
+    atualizadoEm: serverTimestamp()
+  }, { merge: true });
+
+  emitirPerfil(user, perfil);
+  return perfil;
+};
 
 window.loginGoogle = async function () {
   try {
-    const resultado = await signInWithPopup(auth, googleProvider);
-    await salvarUsuario(resultado.user);
+    // O onAuthStateChanged abaixo é o único responsável por carregar/criar o
+    // perfil. Fazer isso também aqui causava duas gravações simultâneas e a
+    // segunda podia ser recusada pelas regras para contas de clientes.
+    await signInWithPopup(auth, googleProvider);
   } catch (erro) {
     console.error(erro);
-    alert("Erro ao entrar com Google.");
+    if (erro?.code !== "auth/popup-closed-by-user") {
+      alert(`Não foi possível entrar com o Google agora. Tente novamente.\n${erro?.code || "Erro de autenticação"}`);
+    }
   }
 };
 
-window.sairConta = async function () { await signOut(auth); };
+window.sairConta = async function () {
+  await signOut(auth);
+};
 
 export function iniciarAuth() {
-  onAuthStateChanged(auth, async (user) => {
+  onAuthStateChanged(auth, async user => {
     window.usuarioAtual = user;
-    window.isAdmin = user ? APP_CONFIG.admins.includes(user.email) : false;
+    window.isAdmin = user ? emailAdministrador(user.email) : false;
 
     const area = document.getElementById("areaUsuario");
     const adminArea = document.getElementById("adminUsuario");
 
     if (!user) {
+      window.perfilClienteAtual = null;
+      window.dispatchEvent(new CustomEvent("perfil-cliente-atualizado", {
+        detail: { usuario: null, perfil: null }
+      }));
+
       if (area) {
-        area.innerHTML = '';
-        const b = document.createElement('button');
-        b.className = 'btn-login-google';
-        b.textContent = 'Entrar com Google';
-        b.addEventListener('click', () => window.loginGoogle && window.loginGoogle());
-        area.appendChild(b);
+        area.innerHTML = "";
+        const botao = document.createElement("button");
+        botao.className = "btn-login-google";
+        botao.textContent = "Entrar com Google";
+        botao.title = "Salvar nome e endereço para os próximos pedidos";
+        botao.addEventListener("click", () => window.loginGoogle?.());
+        area.appendChild(botao);
       }
 
       if (adminArea) {
-        adminArea.innerHTML = '';
-        const b2 = document.createElement('button');
-        b2.className = 'btn-login-google';
-        b2.textContent = 'Entrar como administrador';
-        b2.addEventListener('click', () => window.loginGoogle && window.loginGoogle());
-        adminArea.appendChild(b2);
+        adminArea.innerHTML = "";
+        const botao = document.createElement("button");
+        botao.className = "btn-login-google";
+        botao.textContent = "Entrar como administrador";
+        botao.addEventListener("click", () => window.loginGoogle?.());
+        adminArea.appendChild(botao);
       }
 
       document.body.classList.remove("admin-liberado");
       return;
     }
 
-    await salvarUsuario(user);
+    let perfil;
+
+    try {
+      perfil = await carregarOuCriarUsuario(user);
+    } catch (erro) {
+      console.error("Não foi possível carregar o perfil:", erro);
+      perfil = perfilComIdentidade(user);
+    }
+
+    emitirPerfil(user, perfil);
 
     if (area) {
-      area.innerHTML = '';
+      area.innerHTML = "";
       area.appendChild(createUserChip(user, window.isAdmin));
     }
 
     if (adminArea) {
-      adminArea.innerHTML = '';
+      adminArea.innerHTML = "";
+
       if (!window.isAdmin) {
-        const blocked = document.createElement('div');
-        blocked.className = 'admin-blocked';
-        const strong = document.createElement('strong'); strong.textContent = 'Acesso negado'; blocked.appendChild(strong);
-        const p = document.createElement('p'); p.textContent = 'Este e-mail não é administrador.'; blocked.appendChild(p);
-        const btn = document.createElement('button'); btn.textContent = 'Sair'; btn.addEventListener('click', () => window.sairConta && window.sairConta()); blocked.appendChild(btn);
+        const blocked = document.createElement("div");
+        blocked.className = "admin-blocked";
+        const strong = document.createElement("strong");
+        strong.textContent = "Acesso negado";
+        blocked.appendChild(strong);
+        const p = document.createElement("p");
+        p.textContent = "Este e-mail não é administrador.";
+        blocked.appendChild(p);
+        const btn = document.createElement("button");
+        btn.textContent = "Sair";
+        btn.addEventListener("click", () => window.sairConta?.());
+        blocked.appendChild(btn);
         adminArea.appendChild(blocked);
         document.body.classList.remove("admin-liberado");
         return;
       }
 
       const chip = createUserChip(user, true);
-      // prepend ADM label
-      const span = chip.querySelector('span');
-      if (span) span.textContent = 'ADM: ' + (user.displayName || user.email);
+      const span = chip.querySelector("span");
+      if (span) span.textContent = `ADM: ${user.displayName || user.email}`;
       adminArea.appendChild(chip);
       document.body.classList.add("admin-liberado");
-      if (typeof window.iniciarAdminDepoisLogin === "function") window.iniciarAdminDepoisLogin();
+      window.iniciarAdminDepoisLogin?.();
     }
   });
 }

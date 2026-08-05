@@ -1203,6 +1203,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   outline:3px solid rgba(246,182,61,.55);
   outline-offset:3px;
 }
+.skip-link{position:fixed;left:14px;top:10px;z-index:9999;padding:10px 14px;border-radius:10px;background:#fff;color:#591d14;font-weight:900;transform:translateY(-150%)}
+.skip-link:focus{transform:translateY(0)}
 
 .topbar{
   top:0;
@@ -1235,6 +1237,7 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
 .nav-cart{display:flex;align-items:center;gap:8px!important;background:var(--dv-gold)!important;color:#452218!important;border-color:transparent!important}
 .nav-cart span{display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:999px;background:var(--dv-wine);color:#fff;font-size:.68rem}
 .btn-login-google{min-height:42px!important;border:1px solid rgba(255,255,255,.2)!important;background:#fffaf2!important;color:var(--dv-wine)!important}
+.mobile-label{display:none}
 
 .hero{
   position:relative;isolation:isolate;overflow:hidden;
@@ -1289,6 +1292,7 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
 .section-title{margin-bottom:21px}
 .section-title h2{font-size:clamp(1.65rem,3vw,2.4rem);line-height:1.05;letter-spacing:-.035em;color:var(--dv-wine)}
 .section-title p{margin-top:7px;color:var(--dv-muted);font-size:.92rem}
+.section-title p.aviso{max-width:720px;padding:10px 13px;border:1px solid #efc688;border-radius:12px;background:#fff6dc;color:#735019}
 .promocoes-section{margin:0 0 48px;padding:clamp(20px,3vw,34px);background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(255,244,224,.9));border:1px solid var(--dv-line);border-radius:var(--dv-radius);box-shadow:var(--dv-shadow)}
 .cardapio-dia-card{background:linear-gradient(135deg,#fffdf8,#ffedc5);border-color:rgba(170,90,43,.18);box-shadow:var(--dv-shadow)}
 .cardapio-dia-itens span{background:rgba(255,255,255,.74);border-color:rgba(125,64,35,.12)}
@@ -1333,6 +1337,7 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
 .item-actions button{background:var(--dv-wine)}
 .total{border-color:var(--dv-line);color:var(--dv-wine)}
 .formulario input,.formulario select,.formulario textarea{border-color:var(--dv-line);background:#fff;min-height:43px}
+.perfil-cliente-aviso{margin:2px 0 10px;padding:10px 12px;border:1px solid #ead8c9;border-radius:12px;background:#fff8eb;color:#765a49;font-size:.76rem;line-height:1.4}
 .btn-whatsapp{min-height:50px;box-shadow:0 11px 25px rgba(26,161,77,.22)}
 .floating-cart{display:grid;place-items:center;width:64px;height:64px;right:clamp(16px,3vw,28px);bottom:clamp(16px,3vw,28px);background:linear-gradient(145deg,var(--dv-wine-2),var(--dv-wine));box-shadow:0 15px 34px rgba(78,23,15,.32);border:2px solid rgba(255,255,255,.55)}
 .floating-cart:hover{transform:translateY(-4px) scale(1.03)}
@@ -1359,6 +1364,7 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
 .footer-brand{display:flex;align-items:center;gap:13px}.footer-brand img{width:55px;height:55px;object-fit:contain;border-radius:16px;background:#fff7e8;padding:3px}
 .footer-brand strong,.footer-brand span{display:block}.footer-brand span{margin-top:4px;color:#caa89a;font-size:.78rem}
 .footer-info{display:flex;flex-wrap:wrap;gap:16px;color:#eacfc1;font-size:.82rem;font-weight:700}
+.footer-info a{color:#eacfc1;text-decoration:none}.footer-info a:hover{color:#ffd77f;text-decoration:underline;text-underline-offset:4px}
 
 .splash-screen{
   overflow:hidden;padding:24px;
@@ -1403,6 +1409,12 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
   html{scroll-padding-top:135px}
   .brand strong{font-size:.9rem}.brand span{font-size:.66rem}.logo{width:49px;height:49px;flex-basis:49px;border-radius:16px}
   nav{gap:6px}nav a,nav button{min-height:38px;padding:8px 12px;font-size:.7rem}
+  #areaUsuario{flex:0 0 auto}
+  .desktop-label{display:none}.mobile-label{display:inline}
+  .user-chip{max-width:138px;gap:5px;padding:4px 5px 4px 8px;font-size:.72rem}
+  .user-chip img{width:22px;height:22px;flex:0 0 22px}
+  .user-chip span{max-width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .user-chip button,.user-chip a{min-height:30px!important;padding:6px 7px;font-size:.65rem}
   .hero{padding-top:52px;gap:15px}.hero h1{font-size:clamp(2.55rem,14vw,4rem);line-height:.95}.hero p{font-size:.94rem}.hero-trust{gap:7px 12px;font-size:.68rem}
   .hero-art{min-height:230px}.hero-art img{width:min(72vw,280px)}.halo-a{width:245px;height:245px}.halo-b{width:295px;height:295px}
   .container{padding-left:14px;padding-right:14px}
@@ -1412,7 +1424,7 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
   .produto-card{min-height:305px;padding:14px;border-radius:17px}.produto-card::before{height:78px}.produto-card .emoji{width:54px;height:54px;font-size:2rem;border-radius:16px}.produto-card h3{font-size:.92rem}.produto-card p{font-size:.76rem}.ingredientes-card{font-size:.71rem;padding:7px}.preco{font-size:1.12rem}.produto-card button{min-height:42px;padding:9px;font-size:.78rem}
   .badge,.promo-site{top:10px;right:9px;padding:5px 7px;font-size:.6rem}
   .carrinho{padding:16px!important;border-radius:24px 24px 0 0!important}
-  .install-card{width:calc(100% - 28px);padding:21px;grid-template-columns:1fr;text-align:center}.install-icon{margin:auto}.install-card>button{grid-column:auto}
+  .install-card{width:calc(100% - 28px);padding:17px;grid-template-columns:50px 1fr;text-align:left;gap:13px}.install-icon{width:50px;height:50px;margin:0;border-radius:15px;font-size:1.45rem}.install-card h2{font-size:1rem}.install-card p{font-size:.76rem}.install-card>button{grid-column:1/-1;width:100%}
   .site-footer{align-items:flex-start;flex-direction:column;padding:28px 20px}.footer-info{flex-direction:column;gap:8px}
   .floating-cart{width:58px;height:58px;font-size:24px}
   .splash-emblem{width:min(86vw,330px)}

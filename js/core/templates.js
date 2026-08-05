@@ -2,14 +2,19 @@ export function createUserChip(user, isAdmin) {
   const div = document.createElement('div');
   div.className = 'user-chip';
 
-  const img = document.createElement('img');
-  img.src = user.photoURL || '';
-  img.alt = user.displayName || user.email || 'Usuário';
-
   const span = document.createElement('span');
-  span.textContent = user.displayName || user.email || '';
+  const nomeCompleto = user.displayName || user.email || '';
+  span.textContent = isAdmin ? nomeCompleto : (nomeCompleto.split(/\s+/)[0] || nomeCompleto);
+  span.title = nomeCompleto;
 
-  div.appendChild(img);
+  if (user.photoURL) {
+    const img = document.createElement('img');
+    img.src = user.photoURL;
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('error', () => img.remove(), { once: true });
+    div.appendChild(img);
+  }
   div.appendChild(span);
 
   if (isAdmin) {

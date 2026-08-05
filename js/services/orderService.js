@@ -1,4 +1,6 @@
-import { db, doc, getDoc, setDoc, onSnapshot, runTransaction, serverTimestamp } from "../core/firebase.js";
+import { db, collection, doc, setDoc, onSnapshot, serverTimestamp } from "../core/firebase.js";
+
+const FUSO_LOJA = "America/Sao_Paulo";
 
 export let resumoPedidosSiteHoje = {
   data: "",
@@ -7,45 +9,87 @@ export let resumoPedidosSiteHoje = {
   ultimoPedido: null
 };
 
-export function dataLocalISO(data = new Date()) {
-  const ano = data.getFullYear();
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const dia = String(data.getDate()).padStart(2, "0");
+function partesData(data = new Date()) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: FUSO_LOJA,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(data);
 
-  return `${ano}-${mes}-${dia}`;
+  return Object.fromEntries(partes.map(parte => [parte.type, parte.value]));
+}
+
+export function dataLocalISO(data = new Date()) {
+  const partes = partesData(data);
+  return `${partes.year}-${partes.month}-${partes.day}`;
 }
 
 export function dataLocalBR(data = new Date()) {
-  return data.toLocaleDateString("pt-BR");
+  const partes = partesData(data);
+  return `${partes.day}/${partes.month}/${partes.year}`;
 }
 
 export function horaLocalBR(data = new Date()) {
-  return data.toLocaleTimeString("pt-BR", {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: FUSO_LOJA,
     hour: "2-digit",
-    minute: "2-digit"
-  });
+    minute: "2-digit",
+    hour12: false
+  }).format(data);
+}
+
+function codigoAleatorio(tamanho = 5) {
+  const alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const valores = new Uint32Array(tamanho);
+
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(valores);
+  } else {
+    valores.forEach((_, indice) => { valores[indice] = Math.floor(Math.random() * alfabeto.length); });
+  }
+
+  return Array.from(valores, valor => alfabeto[valor % alfabeto.length]).join("");
+}
+
+function criarNumeroPedido(dataISO) {
+  const dataCurta = dataISO.replaceAll("-", "").slice(2);
+  return `DV-${dataCurta}-${codigoAleatorio()}`;
 }
 
 export function formatarNumeroPedido(numero) {
+  if (typeof numero === "string") return numero;
   return `#${String(numero || 0).padStart(3, "0")}`;
 }
 
 export function observarResumoPedidosSiteHoje(callback) {
   const hoje = dataLocalISO();
-  const ref = doc(db, "contadoresPedidos", hoje);
+  const ref = collection(db, "pedidosSite", hoje, "pedidos");
 
   return onSnapshot(ref, snapshot => {
-    const dados = snapshot.exists() ? snapshot.data() : {};
+    const pedidos = snapshot.docs
+      .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+      .sort((a, b) => Number(b.criadoEmMs || 0) - Number(a.criadoEmMs || 0));
+
+    const ultimo = pedidos[0] || null;
 
     resumoPedidosSiteHoje = {
       data: hoje,
-      ultimoNumero: Number(dados.ultimoNumero || 0),
-      totalPedidos: Number(dados.totalPedidos || dados.ultimoNumero || 0),
-      ultimoPedido: dados.ultimoPedido || null
+      ultimoNumero: pedidos.length,
+      totalPedidos: pedidos.length,
+      ultimoPedido: ultimo ? {
+        id: ultimo.id,
+        numero: ultimo.numero,
+        numeroFormatado: ultimo.numeroFormatado || ultimo.numero,
+        dataBR: ultimo.dataBR || "",
+        horaBR: ultimo.horaBR || "",
+        cliente: ultimo.cliente?.nome || "",
+        total: Number(ultimo.total || 0)
+      } : null
     };
 
-    if (callback) callback(resumoPedidosSiteHoje);
-  });
+    callback?.(resumoPedidosSiteHoje, null);
+  }, erro => callback?.(resumoPedidosSiteHoje, erro));
 }
 
 export async function gerarPedidoSite(dadosPedido) {
@@ -53,50 +97,22 @@ export async function gerarPedidoSite(dadosPedido) {
   const dataISO = dataLocalISO(agora);
   const dataBR = dataLocalBR(agora);
   const horaBR = horaLocalBR(agora);
+  const numeroFormatado = criarNumeroPedido(dataISO);
+  const pedidoRef = doc(collection(db, "pedidosSite", dataISO, "pedidos"));
 
-  const contadorRef = doc(db, "contadoresPedidos", dataISO);
+  const pedidoFinal = {
+    ...dadosPedido,
+    id: pedidoRef.id,
+    numero: numeroFormatado,
+    numeroFormatado,
+    status: dadosPedido.status || "registrado",
+    dataISO,
+    dataBR,
+    horaBR,
+    criadoEmMs: agora.getTime(),
+    criadoEm: serverTimestamp()
+  };
 
-  const resultado = await runTransaction(db, async transaction => {
-    const contadorSnap = await transaction.get(contadorRef);
-    const atual = contadorSnap.exists() ? Number(contadorSnap.data().ultimoNumero || 0) : 0;
-    const proximo = atual + 1;
-
-    const numeroFormatado = formatarNumeroPedido(proximo);
-    const pedidoId = `pedido_${dataISO.replaceAll("-", "")}_${String(proximo).padStart(3, "0")}`;
-    const pedidoRef = doc(db, "pedidosSite", dataISO, "pedidos", pedidoId);
-
-    const pedidoFinal = {
-      ...dadosPedido,
-      id: pedidoId,
-      numero: proximo,
-      numeroFormatado,
-      status: dadosPedido.status || "registrado",
-      dataISO,
-      dataBR,
-      horaBR,
-      criadoEm: serverTimestamp()
-    };
-
-    transaction.set(pedidoRef, pedidoFinal);
-
-    transaction.set(contadorRef, {
-      data: dataISO,
-      ultimoNumero: proximo,
-      totalPedidos: proximo,
-      ultimoPedido: {
-        id: pedidoId,
-        numero: proximo,
-        numeroFormatado,
-        dataBR,
-        horaBR,
-        cliente: dadosPedido?.cliente?.nome || "",
-        total: Number(dadosPedido?.total || 0)
-      },
-      atualizadoEm: serverTimestamp()
-    }, { merge: true });
-
-    return pedidoFinal;
-  });
-
-  return resultado;
+  await setDoc(pedidoRef, pedidoFinal);
+  return pedidoFinal;
 }

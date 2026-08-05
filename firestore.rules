@@ -7,16 +7,146 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // A permissão administrativa depende do e-mail confirmado pelo Google,
+    // nunca de um campo que o próprio usuário possa gravar no Firestore.
     function isAdmin() {
       return logado()
-        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.tipo == "admin";
+        && request.auth.token.email == "deliciasdavo54@gmail.com";
+    }
+
+    function enderecoValido(endereco) {
+      return endereco is map
+        && endereco.keys().hasOnly(["rua", "numero", "bairro", "complemento"])
+        && endereco.rua is string && endereco.rua.size() <= 160
+        && endereco.numero is string && endereco.numero.size() <= 30
+        && endereco.bairro is string && endereco.bairro.size() <= 100
+        && endereco.complemento is string && endereco.complemento.size() <= 180;
+    }
+
+    function perfilNovoValido(uid) {
+      return request.resource.data.keys().hasOnly([
+          "uid", "nome", "email", "foto", "tipo", "telefone", "endereco",
+          "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.keys().hasAll([
+          "uid", "nome", "email", "foto", "tipo", "telefone", "endereco",
+          "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() <= 120
+        && request.resource.data.foto is string
+        && request.resource.data.foto.size() <= 2000
+        && request.resource.data.telefone is string
+        && request.resource.data.telefone.size() <= 30
+        && enderecoValido(request.resource.data.endereco)
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time
+        && (
+          (isAdmin() && request.resource.data.tipo == "admin")
+          || (!isAdmin() && request.resource.data.tipo == "cliente")
+        );
+    }
+
+    function atualizacaoPerfilValida(uid) {
+      return request.auth.uid == uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.tipo == resource.data.tipo
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() <= 120
+        && request.resource.data.foto is string
+        && request.resource.data.foto.size() <= 2000
+        && request.resource.data.telefone is string
+        && request.resource.data.telefone.size() <= 30
+        && enderecoValido(request.resource.data.endereco)
+        && request.resource.data.atualizadoEm == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "nome", "foto", "telefone", "endereco", "atualizadoEm"
+        ]);
+    }
+
+    function pedidoSiteValido(dataPedido, pedidoId) {
+      return request.resource.data.keys().hasOnly([
+          "origem", "loja", "cliente", "tipo", "endereco", "enderecoDetalhado",
+          "pagamento", "itens", "total", "usuarioId", "id", "numero",
+          "numeroFormatado", "status", "dataISO", "dataBR", "horaBR",
+          "criadoEmMs", "criadoEm"
+        ])
+        && request.resource.data.keys().hasAll([
+          "origem", "loja", "cliente", "tipo", "endereco", "pagamento",
+          "itens", "total", "id", "numero", "numeroFormatado", "status",
+          "dataISO", "dataBR", "horaBR", "criadoEmMs", "criadoEm"
+        ])
+        && request.resource.data.origem == "site"
+        && request.resource.data.id == pedidoId
+        && request.resource.data.dataISO == dataPedido
+        && request.resource.data.numero is string
+        && request.resource.data.numero.size() <= 40
+        && request.resource.data.numeroFormatado == request.resource.data.numero
+        && request.resource.data.status == "registrado"
+        && request.resource.data.loja is string
+        && request.resource.data.loja.size() <= 120
+        && request.resource.data.cliente is map
+        && request.resource.data.cliente.nome is string
+        && request.resource.data.cliente.nome.size() > 0
+        && request.resource.data.cliente.nome.size() <= 120
+        && request.resource.data.tipo in ["Retirada na loja", "Entrega"]
+        && request.resource.data.endereco is string
+        && request.resource.data.endereco.size() <= 500
+        && request.resource.data.pagamento in ["Pix", "Dinheiro", "Cartão"]
+        && request.resource.data.itens is list
+        && request.resource.data.itens.size() > 0
+        && request.resource.data.itens.size() <= 60
+        && request.resource.data.total is number
+        && request.resource.data.total >= 0
+        && request.resource.data.total <= 100000
+        && request.resource.data.criadoEmMs is int
+        && request.resource.data.criadoEm == request.time;
+    }
+
+    function encomendaFestaValida() {
+      return request.resource.data.keys().hasOnly([
+          "cliente", "dataFesta", "tipoEntrega", "endereco", "enderecoDetalhado",
+          "observacoes", "itens", "totalUnidades", "totalEstimado", "usuarioId",
+          "numero", "status", "visualizado", "criadoEmMs", "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.keys().hasAll([
+          "cliente", "dataFesta", "tipoEntrega", "endereco", "observacoes",
+          "itens", "totalUnidades", "totalEstimado", "numero", "status",
+          "visualizado", "criadoEmMs", "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.cliente is map
+        && request.resource.data.cliente.nome is string
+        && request.resource.data.cliente.nome.size() > 0
+        && request.resource.data.cliente.nome.size() <= 120
+        && request.resource.data.cliente.telefone is string
+        && request.resource.data.cliente.telefone.size() <= 30
+        && request.resource.data.numero is string
+        && request.resource.data.numero.size() <= 40
+        && request.resource.data.status == "aguardando_confirmacao"
+        && request.resource.data.visualizado == false
+        && request.resource.data.tipoEntrega in ["Retirada na loja", "Entrega"]
+        && request.resource.data.itens is list
+        && request.resource.data.itens.size() > 0
+        && request.resource.data.itens.size() <= 100
+        && request.resource.data.totalUnidades is number
+        && request.resource.data.totalUnidades > 0
+        && request.resource.data.totalUnidades <= 100000
+        && request.resource.data.totalEstimado is number
+        && request.resource.data.totalEstimado >= 0
+        && request.resource.data.totalEstimado <= 1000000
+        && request.resource.data.criadoEmMs is int
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
     }
 
     match /usuarios/{uid} {
-      allow create: if logado() && request.auth.uid == uid;
+      allow create: if logado() && request.auth.uid == uid && perfilNovoValido(uid);
       allow read: if logado() && (request.auth.uid == uid || isAdmin());
-      allow update, delete: if isAdmin();
+      allow update: if logado() && (isAdmin() || atualizacaoPerfilValida(uid));
+      allow delete: if isAdmin();
     }
 
     match /produtos/{id} {
@@ -44,17 +174,17 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Contadores antigos ficam preservados para histórico, mas deixam de aceitar
+    // alterações públicas. Os novos pedidos usam códigos únicos sem contador global.
     match /contadoresPedidos/{data} {
-      allow read: if isAdmin();
-      allow create, update: if true;
-      allow delete: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
-    match /pedidosSite/{data} {
+    match /pedidosSite/{dataPedido} {
       allow read: if isAdmin();
 
       match /pedidos/{pedidoId} {
-        allow create: if true;
+        allow create: if pedidoSiteValido(dataPedido, pedidoId);
         allow read, update, delete: if isAdmin();
       }
     }
@@ -63,14 +193,8 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
-    // Vendas normais e vendas importadas pelo papel do Caixa Rápido.
     match /vendas/{id} {
       allow read, write: if isAdmin();
-    }
-
-    match /contadores/encomendasFesta {
-      allow read, create, update: if true;
-      allow delete: if isAdmin();
     }
 
     match /contadores/{id} {
@@ -78,11 +202,10 @@ service cloud.firestore {
     }
 
     match /encomendasFesta/{pedidoId} {
-      allow create: if true;
+      allow create: if encomendaFestaValida();
       allow read, update, delete: if isAdmin();
     }
 
-    // Lançamentos financeiros manuais e despesas criadas pela leitura de notas.
     match /movimentosFinanceiros/{movimentoId} {
       allow read, create, update, delete: if isAdmin();
     }
@@ -91,12 +214,10 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
-    // Contas geradas por vendas com pagamento pendente.
     match /contasReceber/{contaId} {
       allow read, create, update, delete: if isAdmin();
     }
 
-    // Uma sessão de caixa por dia.
     match /sessoesCaixa/{sessaoId} {
       allow read, create, update, delete: if isAdmin();
     }
@@ -105,7 +226,6 @@ service cloud.firestore {
       allow read, create, update, delete: if isAdmin();
     }
 
-    // Bloqueia qualquer coleção que não esteja declarada acima.
     match /{document=**} {
       allow read, write: if false;
     }

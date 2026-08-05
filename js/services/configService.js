@@ -12,13 +12,35 @@ export let lojaConfig = {
   statusLoja: "aberta"
 };
 
+const CACHE_CONFIG_LOJA = "deliciasConfigLojaV52";
+
+function salvarCache(dados) {
+  try {
+    localStorage.setItem(CACHE_CONFIG_LOJA, JSON.stringify(dados));
+  } catch {}
+}
+
+function carregarCache() {
+  try {
+    const dados = JSON.parse(localStorage.getItem(CACHE_CONFIG_LOJA) || "null");
+    return dados && typeof dados === "object" ? dados : null;
+  } catch {
+    return null;
+  }
+}
+
 export function observarConfiguracoesLoja(callback) {
   return onSnapshot(doc(db, "configuracoes", "loja"), (snapshot) => {
     if (snapshot.exists()) {
       lojaConfig = { ...lojaConfig, ...snapshot.data() };
     }
 
-    callback(lojaConfig);
+    salvarCache(lojaConfig);
+    callback(lojaConfig, null);
+  }, erro => {
+    const cache = carregarCache();
+    if (cache) lojaConfig = { ...lojaConfig, ...cache };
+    callback(lojaConfig, erro);
   });
 }
 

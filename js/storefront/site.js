@@ -13,16 +13,21 @@ import { registrarEncomendaFesta } from "../services/partyOrderService.js";
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
 let pendingSaborProdutoId = null;
+let ultimoFocoAntesCarrinho = null;
+
+window.addEventListener("perfil-cliente-atualizado", event => {
+  preencherDadosCliente(event.detail?.perfil || null);
+});
 
 iniciarAuth();
-iniciarSplashScreen();
 observarSalgadosFesta((_, erro) => renderSalgadosFesta(erro));
 
-observarProdutos(() => {
+observarProdutos((_, erro, usandoCache) => {
   renderCategoriasSite();
   renderizarProdutos(categoriaAtual);
   renderPromocoesSite();
   atualizarCarrinho();
+  atualizarEstadoCardapio(erro, usandoCache);
 });
 
 observarCategorias(() => {
@@ -40,19 +45,93 @@ observarPromocoes(() => {
   renderPromocoesSite();
 });
 
-function iniciarSplashScreen() {
-  const splash = document.getElementById("splashScreen");
-  if (!splash) return;
+function preencherSeVazio(id, valor) {
+  const campo = document.getElementById(id);
+  if (campo && !campo.value.trim() && valor) campo.value = valor;
+}
 
-  const tempoMinimo = 2600;
+function preencherDadosCliente(perfil) {
+  const aviso = document.getElementById("perfilClienteAviso");
 
-  window.setTimeout(() => {
-    splash.classList.add("splash-saindo");
+  if (!perfil) {
+    if (aviso) aviso.textContent = "Entre com Google para reutilizar seus dados nas próximas compras.";
+    return;
+  }
 
-    window.setTimeout(() => {
-      splash.remove();
-    }, 1000);
-  }, tempoMinimo);
+  const endereco = perfil.endereco || {};
+
+  preencherSeVazio("nomeCliente", perfil.nome);
+  preencherSeVazio("telefoneCliente", perfil.telefone);
+  preencherSeVazio("ruaCliente", endereco.rua);
+  preencherSeVazio("numeroCliente", endereco.numero);
+  preencherSeVazio("bairroCliente", endereco.bairro);
+  preencherSeVazio("complementoCliente", endereco.complemento);
+
+  preencherSeVazio("nomeFestaCliente", perfil.nome);
+  preencherSeVazio("telefoneFestaCliente", perfil.telefone);
+  preencherSeVazio("ruaFesta", endereco.rua);
+  preencherSeVazio("numeroFesta", endereco.numero);
+  preencherSeVazio("bairroFesta", endereco.bairro);
+  preencherSeVazio("complementoFesta", endereco.complemento);
+
+  if (aviso) {
+    const perfilCompleto = Boolean(perfil.telefone && endereco.rua && endereco.numero && endereco.bairro);
+    aviso.textContent = perfilCompleto
+      ? "✓ Seus dados foram preenchidos pelo seu perfil Google."
+      : "Seu nome veio do Google. Complete telefone e endereço uma vez; depois eles aparecem automaticamente.";
+  }
+}
+
+function capturarPerfilCliente(origem = "normal") {
+  const festa = origem === "festa";
+
+  return {
+    nome: limparTexto(document.getElementById(festa ? "nomeFestaCliente" : "nomeCliente")?.value || ""),
+    telefone: limparTexto(document.getElementById(festa ? "telefoneFestaCliente" : "telefoneCliente")?.value || ""),
+    endereco: {
+      rua: limparTexto(document.getElementById(festa ? "ruaFesta" : "ruaCliente")?.value || ""),
+      numero: limparTexto(document.getElementById(festa ? "numeroFesta" : "numeroCliente")?.value || ""),
+      bairro: limparTexto(document.getElementById(festa ? "bairroFesta" : "bairroCliente")?.value || ""),
+      complemento: limparTexto(document.getElementById(festa ? "complementoFesta" : "complementoCliente")?.value || "")
+    }
+  };
+}
+
+async function salvarDadosCliente(origem = "normal") {
+  if (!window.usuarioAtual || typeof window.salvarPerfilCliente !== "function") return;
+
+  const dados = capturarPerfilCliente(origem);
+
+  try {
+    await window.salvarPerfilCliente(dados);
+  } catch (erro) {
+    // Salvar o perfil é uma comodidade e nunca deve impedir o pedido.
+    console.warn("Não foi possível atualizar os dados do cliente:", erro);
+  }
+}
+
+function atualizarEstadoCardapio(erro, usandoCache = false) {
+  const status = document.getElementById("statusCardapioSite");
+  if (!status) return;
+
+  status.classList.toggle("aviso", Boolean(erro));
+
+  if (erro && usandoCache) {
+    status.textContent = "Mostrando o último cardápio disponível. Confirme os itens pelo WhatsApp.";
+  } else if (erro) {
+    status.textContent = "Não foi possível carregar o cardápio agora. Tente novamente ou fale conosco pelo WhatsApp.";
+  } else if (!produtos.length) {
+    status.textContent = "O cardápio está sendo atualizado. Volte em alguns instantes.";
+  } else {
+    status.textContent = "Escolha seus favoritos e monte o pedido em poucos toques.";
+  }
+}
+
+function formatarTelefoneExibicao(numero = "") {
+  const digitos = String(numero).replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+  if (digitos.length === 11) return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+  if (digitos.length === 10) return `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+  return numero;
 }
 
 
@@ -63,10 +142,36 @@ function aplicarConfiguracoesSite() {
 
   const entrega = document.getElementById("entregaTexto");
   const retirada = document.getElementById("retiradaTexto");
+  const festaEntrega = document.getElementById("festaEntregaTexto");
   const status = document.getElementById("statusLojaTexto");
 
   if (entrega) entrega.textContent = lojaConfig.entrega || "Taxa conforme distância";
+  if (festaEntrega) festaEntrega.textContent = lojaConfig.entrega || "Taxa conforme distância";
   if (retirada) retirada.textContent = lojaConfig.retirada || "Disponível na loja";
+
+  const numeroWhatsApp = String(lojaConfig.whatsapp || APP_CONFIG.whatsapp).replace(/\D/g, "");
+  const enderecoLoja = limparTexto(lojaConfig.endereco || "");
+  const instagram = limparTexto(lojaConfig.instagram || "").replace(/^@/, "");
+  const footerWhatsApp = document.getElementById("footerWhatsApp");
+  const footerEndereco = document.getElementById("footerEndereco");
+  const footerInstagram = document.getElementById("footerInstagram");
+
+  if (footerWhatsApp) {
+    footerWhatsApp.href = `https://wa.me/${numeroWhatsApp}`;
+    footerWhatsApp.textContent = `📱 ${formatarTelefoneExibicao(numeroWhatsApp)}`;
+  }
+
+  if (footerEndereco) {
+    footerEndereco.hidden = !enderecoLoja;
+    footerEndereco.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${enderecoLoja}, Votuporanga - SP`)}`;
+    footerEndereco.textContent = enderecoLoja ? `📍 ${enderecoLoja}` : "";
+  }
+
+  if (footerInstagram) {
+    footerInstagram.hidden = !instagram;
+    footerInstagram.href = `https://www.instagram.com/${encodeURIComponent(instagram)}/`;
+    footerInstagram.textContent = instagram ? `📷 @${instagram}` : "";
+  }
 
   if (status) {
   const resultado = calcularStatusAtendimento();
@@ -125,14 +230,43 @@ function formatarPeriodosAtendimento(periodos = []) {
   return validos.map(periodo => `${periodo.inicio}–${periodo.fim}`).join(" e ");
 }
 
+function agoraNaLoja(data = new Date()) {
+  const partes = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_CONFIG.timeZone,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(data).map(parte => [parte.type, parte.value]));
+
+  const indices = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+  return {
+    indiceDia: indices[partes.weekday] ?? data.getDay(),
+    hora: Number(partes.hour || 0),
+    minuto: Number(partes.minute || 0)
+  };
+}
+
+function dataISOHojeLoja(data = new Date()) {
+  const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_CONFIG.timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(data).map(parte => [parte.type, parte.value]));
+
+  return `${partes.year}-${partes.month}-${partes.day}`;
+}
+
 function calcularStatusAtendimento() {
   const horarios = lojaConfig.horariosAtendimento || {};
-  const agora = new Date();
   const dias = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
   const nomesDias = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
-  const indiceHoje = agora.getDay();
+  const agora = agoraNaLoja();
+  const indiceHoje = agora.indiceDia;
   const diaAtual = dias[indiceHoje];
-  const minutoAtual = agora.getHours() * 60 + agora.getMinutes();
+  const minutoAtual = agora.hora * 60 + agora.minuto;
   const configHoje = horarios[diaAtual];
   const periodosHoje = (configHoje?.periodos || [])
     .filter(periodo => periodo?.inicio && periodo?.fim)
@@ -271,8 +405,9 @@ function renderPromocoesSite() {
   if (!box) return;
 
   box.innerHTML = "";
+  const section = document.getElementById("promocoes");
 
-  const hoje = new Date().toISOString().slice(0, 10);
+  const hoje = dataISOHojeLoja();
 
   const ativas = promocoes.filter(p => {
     if (!p.ativa) return false;
@@ -281,15 +416,14 @@ function renderPromocoesSite() {
     const fimOk = !p.fim || p.fim >= hoje;
 
     return inicioOk && fimOk;
-  });
+  }).filter(promo => produtos.some(produto => produto.id === promo.produtoId && produto.ativo !== false));
 
   if (!ativas.length) {
-    const vazio = document.createElement('div');
-    vazio.className = 'promo-vazio';
-    vazio.textContent = 'Nenhuma promoção ativa no momento.';
-    box.appendChild(vazio);
+    if (section) section.hidden = true;
     return;
   }
+
+  if (section) section.hidden = false;
 
   ativas.forEach(promo => {
     const produto = produtos.find(p => p.id === promo.produtoId);
@@ -397,14 +531,27 @@ function pesquisarProdutosImpl() {
   container.appendChild(bloco);
 }
 
-function abrirCarrinhoImpl() {
-  document.getElementById("carrinho")?.classList.add("aberto");
+function abrirCarrinhoImpl(focar = true) {
+  const carrinhoEl = document.getElementById("carrinho");
+  if (!document.body.classList.contains("cart-open")) ultimoFocoAntesCarrinho = document.activeElement;
+  carrinhoEl?.classList.add("aberto");
+  carrinhoEl?.setAttribute("aria-hidden", "false");
   document.body.classList.add("cart-open");
+
+  if (focar) {
+    window.setTimeout(() => {
+      carrinhoEl?.querySelector(".cart-head button")?.focus({ preventScroll: true });
+    }, 30);
+  }
 }
 
 function fecharCarrinhoImpl() {
-  document.getElementById("carrinho")?.classList.remove("aberto");
+  const carrinhoEl = document.getElementById("carrinho");
+  carrinhoEl?.classList.remove("aberto");
+  carrinhoEl?.setAttribute("aria-hidden", "true");
   document.body.classList.remove("cart-open");
+
+  if (ultimoFocoAntesCarrinho?.isConnected) ultimoFocoAntesCarrinho.focus({ preventScroll: true });
 }
 
 
@@ -457,7 +604,24 @@ window.fecharCarrinho = fecharCarrinhoImpl;
 window.adicionarCarrinho = adicionarCarrinhoImpl;
 
 window.addEventListener("keydown", event => {
-  if (event.key === "Escape") fecharCarrinhoImpl();
+  if (event.key !== "Escape") return;
+
+  if (document.getElementById("modalRevisaoPedido")?.classList.contains("aberto")) {
+    fecharRevisaoPedido();
+    return;
+  }
+
+  if (document.getElementById("modalComprovanteFesta")?.classList.contains("aberto")) {
+    fecharComprovanteFesta();
+    return;
+  }
+
+  if (document.getElementById("modalSabores")?.classList.contains("aberto")) {
+    fecharModalSabores();
+    return;
+  }
+
+  fecharCarrinhoImpl();
 });
 
 function atualizarCarrinho() {
@@ -540,7 +704,7 @@ function alterarItemImpl(chave, valor) {
   }
 
   atualizarCarrinho();
-  if (manterCarrinhoAberto) abrirCarrinhoImpl();
+  if (manterCarrinhoAberto) abrirCarrinhoImpl(false);
 }
 
 // Modal de sabores
@@ -673,7 +837,7 @@ function montarMensagemPedidoWhatsApp(pedido) {
 ━━━━━━━━━━━━━━━━━━━━━━
 
 👤 CLIENTE
-${pedido.cliente.nome}
+${pedido.cliente.nome}${pedido.cliente.telefone ? `\n📱 ${pedido.cliente.telefone}` : ""}
 
 🛒 PEDIDO
 
@@ -697,7 +861,7 @@ Obrigado pela preferência ❤️`;
 }
 
 function setBotaoFinalizarPedido(texto, desabilitado = false) {
-  const botao = document.querySelector(".btn-whatsapp");
+  const botao = document.getElementById("btnFinalizarPedido");
   if (!botao) return;
 
   botao.textContent = texto;
@@ -766,16 +930,19 @@ function limparCarrinhoAposEnvio() {
 
   const camposParaLimpar = [
     "nomeCliente",
+    "telefoneCliente",
     "ruaCliente",
     "numeroCliente",
     "bairroCliente",
     "complementoCliente"
   ];
 
-  camposParaLimpar.forEach(id => {
-    const campo = document.getElementById(id);
-    if (campo) campo.value = "";
-  });
+  if (!window.usuarioAtual) {
+    camposParaLimpar.forEach(id => {
+      const campo = document.getElementById(id);
+      if (campo) campo.value = "";
+    });
+  }
 
   const tipoPedido = document.getElementById("tipoPedido");
   if (tipoPedido) tipoPedido.value = "Retirada na loja";
@@ -786,6 +953,8 @@ function limparCarrinhoAposEnvio() {
     pix.checked = true;
     selecionarPagamento(pix);
   }
+
+  if (window.usuarioAtual) preencherDadosCliente(window.perfilClienteAtual);
 }
 
 function confirmarPedidoNoWhatsApp() {
@@ -842,6 +1011,7 @@ async function finalizarPedidoImpl() {
   }
 
   const nome = limparTexto(document.getElementById("nomeCliente").value);
+  const telefone = limparTexto(document.getElementById("telefoneCliente")?.value || "");
   const tipo = document.getElementById("tipoPedido").value;
   const rua = limparTexto(document.getElementById("ruaCliente")?.value || "");
   const numeroEndereco = limparTexto(document.getElementById("numeroCliente")?.value || "");
@@ -863,6 +1033,8 @@ async function finalizarPedidoImpl() {
   setBotaoFinalizarPedido("⏳ Preparando pedido...", true);
 
   try {
+    await salvarDadosCliente("normal");
+
     const itens = carrinho.map(item => ({
       id: item.id,
       variacaoId: item.variacaoId || "",
@@ -884,8 +1056,10 @@ async function finalizarPedidoImpl() {
       loja: lojaConfig.nomeLoja || "Delícias da Vó",
       cliente: {
         nome,
-        telefone: ""
+        telefone,
+        uid: window.usuarioAtual?.uid || ""
       },
+      usuarioId: window.usuarioAtual?.uid || "",
       tipo,
       endereco: tipo === "Entrega" ? endereco : "",
       enderecoDetalhado: tipo === "Entrega" ? {
@@ -1082,8 +1256,11 @@ async function enviarEncomendaFesta(){
   const botao=document.querySelector('.festa-pedido-box .btn-whatsapp');
   if(botao){botao.disabled=true;botao.textContent="⏳ Registrando encomenda...";}
   try{
+    await salvarDadosCliente("festa");
+
     const pedido=await registrarEncomendaFesta({
-      cliente:{nome,telefone},
+      cliente:{nome,telefone,uid:window.usuarioAtual?.uid||""},
+      usuarioId:window.usuarioAtual?.uid||"",
       dataFesta:data||"",
       tipoEntrega,
       endereco: tipoEntrega==="Entrega" ? endereco : "",

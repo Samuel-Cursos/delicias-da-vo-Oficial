@@ -1,0 +1,16 @@
+GIT RECUPERADO - DELÍCIAS DA VÓ V5.2
+
+O projeto já está conectado a:
+https://github.com/Samuel-Cursos/delicias-da-vo-Oficial.git
+
+A branch atual é main e o commit da V5.2 já está pronto localmente.
+
+Abra ESTA pasta no VS Code e execute:
+
+git status
+git push origin main
+
+O status deve mostrar que a main está 1 commit à frente antes do push.
+Depois do push, a Vercel fará o deployment automaticamente.
+
+Não execute git init e não precisa criar ou clonar outra pasta.

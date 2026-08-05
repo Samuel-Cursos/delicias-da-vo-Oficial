@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v5-1-carrinho-corrigido";
+const CACHE_NAME = "delicias-da-vo-v5-2-perfil-seguranca";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -6,11 +6,23 @@ const ARQUIVOS_CACHE = [
   "/manifest.json",
   "/css/site.css",
   "/js/storefront/site.js",
+  "/js/core/auth.js",
+  "/js/core/config.js",
+  "/js/core/firebase.js",
+  "/js/core/templates.js",
+  "/js/core/utils.js",
+  "/js/services/productService.js",
+  "/js/services/categoryService.js",
+  "/js/services/configService.js",
+  "/js/services/promotionService.js",
+  "/js/services/orderService.js",
   "/js/services/partyProductService.js",
+  "/js/services/partyOrderService.js",
   "/js/services/financeService.js",
   "/js/services/centralOrderService.js",
   "/js/services/backupService.js",
-  "/assets/logo-delicias-da-vo.png",
+  "/assets/logo-delicias-da-vo.webp",
+  "/assets/logo-social.png",
   "/assets/icon-192.png",
   "/assets/icon-512.png",
   "/assets/icon-maskable-512.png"

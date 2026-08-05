@@ -2,6 +2,25 @@ import { db, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTi
 
 export let produtos = [];
 
+const CACHE_CARDAPIO = "deliciasCardapioPublicoV52";
+
+function salvarCacheCardapio(lista) {
+  try {
+    localStorage.setItem(CACHE_CARDAPIO, JSON.stringify(lista));
+  } catch {
+    // O cardápio online continua funcionando mesmo sem armazenamento local.
+  }
+}
+
+function carregarCacheCardapio() {
+  try {
+    const lista = JSON.parse(localStorage.getItem(CACHE_CARDAPIO) || "[]");
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
 export const produtosBase = [
   { id: "coxinha", nome: "Coxinha", categoria: "salgados", descricao: "Salgado frito crocante e recheado.", preco: 8, emoji: "🍗", sabores: ["Frango", "Carne"], estoque: 40, minimo: 5, ativo: true, destaque: true, ordem: 1 },
   { id: "risoles", nome: "Risoles", categoria: "salgados", descricao: "Risoles frito com massa macia e recheio saboroso.", preco: 8, emoji: "🥟", sabores: ["Presunto e queijo", "Frango", "Carne"], estoque: 40, minimo: 5, ativo: true, destaque: true, ordem: 2 },
@@ -54,7 +73,12 @@ export const produtosBase = [
 export function observarProdutos(callback) {
   return onSnapshot(collection(db, "produtos"), (snapshot) => {
     produtos = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-    callback(produtos);
+    salvarCacheCardapio(produtos);
+    callback(produtos, null, false);
+  }, erro => {
+    const cache = carregarCacheCardapio();
+    if (cache.length) produtos = cache;
+    callback(produtos, erro, cache.length > 0);
   });
 }
 

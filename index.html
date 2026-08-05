@@ -5,14 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Delícias da Vó | Pedidos Online</title>
   <meta name="description" content="Comida caseira, marmitas, salgados e encomendas da Delícias da Vó em Votuporanga." />
+  <link rel="canonical" href="https://delicias-da-vo.vercel.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:title" content="Delícias da Vó | Pedidos Online" />
+  <meta property="og:description" content="Comida caseira, marmitas, salgados e encomendas em Votuporanga." />
+  <meta property="og:url" content="https://delicias-da-vo.vercel.app/" />
+  <meta property="og:image" content="https://delicias-da-vo.vercel.app/assets/logo-social.png" />
+  <meta property="og:image:width" content="600" />
+  <meta property="og:image:height" content="600" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#591d14" />
   <link rel="icon" type="image/png" href="assets/icon-192.png" />
   <link rel="apple-touch-icon" href="assets/icon-192.png" />
-  <link rel="preload" href="assets/logo-delicias-da-vo.png" as="image" />
+  <link rel="preload" href="assets/logo-delicias-da-vo.webp" as="image" type="image/webp" />
   <link rel="stylesheet" href="css/site.css" />
 </head>
 <body>
+  <a class="skip-link" href="#cardapio">Ir direto para o cardápio</a>
   <div id="splashScreen" class="splash-screen">
     <div class="splash-glow" aria-hidden="true"></div>
     <div class="splash-card">
@@ -22,24 +33,37 @@
         <span class="splash-spark spark-one" aria-hidden="true">✦</span>
         <span class="splash-spark spark-two" aria-hidden="true">✦</span>
         <span class="splash-spark spark-three" aria-hidden="true">•</span>
-        <img src="assets/logo-delicias-da-vo.png" alt="Delícias da Vó" class="splash-logo">
+        <img src="assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="Delícias da Vó" class="splash-logo">
       </div>
       <p>Comida feita com amor, do jeitinho de casa.</p>
       <div class="splash-loading" aria-label="Carregando"><span></span><span></span><span></span></div>
     </div>
   </div>
   <script>
-    // A abertura nunca fica presa, mesmo se algum serviço externo estiver indisponível.
-    window.setTimeout(() => {
+    (() => {
       const splash = document.getElementById("splashScreen");
       if (!splash) return;
-      splash.classList.add("splash-saindo");
-      window.setTimeout(() => splash.remove(), 820);
-    }, 2200);
+
+      let jaViu = false;
+      try {
+        jaViu = sessionStorage.getItem("dvSplashV52") === "1";
+        sessionStorage.setItem("dvSplashV52", "1");
+      } catch {}
+
+      if (jaViu) {
+        splash.remove();
+        return;
+      }
+
+      window.setTimeout(() => {
+        splash.classList.add("splash-saindo");
+        window.setTimeout(() => splash.remove(), 650);
+      }, 1650);
+    })();
   </script>
   <header class="topbar">
     <div class="brand">
-      <div class="logo"><img src="assets/logo-delicias-da-vo.png" alt="Logo Delícias da Vó"></div>
+      <div class="logo"><img src="assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="Logo Delícias da Vó"></div>
       <div>
         <strong>Delícias da Vó</strong>
         <span>Comida caseira • Votuporanga</span>
@@ -47,7 +71,7 @@
     </div>
 
     <nav>
-      <button id="btnFestasTopo" onclick="abrirAreaFestas()">🎉 Salgados para Festas</button>
+      <button id="btnFestasTopo" onclick="abrirAreaFestas()">🎉 <span class="desktop-label">Salgados para Festas</span><span class="mobile-label">Festas</span></button>
       <button class="nav-cart" onclick="abrirCarrinho()">Carrinho <span id="contadorTopo">0</span></button>
       <div id="areaUsuario"></div>
     </nav>
@@ -74,7 +98,7 @@
       <span class="hero-halo halo-b"></span>
       <span class="hero-spark hero-spark-a">✦</span>
       <span class="hero-spark hero-spark-b">✦</span>
-      <img src="assets/logo-delicias-da-vo.png" alt="">
+      <img src="assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="">
     </div>
   </section>
 
@@ -101,10 +125,10 @@
       </div>
     </section>
 
-    <section id="promocoes" class="promocoes-section">
+    <section id="promocoes" class="promocoes-section" hidden>
       <div class="section-title">
         <h2>Promoções</h2>
-        <p>Ofertas cadastradas diretamente pelo painel ADM.</p>
+        <p>Ofertas especiais por tempo limitado.</p>
       </div>
 
       <div id="listaPromocoesSite" class="produtos-grid"></div>
@@ -113,12 +137,12 @@
     <section id="cardapio">
       <div class="section-title">
         <h2>Cardápio</h2>
-        <p>Produtos carregados do Firebase.</p>
+        <p id="statusCardapioSite" aria-live="polite">Carregando as opções disponíveis...</p>
       </div>
 
       <div class="categorias" id="categoriasSite"></div>
 
-      <input class="busca" id="buscaProduto" placeholder="Pesquisar produto..." oninput="pesquisarProdutos()" />
+      <input class="busca" id="buscaProduto" type="search" aria-label="Pesquisar produto no cardápio" placeholder="Pesquisar produto..." autocomplete="off" oninput="pesquisarProdutos()" />
       <div id="listaProdutos" class="catalogo"></div>
     </section>
   </main>
@@ -138,7 +162,7 @@
     <section class="festa-info-grid">
       <div><b>📦 Venda por cento</b><span>100 unidades</span></div>
       <div><b>📅 Encomende antes</b><span>1 a 2 dias de antecedência</span></div>
-      <div><b>🚚 Entrega disponível</b><span>Taxa de R$ 5,00</span></div>
+      <div><b>🚚 Entrega disponível</b><span id="festaEntregaTexto">Taxa conforme distância</span></div>
     </section>
     <section class="festa-destaque"><span>💛</span><div><b>Monte do seu jeito</b><p>Você pode escolher sabores diferentes. A confirmação final é feita pelo WhatsApp.</p></div></section>
     <div id="statusFestas" class="festa-status"></div>
@@ -147,8 +171,8 @@
     <section class="festa-pedido-box">
       <div><h2>🧺 Sua encomenda</h2><p>Adicione os itens e envie a lista para confirmação.</p></div>
       <div id="resumoFestaPedido"></div>
-      <label>Seu nome<input id="nomeFestaCliente" placeholder="Digite seu nome"></label>
-      <label>Seu WhatsApp<input id="telefoneFestaCliente" inputmode="tel" placeholder="(17) 99999-9999"></label>
+      <label>Seu nome<input id="nomeFestaCliente" placeholder="Digite seu nome" autocomplete="name"></label>
+      <label>Seu WhatsApp<input id="telefoneFestaCliente" inputmode="tel" placeholder="(17) 99999-9999" autocomplete="tel"></label>
       <label>Data da festa<input id="dataFesta" type="date"></label>
       <label>Como você quer receber?
         <select id="tipoEntregaFesta" onchange="atualizarEnderecoFesta()">
@@ -158,16 +182,16 @@
       </label>
       <div id="campoEnderecoFesta" class="endereco-form-grid festa-endereco-grid" hidden>
         <label class="endereco-rua">Rua
-          <input id="ruaFesta" placeholder="Nome da rua">
+          <input id="ruaFesta" placeholder="Nome da rua" autocomplete="address-line1">
         </label>
         <label class="endereco-numero">Número
-          <input id="numeroFesta" inputmode="numeric" placeholder="Nº">
+          <input id="numeroFesta" inputmode="numeric" placeholder="Nº" autocomplete="address-line2">
         </label>
         <label class="endereco-bairro">Bairro
-          <input id="bairroFesta" placeholder="Nome do bairro">
+          <input id="bairroFesta" placeholder="Nome do bairro" autocomplete="address-level3">
         </label>
         <label class="endereco-complemento">Complemento
-          <input id="complementoFesta" placeholder="Casa, bloco, referência...">
+          <input id="complementoFesta" placeholder="Casa, bloco, referência..." autocomplete="address-line3">
         </label>
       </div>
       <label>Observações<textarea id="obsFesta" placeholder="Horário desejado ou alguma observação"></textarea></label>
@@ -178,9 +202,9 @@
 
   <button class="cart-backdrop" id="cartBackdrop" type="button" onclick="fecharCarrinho()" aria-label="Fechar carrinho"></button>
 
-  <aside class="carrinho" id="carrinho" aria-label="Carrinho de compras">
+  <aside class="carrinho" id="carrinho" role="dialog" aria-modal="true" aria-labelledby="tituloCarrinho" aria-hidden="true">
     <div class="cart-head">
-      <h2>🛒 Pedido</h2>
+      <h2 id="tituloCarrinho">🛒 Pedido</h2>
       <button onclick="fecharCarrinho()" aria-label="Fechar carrinho">✕</button>
     </div>
 
@@ -192,17 +216,19 @@
     </div>
 
     <div class="formulario">
-      <input id="nomeCliente" placeholder="Nome" />
-      <select id="tipoPedido" onchange="atualizarEnderecoPedidoNormal()">
+      <p id="perfilClienteAviso" class="perfil-cliente-aviso" aria-live="polite">Entre com Google para reutilizar seus dados nas próximas compras.</p>
+      <input id="nomeCliente" aria-label="Nome do cliente" placeholder="Nome" autocomplete="name" />
+      <input id="telefoneCliente" aria-label="WhatsApp do cliente" inputmode="tel" placeholder="WhatsApp (opcional)" autocomplete="tel" />
+      <select id="tipoPedido" aria-label="Como deseja receber o pedido" onchange="atualizarEnderecoPedidoNormal()">
         <option>Retirada na loja</option>
         <option>Entrega</option>
       </select>
 
       <div id="camposEnderecoPedidoNormal" class="endereco-form-grid" hidden>
-        <input id="ruaCliente" class="endereco-rua" placeholder="Rua" />
-        <input id="numeroCliente" class="endereco-numero" inputmode="numeric" placeholder="Número" />
-        <input id="bairroCliente" class="endereco-bairro" placeholder="Bairro" />
-        <input id="complementoCliente" class="endereco-complemento" placeholder="Complemento (opcional)" />
+        <input id="ruaCliente" class="endereco-rua" aria-label="Rua" placeholder="Rua" autocomplete="address-line1" />
+        <input id="numeroCliente" class="endereco-numero" aria-label="Número do endereço" inputmode="numeric" placeholder="Número" autocomplete="address-line2" />
+        <input id="bairroCliente" class="endereco-bairro" aria-label="Bairro" placeholder="Bairro" autocomplete="address-level3" />
+        <input id="complementoCliente" class="endereco-complemento" aria-label="Complemento" placeholder="Complemento (opcional)" autocomplete="address-line3" />
       </div>
 
       <div class="pagamento-escolha">
@@ -231,15 +257,15 @@
       </div>
     </div>
 
-    <button class="btn-whatsapp" onclick="finalizarPedido()">Enviar pelo WhatsApp</button>
+    <button id="btnFinalizarPedido" class="btn-whatsapp" onclick="finalizarPedido()">Enviar pelo WhatsApp</button>
   </aside>
 
   <button class="floating-cart" onclick="abrirCarrinho()">🛒 <span id="contadorItens">0</span></button>
 
-  <div class="modal" id="modalSabores">
+  <div class="modal" id="modalSabores" role="dialog" aria-modal="true" aria-labelledby="tituloModalSabores">
     <div class="modal-box">
-      <button class="modal-close" id="fecharModalSabores">✕</button>
-      <h2>Escolha um sabor</h2>
+      <button class="modal-close" id="fecharModalSabores" aria-label="Fechar opções">✕</button>
+      <h2 id="tituloModalSabores">Escolha um sabor</h2>
       <div id="listaSaboresModal" class="sabores-list"></div>
       <div class="modal-actions">
         <button id="cancelarSabor">Cancelar</button>
@@ -248,11 +274,11 @@
   </div>
 
   
-  <div class="modal comprovante-modal" id="modalComprovanteFesta">
+  <div class="modal comprovante-modal" id="modalComprovanteFesta" role="dialog" aria-modal="true" aria-labelledby="tituloComprovanteFesta">
     <div class="modal-box comprovante-box">
-      <button class="modal-close" onclick="fecharComprovanteFesta()">✕</button>
+      <button class="modal-close" onclick="fecharComprovanteFesta()" aria-label="Fechar comprovante">✕</button>
       <div class="comprovante-sucesso">✅</div>
-      <h2>Revise e confirme sua encomenda</h2>
+      <h2 id="tituloComprovanteFesta">Revise e confirme sua encomenda</h2>
       <p>Sua encomenda foi registrada, mas ainda precisa ser enviada pelo WhatsApp para chegar à Delícias da Vó.</p>
       <div id="conteudoComprovanteFesta" class="comprovante-conteudo"></div>
       <div class="modal-actions comprovante-acoes">
@@ -329,12 +355,13 @@
 
   <footer class="site-footer">
     <div class="footer-brand">
-      <img src="assets/logo-delicias-da-vo.png" alt="Delícias da Vó">
+      <img src="assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="Delícias da Vó">
       <div><strong>Delícias da Vó</strong><span>Comida caseira feita com carinho</span></div>
     </div>
     <div class="footer-info">
-      <span>📍 Votuporanga • SP</span>
-      <span>📱 (18) 99117-8906</span>
+      <a id="footerEndereco" href="#" target="_blank" rel="noopener">📍 Votuporanga • SP</a>
+      <a id="footerWhatsApp" href="https://wa.me/5518991178906" target="_blank" rel="noopener">📱 (18) 99117-8906</a>
+      <a id="footerInstagram" href="#" target="_blank" rel="noopener" hidden>📷 Instagram</a>
     </div>
   </footer>
 
