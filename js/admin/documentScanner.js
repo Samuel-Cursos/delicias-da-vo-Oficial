@@ -1,5 +1,6 @@
 import { salvarMovimentoFinanceiro } from "../services/financeService.js";
 import { registrarVendaRapida } from "../services/salesService.js";
+import { lerRegistroComIA } from "../services/documentAiService.js";
 
 const $ = id => document.getElementById(id);
 
@@ -14,6 +15,9 @@ let indiceArrastando = null;
 let scannerWorker = null;
 let workerSequencia = 0;
 let ocrWorker = null;
+let resultadoIaAtual = null;
+let controllerLeituraIa = null;
+let leituraIaSequencia = 0;
 const chamadasWorker = new Map();
 
 function normalizar(valor) {
@@ -127,6 +131,24 @@ function atualizarRotulos() {
     : "Confira o valor pago e a forma de pagamento antes de salvar no financeiro.";
   if ($("scannerValorLabel")?.firstChild) $("scannerValorLabel").firstChild.textContent = venda ? "Valor da venda (R$)" : "Valor da compra (R$)";
   $("scannerConfirmar").textContent = venda ? "Confirmar venda" : "Confirmar compra";
+
+  if ($("scannerDica")) {
+    $("scannerDica").textContent = venda
+      ? "Dica: fotografe de perto, com boa luz, deixando o valor e o pagamento bem visíveis."
+      : "Dica: deixe o papel inteiro visível e evite sombras fortes.";
+  }
+  if ($("scannerAiNota")) $("scannerAiNota").hidden = !venda;
+  if ($("scannerLerRapido")) {
+    $("scannerLerRapido").hidden = !venda;
+    $("scannerLerRapido").disabled = !venda || !arquivoAtual || Boolean(controllerLeituraIa);
+  }
+  if ($("scannerLer")) {
+    $("scannerLer").textContent = venda ? "🔎 Usar leitura local" : "🔎 Ler nota localmente";
+    if (!arquivoAtual) $("scannerLer").disabled = true;
+  }
+  if ($("scannerVoltarRecorte")) {
+    $("scannerVoltarRecorte").textContent = venda ? "✂️ Ajustar para leitura local" : "← Ajustar recorte";
+  }
 }
 
 function camposMistos() {
@@ -316,6 +338,7 @@ async function melhorarImagem({ lerDepois = true } = {}) {
   if (!arquivoAtual || !bufferOriginal || pontos.length !== 4) return;
   $("scannerMelhorar").disabled = true;
   $("scannerLer").disabled = true;
+  if ($("scannerLerRapido")) $("scannerLerRapido").disabled = true;
   setStatus("");
   setProgresso("Removendo o fundo e destacando o texto…", 42);
   try {
@@ -330,6 +353,8 @@ async function melhorarImagem({ lerDepois = true } = {}) {
     revogarUrl("tratado");
     urlTratado = URL.createObjectURL(blobTratado);
     $("scannerPreview").src = urlTratado;
+    $("scannerResultadoTitulo").textContent = "Imagem pronta para leitura local";
+    $("scannerResultadoBadge").textContent = "✓ melhorada";
     $("scannerResultado").hidden = false;
     $("scannerEditor").hidden = true;
     $("scannerLer").disabled = false;
@@ -341,6 +366,7 @@ async function melhorarImagem({ lerDepois = true } = {}) {
     $("scannerLer").disabled = false;
   } finally {
     $("scannerMelhorar").disabled = false;
+    if ($("scannerLerRapido")) $("scannerLerRapido").disabled = modoAtual() !== "caixa" || !arquivoAtual;
   }
 }
 
@@ -369,6 +395,7 @@ async function obterOcrWorker() {
 async function processarOCR() {
   if (!arquivoAtual) return;
   $("scannerLer").disabled = true;
+  if ($("scannerLerRapido")) $("scannerLerRapido").disabled = true;
   $("scannerConfirmar").disabled = true;
   setStatus("");
   setProgresso("Preparando a leitura…", 52);
@@ -386,7 +413,106 @@ async function processarOCR() {
     console.error(erro);
     liberarRevisao(0, "Não informado", [], 0);
     setProgresso("A leitura automática falhou. Digite o valor manualmente para continuar.", 0);
-  } finally { $("scannerLer").disabled = false; }
+  } finally {
+    $("scannerLer").disabled = false;
+    if ($("scannerLerRapido")) $("scannerLerRapido").disabled = modoAtual() !== "caixa" || !arquivoAtual;
+  }
+}
+
+function exibirFotoParaLeituraRapida() {
+  if (!arquivoAtual || !urlOriginal) return;
+  $("scannerPreview").src = urlOriginal;
+  $("scannerResultadoTitulo").textContent = "Foto pronta para leitura rápida";
+  $("scannerResultadoBadge").textContent = "⚡ IA";
+  $("scannerResultado").hidden = false;
+  $("scannerEditor").hidden = true;
+}
+
+function gerarDataUrlParaIA(limite = 1800, qualidade = 0.84) {
+  const escala = Math.min(1, limite / Math.max(imagemOriginal.naturalWidth, imagemOriginal.naturalHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(imagemOriginal.naturalWidth * escala));
+  canvas.height = Math.max(1, Math.round(imagemOriginal.naturalHeight * escala));
+  const contexto = canvas.getContext("2d", { alpha: false });
+  contexto.fillStyle = "#ffffff";
+  contexto.fillRect(0, 0, canvas.width, canvas.height);
+  contexto.filter = "contrast(1.08) brightness(1.03)";
+  contexto.drawImage(imagemOriginal, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", qualidade);
+}
+
+function prepararImagemParaIA() {
+  if (!imagemOriginal) throw new Error("A foto ainda não terminou de carregar.");
+  let dataUrl = gerarDataUrlParaIA(1800, 0.84);
+  if (dataUrl.length > 3_800_000) dataUrl = gerarDataUrlParaIA(1400, 0.76);
+  if (dataUrl.length > 3_800_000) dataUrl = gerarDataUrlParaIA(1100, 0.7);
+  return dataUrl;
+}
+
+function aplicarResultadoIa(resultado) {
+  const linhas = [resultado?.textoReconhecido, resultado?.observacao]
+    .map(item => String(item || "").trim())
+    .filter(Boolean);
+  $("scannerTextoBruto").value = linhas.join("\n");
+  liberarRevisao(
+    Number(resultado?.valor || 0),
+    resultado?.pagamento || "Não informado",
+    Array.isArray(resultado?.pagamentos) ? resultado.pagamentos : [],
+    Number(resultado?.confianca || 0)
+  );
+}
+
+async function processarLeituraRapidaIA({ forcar = false } = {}) {
+  if (!arquivoAtual || modoAtual() !== "caixa") return;
+  exibirFotoParaLeituraRapida();
+
+  if (resultadoIaAtual && !forcar) {
+    aplicarResultadoIa(resultadoIaAtual);
+    setProgresso(resultadoIaAtual.valor > 0
+      ? "Leitura concluída. Confira o valor e confirme a venda."
+      : "Não consegui ler o valor com segurança. Digite-o manualmente ou use a leitura local.", 100);
+    return;
+  }
+
+  controllerLeituraIa?.abort();
+  const controller = new AbortController();
+  const sequencia = ++leituraIaSequencia;
+  controllerLeituraIa = controller;
+  $("scannerLerRapido").disabled = true;
+  $("scannerLer").disabled = true;
+  $("scannerConfirmar").disabled = true;
+  setStatus("");
+  setProgresso("Otimizando a foto para uma leitura rápida…", 24);
+
+  try {
+    const imagem = prepararImagemParaIA();
+    setProgresso("Lendo a escrita cursiva e procurando o valor…", 62);
+    const resultado = await lerRegistroComIA(imagem, "venda", controller.signal);
+    if (sequencia !== leituraIaSequencia || controller.signal.aborted) return;
+    resultadoIaAtual = resultado;
+    aplicarResultadoIa(resultado);
+    setProgresso(resultado.valor > 0
+      ? "Leitura concluída. Confira o valor e confirme a venda."
+      : "Não consegui ler o valor com segurança. Digite-o manualmente ou use a leitura local.", 100);
+  } catch (erro) {
+    if (controller.signal.aborted || sequencia !== leituraIaSequencia) return;
+    console.warn("Leitura inteligente indisponível:", erro?.codigo || erro?.message || erro);
+    liberarRevisao(0, "Não informado", [], 0);
+    setProgresso(erro?.message || "A leitura inteligente falhou. Use a leitura local ou digite o valor.", 0);
+  } finally {
+    if (sequencia === leituraIaSequencia) {
+      controllerLeituraIa = null;
+      $("scannerLer").disabled = !arquivoAtual;
+      $("scannerLerRapido").disabled = !arquivoAtual || modoAtual() !== "caixa";
+    }
+  }
+}
+
+async function processarLeituraLocal() {
+  if (!arquivoAtual) return;
+  if (blobTratado) return processarOCR();
+  pontos = pontos.length === 4 ? pontos : pontosPadrao();
+  await melhorarImagem({ lerDepois: true });
 }
 
 async function carregarArquivo(arquivo) {
@@ -402,10 +528,19 @@ async function carregarArquivo(arquivo) {
   imagemOriginal.src = urlOriginal;
   await imagemOriginal.decode();
   pontos = pontosPadrao();
+  atualizarRotulos();
+  atualizarEtapa(1);
+
+  if (modoAtual() === "caixa") {
+    exibirFotoParaLeituraRapida();
+    setProgresso("Foto recebida. Iniciando a leitura da escrita…", 12);
+    await processarLeituraRapidaIA();
+    return;
+  }
+
   $("scannerEditor").hidden = false;
   $("scannerResultado").hidden = true;
   desenharImagemOriginal();
-  atualizarEtapa(1);
   setProgresso("Foto recebida. Detectando o papel…", 8);
   await detectarAutomaticamente(false);
   await melhorarImagem({ lerDepois: true });
@@ -443,12 +578,18 @@ async function confirmar() {
 }
 
 function limpar(limparStatus = true) {
+  controllerLeituraIa?.abort();
+  controllerLeituraIa = null;
+  leituraIaSequencia += 1;
+  resultadoIaAtual = null;
   arquivoAtual = null; bufferOriginal = null; imagemOriginal = null; pontos = []; blobTratado = null; indiceArrastando = null;
   revogarUrl("original"); revogarUrl("tratado");
   ["scannerArquivoCamera", "scannerArquivoGaleria"].forEach(id => { if ($(id)) $(id).value = ""; });
   $("scannerEditor").hidden = true;
   $("scannerResultado").hidden = true;
   $("scannerPreview").removeAttribute("src");
+  $("scannerResultadoTitulo").textContent = "Imagem pronta para leitura";
+  $("scannerResultadoBadge").textContent = "✓ melhorada";
   $("scannerTextoBruto").value = "";
   $("scannerValor").value = "";
   $("scannerPagamento").value = "Não informado";
@@ -457,8 +598,10 @@ function limpar(limparStatus = true) {
   $("scannerConfianca").dataset.tipo = "";
   $("scannerConfirmar").disabled = true;
   $("scannerLer").disabled = true;
+  if ($("scannerLerRapido")) $("scannerLerRapido").disabled = true;
   setProgresso("", 0);
   atualizarEtapa(1);
+  atualizarRotulos();
   if (limparStatus) setStatus("");
 }
 
@@ -491,21 +634,41 @@ window.addEventListener("pointercancel", finalizarArraste);
 $("scannerAutoDetectar")?.addEventListener("click", () => detectarAutomaticamente(true));
 $("scannerMelhorar")?.addEventListener("click", () => melhorarImagem({ lerDepois: true }));
 $("scannerVoltarRecorte")?.addEventListener("click", voltarAoRecorte);
-$("scannerLer")?.addEventListener("click", processarOCR);
+$("scannerLerRapido")?.addEventListener("click", () => processarLeituraRapidaIA({ forcar: true }));
+$("scannerLer")?.addEventListener("click", processarLeituraLocal);
 $("scannerConfirmar")?.addEventListener("click", confirmar);
 $("scannerLimpar")?.addEventListener("click", () => limpar());
 $("scannerPagamento")?.addEventListener("change", atualizarMisto);
 $("scannerValor")?.addEventListener("input", atualizarMisto);
 camposMistos().forEach(([, elemento]) => elemento?.addEventListener("input", atualizarMisto));
-document.querySelectorAll('input[name="scannerTipo"]').forEach(radio => radio.addEventListener("change", () => {
+document.querySelectorAll('input[name="scannerTipo"]').forEach(radio => radio.addEventListener("change", async () => {
+  controllerLeituraIa?.abort();
   atualizarRotulos();
   $("scannerValor").value = "";
   $("scannerPagamento").value = "Não informado";
   preencherMistos([]);
   $("scannerConfirmar").disabled = true;
-  if (arquivoAtual) processarOCR();
+  if (!arquivoAtual) return;
+  try {
+    if (modoAtual() === "caixa") {
+      exibirFotoParaLeituraRapida();
+      await processarLeituraRapidaIA();
+    } else if (blobTratado) {
+      await processarOCR();
+    } else {
+      $("scannerResultado").hidden = true;
+      $("scannerEditor").hidden = false;
+      desenharImagemOriginal();
+      await detectarAutomaticamente(false);
+      await melhorarImagem({ lerDepois: true });
+    }
+  } catch (erro) {
+    console.error(erro);
+    setProgresso("Não foi possível trocar o tipo da leitura. Tente novamente.", 0);
+  }
 }));
 window.addEventListener("beforeunload", () => {
+  controllerLeituraIa?.abort();
   scannerWorker?.terminate();
   ocrWorker?.terminate?.();
   revogarUrl("original"); revogarUrl("tratado");

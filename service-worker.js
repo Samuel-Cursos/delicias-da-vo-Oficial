@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v5-3-1-carrinho-rolavel";
+const CACHE_NAME = "delicias-da-vo-v5-4-scanner-cursiva";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -19,6 +19,7 @@ const ARQUIVOS_CACHE = [
   "/js/services/partyProductService.js",
   "/js/services/partyOrderService.js",
   "/js/services/financeService.js",
+  "/js/services/documentAiService.js",
   "/js/services/centralOrderService.js",
   "/js/services/backupService.js",
   "/assets/logo-delicias-da-vo.webp",
