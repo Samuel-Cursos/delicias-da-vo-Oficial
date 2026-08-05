@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v5-3-entrega-automatica";
+const CACHE_NAME = "delicias-da-vo-v5-3-1-carrinho-rolavel";
 
 const ARQUIVOS_CACHE = [
   "/",

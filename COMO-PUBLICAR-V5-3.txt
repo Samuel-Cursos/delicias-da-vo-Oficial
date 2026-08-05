@@ -37,6 +37,7 @@ Não coloque essa chave em arquivo, no GitHub ou no index.html.
 
 Abra a Preview criada pela Vercel e teste:
 - carrinho;
+- rolagem do carrinho com o navegador em 100% de zoom;
 - login Google e botão Dados;
 - busca por CEP;
 - selecione Entrega, preencha o endereço e confirme se distância, taxa e total aparecem;

@@ -17,7 +17,7 @@ PRINCIPAIS MELHORIAS DA V5.3
 - Distância, taxa e total com entrega aparecem no carrinho antes da confirmação.
 - Valores e distância máxima podem ser alterados no painel administrativo.
 - Endereços acima do limite mostram "A combinar" e seguem para confirmação no WhatsApp.
-- O carrinho inteiro agora rola no celular para manter todos os campos acessíveis.
+- O carrinho inteiro agora rola no computador e no celular para manter todos os campos acessíveis, sem precisar diminuir o zoom.
 - A V5.3 não exige alteração nova nas regras do Firebase.
 
 MELHORIAS PRESERVADAS DA V5.2
