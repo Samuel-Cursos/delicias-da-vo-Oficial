@@ -1,10 +1,20 @@
-DELÍCIAS DA VÓ — V5.2 PROFISSIONAL
+DELÍCIAS DA VÓ — V5.3 PROFISSIONAL
 
 Esta versão mantém a mesma identidade, a mesma logo e o mesmo jeito simples de
 fazer pedidos. Os produtos continuam usando emojis; nenhuma foto real foi
 adicionada ao site.
 
-PRINCIPAIS MELHORIAS DA V5.2
+PRINCIPAIS MELHORIAS DA V5.3
+- O painel agora separa o nome visível e a URL do Google Maps.
+- O painel agora separa o nome visível e a URL do Instagram.
+- O cliente vê apenas nomes simples, como "Endereço da loja" e "Instagram da loja".
+- Nova área de contato rápido com WhatsApp, Google Maps e Instagram.
+- Nova área "Meus dados" para o cliente editar nome, WhatsApp e endereço.
+- Busca de endereço pelo CEP no perfil, pedido normal e encomenda para festa.
+- Dados salvos no perfil continuam preenchendo automaticamente os próximos pedidos.
+- A V5.3 não exige alteração nova nas regras do Firebase.
+
+MELHORIAS PRESERVADAS DA V5.2
 - Carrinho continua aberto ao adicionar, aumentar, diminuir ou editar itens.
 - Pedido normal não depende mais de um contador público bloqueado pelo Firebase.
 - Pedidos normais e encomendas recebem códigos únicos e fáceis de identificar.
@@ -28,13 +38,28 @@ PARA ABRIR LOCALMENTE
 4. Loja: index.html
 5. Administração: pages/admin.html
 
-ATUALIZAÇÃO DO GITHUB E DA VERCEL
-Envie todos os arquivos desta pasta para o mesmo repositório conectado à Vercel.
-Não crie outro projeto da Vercel e não crie outro projeto do Firebase.
-Ao atualizar a branch main, a Vercel fará o novo deploy automaticamente.
+ATUALIZAÇÃO SEGURA DO GITHUB E DA VERCEL
+Use sempre uma branch de teste antes da main:
+1. git switch main
+2. git pull origin main
+3. git switch -c melhoria-perfil-mapas-v5-3
+4. Substitua os arquivos pelos desta versão.
+5. git add .
+6. git commit -m "feat: adiciona perfil do cliente, CEP e localização"
+7. git push -u origin melhoria-perfil-mapas-v5-3
+8. Teste a Preview criada pela Vercel.
 
-PUBLICAÇÃO DAS REGRAS DO FIREBASE — OBRIGATÓRIA UMA VEZ NA V5.2
-As novas regras são necessárias para salvar o endereço do cliente e proteger o ADM.
+Somente depois de aprovar a Preview:
+1. git switch main
+2. git pull origin main
+3. git merge --no-ff melhoria-perfil-mapas-v5-3 -m "merge: publica melhorias da V5.3"
+4. git push origin main
+
+Não crie outro projeto da Vercel e não crie outro projeto do Firebase.
+
+REGRAS DO FIREBASE
+Se as regras da V5.2 já foram publicadas, não precisa publicar novamente na V5.3.
+As instruções abaixo servem apenas para uma instalação que ainda não recebeu as regras.
 
 Pelo terminal do VS Code, dentro desta pasta:
 1. npx firebase-tools login
@@ -51,9 +76,17 @@ Não use os arquivos de regras marcados como históricos.
 LOGIN E DADOS DOS CLIENTES
 - O login Google é opcional para o cliente.
 - No primeiro acesso, o nome da conta Google é preenchido automaticamente.
-- Ao concluir um pedido logado, telefone e endereço são salvos no documento do
-  próprio cliente e reaparecem nas próximas compras.
+- Pelo botão "Dados", o cliente pode salvar telefone e endereço antes de pedir.
+- Também é possível salvar esses dados ao concluir um pedido logado.
 - Cada cliente só consegue ler e atualizar o próprio perfil.
+
+CONFIGURAR MAPS E INSTAGRAM
+No painel administrativo, abra Configurações.
+- Nome exibido do endereço: texto que aparece no site, por exemplo "Endereço da loja".
+- Link do Google Maps: URL que abre quando o cliente clica no nome.
+- Nome exibido do Instagram: texto que aparece no site, por exemplo "Instagram da loja".
+- Link do Instagram: URL completa do perfil.
+Os links precisam começar com https://.
 
 VERCEL
 Mantenha a variável GEMINI_API_KEY que já existe no projeto. Nenhuma nova chave é

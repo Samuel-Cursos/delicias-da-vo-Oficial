@@ -22,6 +22,14 @@ export function createUserChip(user, isAdmin) {
     a.href = 'pages/admin.html';
     a.textContent = 'ADM';
     div.appendChild(a);
+  } else {
+    const dados = document.createElement('button');
+    dados.type = 'button';
+    dados.className = 'user-chip-dados';
+    dados.textContent = 'Dados';
+    dados.title = 'Editar nome, WhatsApp e endereço';
+    dados.addEventListener('click', () => { if (typeof window.abrirPerfilCliente === 'function') window.abrirPerfilCliente(); });
+    div.appendChild(dados);
   }
 
   const btn = document.createElement('button');

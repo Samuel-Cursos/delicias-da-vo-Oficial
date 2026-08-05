@@ -1,0 +1,44 @@
+DELÍCIAS DA VÓ — PUBLICAÇÃO SEGURA DA V5.3
+
+1. ANTES DE SUBSTITUIR OS ARQUIVOS
+Abra o terminal do VS Code na pasta atual do projeto e execute:
+
+git switch main
+git pull origin main
+git switch -c melhoria-perfil-mapas-v5-3
+
+2. SUBSTITUA OS ARQUIVOS
+Extraia este ZIP e copie o conteúdo para a pasta atual do projeto.
+Aceite substituir os arquivos existentes.
+Não copie uma pasta .git e não crie outra pasta dentro do projeto.
+
+3. ENVIE SOMENTE A BRANCH DE TESTE
+
+git add .
+git commit -m "feat: adiciona perfil do cliente, CEP e localização"
+git push -u origin melhoria-perfil-mapas-v5-3
+
+Abra a Preview criada pela Vercel e teste:
+- carrinho;
+- login Google e botão Dados;
+- busca por CEP;
+- WhatsApp;
+- Endereço da loja;
+- Instagram da loja;
+- painel administrativo no celular e no computador.
+
+4. DEPOIS DE APROVAR A PREVIEW
+
+git switch main
+git pull origin main
+git merge --no-ff melhoria-perfil-mapas-v5-3 -m "merge: publica melhorias da V5.3"
+git push origin main
+
+5. SOMENTE DEPOIS DE CONFIRMAR A PRODUÇÃO
+
+git branch -d melhoria-perfil-mapas-v5-3
+git push origin --delete melhoria-perfil-mapas-v5-3
+
+FIREBASE
+Esta atualização não precisa de novas regras. Se as regras da V5.2 já estão
+publicadas, não faça outro deploy do Firebase.
