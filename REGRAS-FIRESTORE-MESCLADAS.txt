@@ -1,0 +1,16 @@
+REGRAS MESCLADAS E CONFERIDAS
+
+O arquivo firestore.rules preserva todas as permissões da regra administrativa anterior e mantém as coleções do financeiro.
+
+O OCR não precisa de uma coleção própria:
+- Nota fiscal confirmada grava em movimentosFinanceiros.
+- Papel do Caixa Rápido confirmado grava em vendas.
+
+Para publicar:
+1. Abra Firebase Console > Firestore Database > Regras.
+2. Copie TODO o conteúdo de firestore.rules.
+3. Substitua o conteúdo atual.
+4. Clique em Publicar.
+
+Atenção:
+O usuário autenticado precisa ter o documento usuarios/SEU_UID com o campo tipo igual a "admin".

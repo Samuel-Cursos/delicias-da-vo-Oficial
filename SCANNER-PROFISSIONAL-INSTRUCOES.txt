@@ -1,0 +1,38 @@
+SCANNER PROFISSIONAL V5 - DELÍCIAS DA VÓ
+
+O QUE ELE FAZ
+- Tira foto usando a câmera traseira do celular ou escolhe uma imagem da galeria.
+- Detecta automaticamente as quatro bordas do papel.
+- Permite corrigir o recorte arrastando os quatro círculos.
+- Remove o fundo, corrige a perspectiva e melhora o contraste.
+- Lê automaticamente o valor total e a forma de pagamento.
+- Sempre mostra uma tela de conferência antes de salvar.
+- Aceita Pix, dinheiro, débito, crédito e pagamento misto.
+
+COMPRA
+- Salva uma despesa em movimentosFinanceiros.
+- Categoria automática: Compras.
+- Aparece no Controle financeiro.
+
+VENDA
+- Salva uma entrada em vendas.
+- Aparece no Caixa e também no Financeiro.
+- Não altera o estoque, pois a foto não identifica os produtos vendidos.
+
+COMO USAR
+1. Abra o Painel ADM e entre em “Digitalizar registros”.
+2. Marque “Compra” ou “Venda”.
+3. Toque em “Tirar foto” ou “Escolher imagem”.
+4. Aguarde: o sistema detecta o papel, melhora a imagem e faz a leitura sozinho.
+5. Se o recorte não estiver perfeito, toque em “Ajustar recorte” e arraste os círculos.
+6. Confira o valor e a forma de pagamento.
+7. Em pagamento misto, informe ao menos duas formas; a soma precisa bater com o total.
+8. Toque em “Confirmar compra” ou “Confirmar venda”.
+
+IMPORTANTE
+- Não precisa instalar programa no computador.
+- Use o site por HTTPS ou pelo “Go Live” do VS Code para a câmera funcionar corretamente.
+- Na primeira leitura, mantenha a internet ligada para carregar OpenCV.js e Tesseract.js.
+- Se o tratamento profissional não carregar, existe uma melhoria compatível automática.
+- Se o OCR não reconhecer o valor, basta digitá-lo manualmente e confirmar.
+- O arquivo firestore.rules desta pasta já contém as permissões necessárias para o administrador.

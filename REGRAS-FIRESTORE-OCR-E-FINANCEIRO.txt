@@ -1,0 +1,17 @@
+COMO CORRIGIR O REGISTRO QUE SOME APÓS CONFIRMAR
+
+1. Abra o Console do Firebase do projeto Delícias da Vó.
+2. Entre em Firestore Database > Regras.
+3. Copie TODO o conteúdo do arquivo firestore.rules deste projeto.
+4. Substitua as regras atuais e clique em Publicar.
+5. Confirme que o usuário conectado possui um documento em:
+   usuarios/{UID_DO_USUARIO}
+   com o campo:
+   tipo: "admin"
+
+As coleções usadas pela digitalização são:
+- movimentosFinanceiros: notas de compra viram despesas;
+- vendas: papéis do caixa viram vendas rápidas.
+
+O sistema agora confirma a leitura do documento depois de salvar. Se as regras bloquearem,
+a tela mostrará uma mensagem explícita e não apagará os dados preenchidos.

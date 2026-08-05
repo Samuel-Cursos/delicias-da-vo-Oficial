@@ -1,0 +1,20 @@
+OCR SIMPLES — VALOR E PAGAMENTO
+
+O módulo foi simplificado para reconhecer apenas:
+- valor total;
+- forma de pagamento.
+
+COMPRA:
+- cria uma saída em movimentosFinanceiros;
+- usa a data atual;
+- categoria: Compras.
+
+VENDA:
+- cria uma venda em vendas;
+- não exige produto;
+- não altera estoque;
+- aparece no caixa e no financeiro como entrada automática.
+
+Não é necessário instalar nada na máquina.
+Na primeira leitura, o navegador precisa de internet para carregar Tesseract.js.
+Não é necessário alterar as regras do Firebase, desde que as coleções movimentosFinanceiros e vendas já estejam permitidas para o administrador.

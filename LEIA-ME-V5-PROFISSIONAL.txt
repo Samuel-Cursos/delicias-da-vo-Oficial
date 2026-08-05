@@ -1,0 +1,33 @@
+DELÍCIAS DA VÓ — V5 PROFISSIONAL
+
+Esta versão mantém o jeito simples de usar o projeto e melhora a apresentação, a câmera e a confiabilidade.
+
+PARA ABRIR
+1. Extraia todo o ZIP.
+2. Abra a pasta no VS Code.
+3. Use a extensão Live Server e clique em “Go Live”.
+4. Loja: index.html
+5. Administração: pages/admin.html
+
+PRINCIPAIS MELHORIAS
+- Loja totalmente renovada no computador e no celular.
+- A mesma logo original ganhou animação de abertura e movimento suave na apresentação.
+- Tela de entrada do ADM redesenhada com a identidade da marca.
+- Painel ADM mais limpo, legível e responsivo, sem mudar a navegação.
+- Menu lateral do painel adaptado para celular.
+- Carrinho aprimorado e contador também no topo.
+- Carrinho V5.1: abre ao adicionar e permanece aberto ao usar +, −, observações e campos.
+- Abertura segura: o site não fica preso na animação se um serviço externo falhar.
+- Scanner profissional de compra e venda com câmera, galeria, recorte e OCR.
+- Correção dos conflitos de código que existiam nos arquivos do painel e das vendas.
+- Validação de pagamentos mistos e confirmação real da gravação no Firebase.
+- Cache do aplicativo atualizado para a V5.
+
+FIREBASE
+As configurações atuais foram preservadas. Se o scanner mostrar que o Firebase bloqueou o salvamento, publique no Firebase as regras do arquivo firestore.rules incluído nesta pasta.
+
+SCANNER
+Leia também o arquivo SCANNER-PROFISSIONAL-INSTRUCOES.txt.
+
+OBSERVAÇÃO
+O scanner precisa de internet na primeira utilização para carregar gratuitamente o tratamento OpenCV e o leitor de texto Tesseract. Mesmo quando a melhoria profissional não puder carregar, a tela usa um tratamento de imagem compatível e permite preencher o valor manualmente.

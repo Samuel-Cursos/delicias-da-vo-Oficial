@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delícias da Vó | Pedidos Online</title>
+  <meta name="description" content="Comida caseira, marmitas, salgados e encomendas da Delícias da Vó em Votuporanga." />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#591d14" />
+  <link rel="icon" type="image/png" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <link rel="preload" href="assets/logo-delicias-da-vo.png" as="image" />
+  <link rel="stylesheet" href="css/site.css" />
+</head>
+<body>
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-glow" aria-hidden="true"></div>
+    <div class="splash-card">
+      <div class="splash-emblem">
+        <span class="splash-orbit orbit-one" aria-hidden="true"></span>
+        <span class="splash-orbit orbit-two" aria-hidden="true"></span>
+        <span class="splash-spark spark-one" aria-hidden="true">✦</span>
+        <span class="splash-spark spark-two" aria-hidden="true">✦</span>
+        <span class="splash-spark spark-three" aria-hidden="true">•</span>
+        <img src="assets/logo-delicias-da-vo.png" alt="Delícias da Vó" class="splash-logo">
+      </div>
+      <p>Comida feita com amor, do jeitinho de casa.</p>
+      <div class="splash-loading" aria-label="Carregando"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+  <script>
+    // A abertura nunca fica presa, mesmo se algum serviço externo estiver indisponível.
+    window.setTimeout(() => {
+      const splash = document.getElementById("splashScreen");
+      if (!splash) return;
+      splash.classList.add("splash-saindo");
+      window.setTimeout(() => splash.remove(), 820);
+    }, 2200);
+  </script>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"><img src="assets/logo-delicias-da-vo.png" alt="Logo Delícias da Vó"></div>
+      <div>
+        <strong>Delícias da Vó</strong>
+        <span>Comida caseira • Votuporanga</span>
+      </div>
+    </div>
+
+    <nav>
+      <button id="btnFestasTopo" onclick="abrirAreaFestas()">🎉 Salgados para Festas</button>
+      <button class="nav-cart" onclick="abrirCarrinho()">Carrinho <span id="contadorTopo">0</span></button>
+      <div id="areaUsuario"></div>
+    </nav>
+  </header>
+
+  <div id="areaPrincipal">
+  <section class="hero">
+    <div class="hero-content">
+      <span class="pill">Feito com carinho em Votuporanga ❤️</span>
+      <h1>Comida de verdade, com aquele sabor de casa.</h1>
+      <p>Escolha com calma, monte seu pedido em poucos toques e confirme direto pelo WhatsApp.</p>
+      <div class="hero-actions">
+        <a href="#cardapio" class="btn primary">Ver cardápio</a>
+        <button class="btn secondary" type="button" onclick="abrirAreaFestas()">Encomendar para festas</button>
+      </div>
+      <div class="hero-trust" aria-label="Diferenciais">
+        <span>✓ Produção caseira</span>
+        <span>✓ Pedido simples</span>
+        <span>✓ Atendimento humano</span>
+      </div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <span class="hero-halo halo-a"></span>
+      <span class="hero-halo halo-b"></span>
+      <span class="hero-spark hero-spark-a">✦</span>
+      <span class="hero-spark hero-spark-b">✦</span>
+      <img src="assets/logo-delicias-da-vo.png" alt="">
+    </div>
+  </section>
+
+  <main class="container">
+    <section class="cards-resumo">
+      <div><strong>Loja online</strong><span id="statusLojaTexto">Carregando status...</span></div>
+      <div><strong>🚚 Entrega</strong><span id="entregaTexto">Taxa conforme distância</span></div>
+      <div><strong>🏪 Retirada</strong><span id="retiradaTexto">Disponível na loja</span></div>
+    </section>
+
+
+    <section id="cardapioDiaSite" class="cardapio-dia-section" style="display:none;">
+      <div class="cardapio-dia-card">
+        <div class="cardapio-dia-head">
+          <div>
+            <span class="pill">🍛 Marmitas</span>
+            <h2 id="cardapioDiaTitulo">Cardápio de hoje</h2>
+            <p id="cardapioDiaObservacao"></p>
+          </div>
+          <a href="#cardapio" class="btn-cardapio-dia">Ver marmitas</a>
+        </div>
+
+        <div id="cardapioDiaItens" class="cardapio-dia-itens"></div>
+      </div>
+    </section>
+
+    <section id="promocoes" class="promocoes-section">
+      <div class="section-title">
+        <h2>Promoções</h2>
+        <p>Ofertas cadastradas diretamente pelo painel ADM.</p>
+      </div>
+
+      <div id="listaPromocoesSite" class="produtos-grid"></div>
+    </section>
+
+    <section id="cardapio">
+      <div class="section-title">
+        <h2>Cardápio</h2>
+        <p>Produtos carregados do Firebase.</p>
+      </div>
+
+      <div class="categorias" id="categoriasSite"></div>
+
+      <input class="busca" id="buscaProduto" placeholder="Pesquisar produto..." oninput="pesquisarProdutos()" />
+      <div id="listaProdutos" class="catalogo"></div>
+    </section>
+  </main>
+</div>
+
+<section id="areaFestas" class="area-festas" hidden>
+  <div class="festa-confetes" aria-hidden="true">✦ • ✧ • ✦</div>
+  <section class="hero hero-festas">
+    <div>
+      <span class="pill">🎉 Encomendas especiais</span>
+      <h1>Vai fazer uma festa?</h1>
+      <p>Deixe sua comemoração ainda mais gostosa com os salgados da Delícias da Vó. Escolha os sabores e monte sua encomenda.</p>
+      <button class="btn primary" onclick="voltarCardapioPrincipal()">🏠 Voltar ao cardápio</button>
+    </div>
+  </section>
+  <main class="container festa-container">
+    <section class="festa-info-grid">
+      <div><b>📦 Venda por cento</b><span>100 unidades</span></div>
+      <div><b>📅 Encomende antes</b><span>1 a 2 dias de antecedência</span></div>
+      <div><b>🚚 Entrega disponível</b><span>Taxa de R$ 5,00</span></div>
+    </section>
+    <section class="festa-destaque"><span>💛</span><div><b>Monte do seu jeito</b><p>Você pode escolher sabores diferentes. A confirmação final é feita pelo WhatsApp.</p></div></section>
+    <div id="statusFestas" class="festa-status"></div>
+    <section><div class="section-title"><h2>🍳 Salgados fritos</h2><p>Clássicos douradinhos e crocantes.</p></div><div id="festaFritos" class="festa-grid"></div></section>
+    <section><div class="section-title"><h2>🔥 Salgados assados</h2><p>Massa macia e recheios caprichados.</p></div><div id="festaAssados" class="festa-grid"></div></section>
+    <section class="festa-pedido-box">
+      <div><h2>🧺 Sua encomenda</h2><p>Adicione os itens e envie a lista para confirmação.</p></div>
+      <div id="resumoFestaPedido"></div>
+      <label>Seu nome<input id="nomeFestaCliente" placeholder="Digite seu nome"></label>
+      <label>Seu WhatsApp<input id="telefoneFestaCliente" inputmode="tel" placeholder="(17) 99999-9999"></label>
+      <label>Data da festa<input id="dataFesta" type="date"></label>
+      <label>Como você quer receber?
+        <select id="tipoEntregaFesta" onchange="atualizarEnderecoFesta()">
+          <option value="Retirada na loja">Retirada na loja</option>
+          <option value="Entrega">Entrega</option>
+        </select>
+      </label>
+      <div id="campoEnderecoFesta" class="endereco-form-grid festa-endereco-grid" hidden>
+        <label class="endereco-rua">Rua
+          <input id="ruaFesta" placeholder="Nome da rua">
+        </label>
+        <label class="endereco-numero">Número
+          <input id="numeroFesta" inputmode="numeric" placeholder="Nº">
+        </label>
+        <label class="endereco-bairro">Bairro
+          <input id="bairroFesta" placeholder="Nome do bairro">
+        </label>
+        <label class="endereco-complemento">Complemento
+          <input id="complementoFesta" placeholder="Casa, bloco, referência...">
+        </label>
+      </div>
+      <label>Observações<textarea id="obsFesta" placeholder="Horário desejado ou alguma observação"></textarea></label>
+      <button class="btn-whatsapp" onclick="enviarEncomendaFesta()">💬 Enviar encomenda pelo WhatsApp</button>
+    </section>
+  </main>
+</section>
+
+  <button class="cart-backdrop" id="cartBackdrop" type="button" onclick="fecharCarrinho()" aria-label="Fechar carrinho"></button>
+
+  <aside class="carrinho" id="carrinho" aria-label="Carrinho de compras">
+    <div class="cart-head">
+      <h2>🛒 Pedido</h2>
+      <button onclick="fecharCarrinho()" aria-label="Fechar carrinho">✕</button>
+    </div>
+
+    <div id="itensCarrinho" class="itens-carrinho"></div>
+
+    <div class="total">
+      <span>Total</span>
+      <strong id="totalPedido">R$ 0,00</strong>
+    </div>
+
+    <div class="formulario">
+      <input id="nomeCliente" placeholder="Nome" />
+      <select id="tipoPedido" onchange="atualizarEnderecoPedidoNormal()">
+        <option>Retirada na loja</option>
+        <option>Entrega</option>
+      </select>
+
+      <div id="camposEnderecoPedidoNormal" class="endereco-form-grid" hidden>
+        <input id="ruaCliente" class="endereco-rua" placeholder="Rua" />
+        <input id="numeroCliente" class="endereco-numero" inputmode="numeric" placeholder="Número" />
+        <input id="bairroCliente" class="endereco-bairro" placeholder="Bairro" />
+        <input id="complementoCliente" class="endereco-complemento" placeholder="Complemento (opcional)" />
+      </div>
+
+      <div class="pagamento-escolha">
+        <span class="pagamento-titulo">Como você prefere pagar?</span>
+        <div class="pagamento-cards" role="radiogroup" aria-label="Forma de pagamento">
+          <label class="pagamento-card ativo">
+            <input type="radio" name="pagamentoVisual" value="Pix" checked onchange="selecionarPagamento(this)">
+            <span class="pagamento-emoji">💠</span>
+            <span><strong>Pix</strong><small>Rápido e prático</small></span>
+            <i>✓</i>
+          </label>
+          <label class="pagamento-card">
+            <input type="radio" name="pagamentoVisual" value="Dinheiro" onchange="selecionarPagamento(this)">
+            <span class="pagamento-emoji">💵</span>
+            <span><strong>Dinheiro</strong><small>Pague ao receber</small></span>
+            <i>✓</i>
+          </label>
+          <label class="pagamento-card">
+            <input type="radio" name="pagamentoVisual" value="Cartão" onchange="selecionarPagamento(this)">
+            <span class="pagamento-emoji">💳</span>
+            <span><strong>Cartão</strong><small>Débito ou crédito</small></span>
+            <i>✓</i>
+          </label>
+        </div>
+        <input id="pagamento" type="hidden" value="Pix">
+      </div>
+    </div>
+
+    <button class="btn-whatsapp" onclick="finalizarPedido()">Enviar pelo WhatsApp</button>
+  </aside>
+
+  <button class="floating-cart" onclick="abrirCarrinho()">🛒 <span id="contadorItens">0</span></button>
+
+  <div class="modal" id="modalSabores">
+    <div class="modal-box">
+      <button class="modal-close" id="fecharModalSabores">✕</button>
+      <h2>Escolha um sabor</h2>
+      <div id="listaSaboresModal" class="sabores-list"></div>
+      <div class="modal-actions">
+        <button id="cancelarSabor">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="modal comprovante-modal" id="modalComprovanteFesta">
+    <div class="modal-box comprovante-box">
+      <button class="modal-close" onclick="fecharComprovanteFesta()">✕</button>
+      <div class="comprovante-sucesso">✅</div>
+      <h2>Revise e confirme sua encomenda</h2>
+      <p>Sua encomenda foi registrada, mas ainda precisa ser enviada pelo WhatsApp para chegar à Delícias da Vó.</p>
+      <div id="conteudoComprovanteFesta" class="comprovante-conteudo"></div>
+      <div class="modal-actions comprovante-acoes">
+        <button onclick="fecharComprovanteFesta()">← Voltar e editar</button>
+        <button class="primary-btn" onclick="abrirWhatsAppComprovante()">🟢 Confirmar pelo WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal aviso-fechado-modal" id="modalLojaFechada" role="dialog" aria-modal="true" aria-labelledby="tituloLojaFechada">
+    <div class="modal-box aviso-fechado-box">
+      <button class="modal-close" type="button" onclick="fecharAvisoLojaFechada()" aria-label="Fechar">✕</button>
+      <div class="aviso-fechado-icone">🔴</div>
+      <p class="aviso-fechado-eyebrow">Atendimento</p>
+      <h2 id="tituloLojaFechada">Estabelecimento fechado</h2>
+      <p id="textoLojaFechada">No momento não estamos recebendo pedidos.</p>
+      <div id="horarioLojaFechada" class="aviso-fechado-horario"></div>
+      <div class="aviso-fechado-info">
+        <span>🛒</span>
+        <p>Seu carrinho continuará salvo. Tente enviar novamente durante o horário de atendimento.</p>
+      </div>
+      <button class="primary-btn aviso-fechado-entendi" type="button" onclick="fecharAvisoLojaFechada()">Entendi</button>
+    </div>
+  </div>
+
+
+  <div class="modal revisao-pedido-modal" id="modalRevisaoPedido" role="dialog" aria-modal="true" aria-labelledby="tituloRevisaoPedido">
+    <div class="modal-box revisao-pedido-box">
+      <button class="modal-close" type="button" onclick="fecharRevisaoPedido()" aria-label="Voltar e editar">✕</button>
+      <div class="revisao-pedido-topo">
+        <div class="revisao-pedido-icone">📋</div>
+        <div>
+          <p>Última conferência</p>
+          <h2 id="tituloRevisaoPedido">Revise e confirme seu pedido</h2>
+        </div>
+      </div>
+
+      <div class="revisao-numero">
+        <span>Número do pedido</span>
+        <strong id="revisaoNumeroPedido">DV-0000</strong>
+      </div>
+
+      <div id="revisaoItensPedido" class="revisao-itens"></div>
+      <div id="revisaoDetalhesPedido" class="revisao-detalhes"></div>
+
+      <div class="revisao-total">
+        <span>Total do pedido</span>
+        <strong id="revisaoTotalPedido">R$ 0,00</strong>
+      </div>
+
+      <div class="revisao-alerta">
+        <span>⚠️</span>
+        <p><strong>Seu pedido ainda não foi confirmado.</strong><br>Envie a mensagem pelo WhatsApp para concluir.</p>
+      </div>
+
+      <div class="revisao-acoes">
+        <button class="secondary-btn" type="button" onclick="fecharRevisaoPedido()">← Voltar e editar</button>
+        <button class="primary-btn" type="button" onclick="confirmarPedidoNoWhatsApp()">🟢 Confirmar pelo WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="instalar-app-card" class="install-card">
+    <div class="install-icon" aria-hidden="true">📲</div>
+    <div>
+      <span class="install-eyebrow">Acesso rápido</span>
+      <h2>Tenha nosso cardápio sempre à mão</h2>
+      <p>Instale a Delícias da Vó na tela inicial do celular e faça seu pedido mais rápido.</p>
+      <p id="mensagem-instalar-app" class="install-message" hidden></p>
+    </div>
+    <button id="btn-instalar-app" type="button">Instalar aplicativo</button>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <img src="assets/logo-delicias-da-vo.png" alt="Delícias da Vó">
+      <div><strong>Delícias da Vó</strong><span>Comida caseira feita com carinho</span></div>
+    </div>
+    <div class="footer-info">
+      <span>📍 Votuporanga • SP</span>
+      <span>📱 (18) 99117-8906</span>
+    </div>
+  </footer>
+
+  <script type="module" src="js/storefront/site.js"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/service-worker.js")
+          .catch(error => console.warn("Service Worker não registrado:", error));
+      });
+    }
+  </script>
+
+<script>
+let eventoInstalacaoPWA = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  eventoInstalacaoPWA = e;
+});
+document.getElementById('btn-instalar-app').addEventListener('click', async () => {
+  const msg = document.getElementById('mensagem-instalar-app');
+  if (eventoInstalacaoPWA) {
+    eventoInstalacaoPWA.prompt();
+    await eventoInstalacaoPWA.userChoice;
+    eventoInstalacaoPWA = null;
+  } else {
+    msg.hidden = false;
+    msg.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+      ? 'No iPhone: toque em Compartilhar e depois em “Adicionar à Tela de Início”.'
+      : 'Abra este site no Chrome e use o menu ⋮ → “Adicionar à tela inicial” ou “Instalar app”.';
+  }
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('instalar-app-card').style.display = 'none';
+});
+</script>
+
+</body>
+</html>
