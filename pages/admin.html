@@ -320,7 +320,7 @@
 
       <section class="aba" id="aba-digitalizacao">
         <div class="section-heading">
-          <div><p class="eyebrow">Scanner inteligente</p><h2>📸 Digitalizar compra ou venda</h2><p>Fotografe o papel, remova o fundo e confirme o valor. O resto é automático.</p></div>
+          <div><p class="eyebrow">Scanner inteligente</p><h2>📸 Digitalizar compra ou venda</h2><p>Leia notas impressas ou vendas manuscritas e confirme o valor antes de salvar.</p></div>
         </div>
         <div class="scanner-steps" aria-label="Etapas da digitalização">
           <span class="active"><b>1</b> Fotografar</span>
@@ -337,7 +337,11 @@
               <label class="scanner-source primary-source">📷 Tirar foto<input id="scannerArquivoCamera" type="file" accept="image/*" capture="environment"></label>
               <label class="scanner-source">🖼️ Escolher imagem<input id="scannerArquivoGaleria" type="file" accept="image/*"></label>
             </div>
-            <p class="scanner-tip">Dica: deixe o papel inteiro visível e evite sombras fortes.</p>
+            <p id="scannerDica" class="scanner-tip">Dica: deixe o papel inteiro visível e evite sombras fortes.</p>
+            <div id="scannerAiNota" class="scanner-ai-note" hidden>
+              <span aria-hidden="true">⚡</span>
+              <p><strong>Venda manuscrita rápida</strong>Fotografe de perto e a IA tentará ler sem recorte. Evite incluir CPF, telefone ou outros dados pessoais.</p>
+            </div>
 
             <div id="scannerEditor" class="scanner-editor" hidden>
               <div class="scanner-canvas-wrap" id="scannerCanvasWrap">
@@ -358,12 +362,15 @@
             </div>
 
             <div id="scannerResultado" class="scanner-result" hidden>
-              <div class="scanner-result-head"><strong>Imagem pronta para leitura</strong><span>✓ melhorada</span></div>
+              <div class="scanner-result-head"><strong id="scannerResultadoTitulo">Imagem pronta para leitura</strong><span id="scannerResultadoBadge">✓ melhorada</span></div>
               <img id="scannerPreview" class="scanner-preview" alt="Documento recortado e melhorado">
               <button id="scannerVoltarRecorte" class="secondary-btn" type="button">← Ajustar recorte</button>
             </div>
 
-            <button id="scannerLer" class="primary-btn scanner-read-btn" type="button" disabled>🔎 Ler valor e pagamento</button>
+            <div class="scanner-read-actions">
+              <button id="scannerLerRapido" class="primary-btn scanner-fast-btn" type="button" hidden disabled>⚡ Ler manuscrito com IA</button>
+              <button id="scannerLer" class="secondary-btn scanner-read-btn" type="button" disabled>🔎 Leitura local</button>
+            </div>
             <div class="scanner-progress-shell" aria-hidden="true"><i id="scannerProgressoBarra"></i></div>
             <div id="scannerProgresso" class="scanner-progress" aria-live="polite"></div>
           </div>
@@ -384,7 +391,7 @@
                 <small id="scannerMistoResumo">Preencha os valores. A soma deve ser igual ao total.</small>
               </div>
             </div>
-            <details><summary>Texto reconhecido pelo OCR</summary><textarea id="scannerTextoBruto" rows="8" readonly></textarea></details>
+            <details><summary>Texto reconhecido na foto</summary><textarea id="scannerTextoBruto" rows="8" readonly></textarea></details>
             <div id="scannerSalvarStatus" class="scanner-save-status" aria-live="polite"></div>
             <div class="modal-actions scanner-review-actions"><button id="scannerLimpar" type="button">Nova foto</button><button id="scannerConfirmar" class="primary-btn" type="button" disabled>Confirmar compra</button></div>
           </div>
