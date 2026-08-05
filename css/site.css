@@ -303,6 +303,10 @@ nav button {
     transform: translateX(0)
 }
 
+.carrinho-conteudo {
+    display: contents
+}
+
 .cart-head {
     display: flex;
     justify-content: space-between;
@@ -1289,6 +1293,7 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
 }
 .cards-resumo strong{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dv-wine)}
 .cards-resumo span{margin-top:9px;color:var(--dv-muted);font-size:.9rem;line-height:1.4}
+.cards-resumo .card-resumo-entrega>small{display:block;margin-top:6px;color:#9a7c6e;font-size:.7rem;line-height:1.35}
 .contato-rapido{
   display:grid;grid-template-columns:minmax(220px,.72fr) minmax(0,1.28fr);align-items:center;gap:24px;
   margin:-24px 0 52px;padding:22px 24px;border:1px solid var(--dv-line);border-radius:22px;
@@ -1372,6 +1377,24 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
 .endereco-cep-busca small{grid-column:1/-1;margin:-3px 2px 1px;color:var(--dv-muted);font-size:.68rem;line-height:1.35}
 .endereco-cep-busca small:empty{display:none}
 .cep-status.sucesso{color:#237245}.cep-status.erro{color:#a2362b}
+.taxa-entrega-box{
+  grid-column:1/-1;display:grid;gap:10px;padding:13px;border:1px solid #e6d2c1;border-radius:15px;
+  background:linear-gradient(145deg,#fffaf1,#fff);color:var(--dv-ink);
+}
+.taxa-entrega-topo{display:flex;align-items:flex-start;gap:9px}
+.taxa-entrega-topo>span{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:#f9e6c2;font-size:1rem}
+.taxa-entrega-topo strong,.taxa-entrega-topo small{display:block}
+.taxa-entrega-topo strong{color:var(--dv-wine);font-size:.8rem}
+.taxa-entrega-topo small{margin-top:3px;color:var(--dv-muted);font-size:.69rem;line-height:1.35}
+.taxa-entrega-topo small.sucesso{color:#237245}.taxa-entrega-topo small.erro{color:#a2362b}.taxa-entrega-topo small.aviso{color:#88631e}
+.taxa-entrega-resultado{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.taxa-entrega-resultado[hidden]{display:none!important}
+.taxa-entrega-resultado>span{padding:9px 10px;border:1px solid #eee0d4;border-radius:11px;background:#fff}
+.taxa-entrega-resultado small,.taxa-entrega-resultado strong{display:block}
+.taxa-entrega-resultado small{color:var(--dv-muted);font-size:.64rem}.taxa-entrega-resultado strong{margin-top:2px;color:var(--dv-wine);font-size:.85rem}
+.taxa-entrega-box>button{min-height:42px;border-radius:12px;background:var(--dv-wine);color:#fff;font-size:.75rem;font-weight:900}
+.taxa-entrega-box>button:disabled{opacity:.65;cursor:wait}
+.geoapify-credito{justify-self:end;color:#8b7569;font-size:.61rem;text-decoration:underline;text-underline-offset:2px}
 .festa-pedido-box .endereco-cep-busca input{width:100%;padding:12px;border:1px solid #dcc6b5;border-radius:13px;background:#fff}
 .festa-pedido-box .endereco-cep-busca button{min-height:46px}
 .btn-whatsapp{min-height:50px;box-shadow:0 11px 25px rgba(26,161,77,.22)}
@@ -1493,8 +1516,40 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
   .hero-actions{display:grid}.hero .btn{width:100%}
 }
 
+@media(max-width:800px){
+  .carrinho{
+    display:flex!important;
+    overflow:hidden!important;
+  }
+  .carrinho .cart-head{
+    flex:0 0 auto!important;
+  }
+  .carrinho-conteudo{
+    display:block;
+    flex:1 1 auto;
+    min-height:0;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-bottom:max(8px,env(safe-area-inset-bottom));
+  }
+  .carrinho-conteudo .itens-carrinho{
+    min-height:80px!important;
+    margin-top:10px;
+    overflow:visible!important;
+  }
+  .carrinho-conteudo .btn-whatsapp{width:100%;margin-bottom:4px}
+}
+
 @media(hover:none) and (pointer:coarse){
-  .carrinho{transform:none!important;top:auto!important;bottom:-105%!important;transition:bottom .34s cubic-bezier(.2,.8,.2,1)!important}
+  .carrinho{
+    display:flex!important;
+    overflow:hidden!important;
+    transform:none!important;
+    top:auto!important;
+    bottom:-105%!important;
+    transition:bottom .34s cubic-bezier(.2,.8,.2,1)!important;
+  }
   .carrinho.aberto{bottom:0!important;transform:none!important}
 }
 

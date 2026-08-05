@@ -601,6 +601,19 @@
             <h3>Entrega</h3>
             <label>Texto de entrega<input id="configEntrega" placeholder="Taxa conforme distância"></label>
             <label>Texto de retirada<input id="configRetirada" placeholder="Retirada na loja"></label>
+            <div class="config-taxas-entrega">
+              <p>Taxas automáticas por distância</p>
+              <label>Até 3 km (R$)
+                <input id="configTaxaAte3Km" type="number" inputmode="decimal" min="0" step="0.50" placeholder="5,00">
+              </label>
+              <label>Acima de 3 km até a distância máxima (R$)
+                <input id="configTaxaAte5Km" type="number" inputmode="decimal" min="0" step="0.50" placeholder="7,00">
+              </label>
+              <label>Distância máxima (km)
+                <input id="configLimiteEntregaKm" type="number" inputmode="decimal" min="3" step="0.5" placeholder="5">
+              </label>
+              <small>A distância é calculada pela rota de carro usando o endereço informado no pedido.</small>
+            </div>
             <label>Status da loja
               <select id="configStatusLoja">
                 <option value="aberta">Aberta</option>

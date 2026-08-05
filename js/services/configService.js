@@ -13,6 +13,11 @@ export let lojaConfig = {
   horario: "",
   entrega: "Taxa conforme distância",
   retirada: "Retirada na loja",
+  taxasEntrega: {
+    ate3Km: 5,
+    ate5Km: 7,
+    limiteKm: 5
+  },
   statusLoja: "aberta"
 };
 

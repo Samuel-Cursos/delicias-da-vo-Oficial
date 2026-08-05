@@ -1107,6 +1107,12 @@ function urlExternaValida(valor = "") {
   }
 }
 
+function numeroConfiguracao(id, padrao, minimo = 0, maximo = 1000) {
+  const valor = Number(document.getElementById(id)?.value);
+  if (!Number.isFinite(valor)) return padrao;
+  return Math.min(maximo, Math.max(minimo, valor));
+}
+
 function preencherConfiguracoesLoja() {
   const campos = {
     configNomeLoja: lojaConfig.nomeLoja || "Delícias da Vó",
@@ -1121,6 +1127,9 @@ function preencherConfiguracoesLoja() {
     configHorario: lojaConfig.horario || "",
     configEntrega: lojaConfig.entrega || "Taxa conforme distância",
     configRetirada: lojaConfig.retirada || "Retirada na loja",
+    configTaxaAte3Km: Number(lojaConfig.taxasEntrega?.ate3Km ?? 5),
+    configTaxaAte5Km: Number(lojaConfig.taxasEntrega?.ate5Km ?? 7),
+    configLimiteEntregaKm: Number(lojaConfig.taxasEntrega?.limiteKm ?? 5),
     configStatusLoja: lojaConfig.statusLoja || "aberta",
     cardapioDiaTituloInput: lojaConfig.cardapioDia?.titulo || "Cardápio de hoje",
     cardapioDiaItensInput: Array.isArray(lojaConfig.cardapioDia?.itens) ? lojaConfig.cardapioDia.itens.join("\n") : "",
@@ -1167,6 +1176,11 @@ async function salvarConfiguracoesLoja() {
     horario: limparTexto(document.getElementById("configHorario").value),
     entrega: limparTexto(document.getElementById("configEntrega").value),
     retirada: limparTexto(document.getElementById("configRetirada").value),
+    taxasEntrega: {
+      ate3Km: numeroConfiguracao("configTaxaAte3Km", 5, 0, 500),
+      ate5Km: numeroConfiguracao("configTaxaAte5Km", 7, 0, 500),
+      limiteKm: numeroConfiguracao("configLimiteEntregaKm", 5, 3, 100)
+    },
    statusLoja: document.getElementById("configStatusLoja").value,
 horariosAtendimento: coletarHorariosAtendimento(),
     cardapioDia: {

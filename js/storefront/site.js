@@ -14,6 +14,9 @@ let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
 let pendingSaborProdutoId = null;
 let ultimoFocoAntesCarrinho = null;
+let taxaEntregaAtual = null;
+let timerCalculoEntrega = null;
+let solicitacaoEntregaAtual = 0;
 
 window.addEventListener("perfil-cliente-atualizado", event => {
   const perfil = event.detail?.perfil || null;
@@ -86,6 +89,10 @@ function preencherDadosCliente(perfil, sobrescrever = false) {
     aviso.textContent = perfilCompleto
       ? "✓ Seus dados foram preenchidos pelo seu perfil Google."
       : "Seu nome veio do Google. Complete telefone e endereço uma vez; depois eles aparecem automaticamente.";
+  }
+
+  if (sobrescrever && document.getElementById("tipoPedido")?.value === "Entrega") {
+    agendarCalculoTaxaEntrega();
   }
 }
 
@@ -197,6 +204,7 @@ async function buscarCepEndereco(origem = "normal") {
     }
 
     document.getElementById(campos.numero)?.focus();
+    if (origem === "normal") agendarCalculoTaxaEntrega();
   } catch (erro) {
     if (status) {
       status.className = "cep-status erro";
@@ -338,6 +346,212 @@ window.abrirPerfilCliente = abrirPerfilCliente;
 window.fecharPerfilCliente = fecharPerfilCliente;
 window.salvarFormularioPerfilCliente = salvarFormularioPerfilCliente;
 
+const CACHE_ROTAS_ENTREGA = "deliciasRotasEntregaV53";
+const TEMPO_CACHE_ROTA_MS = 30 * 60 * 1000;
+
+function dadosEnderecoParaEntrega() {
+  const rua = limparTexto(document.getElementById("ruaCliente")?.value || "");
+  const numero = limparTexto(document.getElementById("numeroCliente")?.value || "");
+  const bairro = limparTexto(document.getElementById("bairroCliente")?.value || "");
+  const cep = limparTexto(document.getElementById("cepCliente")?.value || "");
+  const enderecoLoja = limparTexto(lojaConfig.endereco || "");
+  const origem = enderecoLoja
+    ? `${enderecoLoja}${/votuporanga/i.test(enderecoLoja) ? "" : ", Votuporanga - SP"}, Brasil`
+    : "";
+  const destino = [
+    rua && numero ? `${rua}, ${numero}` : rua || numero,
+    bairro,
+    "Votuporanga - SP",
+    cep,
+    "Brasil"
+  ].filter(Boolean).join(", ");
+
+  const chave = [origem, rua, numero, bairro, cep]
+    .join("|")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  return {
+    origem,
+    destino,
+    chave,
+    completo: Boolean(origem && rua && numero && bairro)
+  };
+}
+
+function taxaPorDistancia(distanciaKm) {
+  const taxas = configuracaoTaxasEntrega();
+  if (!Number.isFinite(distanciaKm) || distanciaKm < 0) return null;
+  if (distanciaKm <= 3) return { valor: taxas.ate3Km, foraArea: false };
+  if (distanciaKm <= taxas.limiteKm) return { valor: taxas.ate5Km, foraArea: false };
+  return { valor: 0, foraArea: true };
+}
+
+function atualizarInterfaceTaxaEntrega() {
+  const tipo = document.getElementById("tipoPedido")?.value || "Retirada na loja";
+  const status = document.getElementById("taxaEntregaStatus");
+  const resultado = document.getElementById("taxaEntregaResultado");
+  const distancia = document.getElementById("distanciaEntregaTexto");
+  const valor = document.getElementById("valorTaxaEntregaTexto");
+  const botao = document.getElementById("btnCalcularTaxaEntrega");
+  if (!status || !resultado || !botao || tipo !== "Entrega") return;
+
+  status.className = "";
+  botao.disabled = false;
+  botao.textContent = "Calcular entrega";
+
+  if (!taxaEntregaAtual) {
+    resultado.hidden = true;
+    status.textContent = dadosEnderecoParaEntrega().completo
+      ? "O valor será calculado automaticamente."
+      : "Complete rua, número e bairro para calcular.";
+    return;
+  }
+
+  if (taxaEntregaAtual.estado === "calculando") {
+    resultado.hidden = true;
+    status.textContent = "Calculando a melhor rota de carro...";
+    botao.disabled = true;
+    botao.textContent = "Calculando...";
+    return;
+  }
+
+  if (taxaEntregaAtual.estado === "erro") {
+    resultado.hidden = true;
+    status.className = "erro";
+    status.textContent = taxaEntregaAtual.mensagem || "Não foi possível calcular agora.";
+    botao.textContent = "Tentar novamente";
+    return;
+  }
+
+  resultado.hidden = false;
+  if (distancia) distancia.textContent = `${taxaEntregaAtual.distanciaKm.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`;
+
+  if (taxaEntregaAtual.foraArea) {
+    status.className = "aviso";
+    status.textContent = `Esse endereço ultrapassa o limite automático de ${configuracaoTaxasEntrega().limiteKm.toLocaleString("pt-BR")} km. Consulte a loja.`;
+    if (valor) valor.textContent = "A combinar";
+  } else {
+    status.className = "sucesso";
+    status.textContent = "✓ Taxa calculada pela distância da rota.";
+    if (valor) valor.textContent = formatarMoeda(taxaEntregaAtual.valor);
+  }
+
+  botao.textContent = "Recalcular entrega";
+}
+
+function invalidarTaxaEntrega() {
+  solicitacaoEntregaAtual += 1;
+  taxaEntregaAtual = null;
+  atualizarInterfaceTaxaEntrega();
+  atualizarCarrinho();
+}
+
+function cacheRota(chave) {
+  const cache = carregarLocal(CACHE_ROTAS_ENTREGA, {});
+  const item = cache?.[chave];
+  if (!item || Date.now() - Number(item.salvoEm || 0) > TEMPO_CACHE_ROTA_MS) return null;
+  return item;
+}
+
+function salvarCacheRota(chave, rota) {
+  const cacheAtual = carregarLocal(CACHE_ROTAS_ENTREGA, {});
+  const entradas = Object.entries({
+    ...cacheAtual,
+    [chave]: { ...rota, salvoEm: Date.now() }
+  })
+    .sort(([, a], [, b]) => Number(b.salvoEm || 0) - Number(a.salvoEm || 0))
+    .slice(0, 12);
+  salvarLocal(CACHE_ROTAS_ENTREGA, Object.fromEntries(entradas));
+}
+
+function aplicarRotaCalculada(rota, chave) {
+  const distanciaKm = Number(rota.distanciaKm);
+  const faixa = taxaPorDistancia(distanciaKm);
+  if (!faixa) throw new Error("Distância inválida");
+
+  taxaEntregaAtual = {
+    estado: "calculada",
+    chave,
+    distanciaKm,
+    duracaoMin: Number(rota.duracaoMin || 0),
+    valor: faixa.valor,
+    foraArea: faixa.foraArea
+  };
+  atualizarInterfaceTaxaEntrega();
+  atualizarCarrinho();
+}
+
+async function calcularTaxaEntrega(forcar = false) {
+  if (document.getElementById("tipoPedido")?.value !== "Entrega") return;
+  const endereco = dadosEnderecoParaEntrega();
+
+  if (!endereco.completo) {
+    if (forcar) {
+      taxaEntregaAtual = { estado: "erro", mensagem: endereco.origem
+        ? "Complete rua, número e bairro para calcular."
+        : "Cadastre o endereço completo da loja no painel administrativo." };
+      atualizarInterfaceTaxaEntrega();
+    }
+    return;
+  }
+
+  if (!forcar && taxaEntregaAtual?.estado === "calculada" && taxaEntregaAtual.chave === endereco.chave) return;
+
+  const rotaCache = cacheRota(endereco.chave);
+  if (rotaCache && !forcar) {
+    aplicarRotaCalculada(rotaCache, endereco.chave);
+    return;
+  }
+
+  const idSolicitacao = ++solicitacaoEntregaAtual;
+  taxaEntregaAtual = { estado: "calculando", chave: endereco.chave };
+  atualizarInterfaceTaxaEntrega();
+  atualizarCarrinho();
+
+  try {
+    const resposta = await fetch("/api/calcular-entrega", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ origem: endereco.origem, destino: endereco.destino })
+    });
+    const dados = await resposta.json().catch(() => ({}));
+    if (idSolicitacao !== solicitacaoEntregaAtual) return;
+    if (!resposta.ok) {
+      const mensagem = dados.codigo === "GEOAPIFY_NAO_CONFIGURADA"
+        ? "O cálculo automático ainda precisa ser ativado pela loja. A taxa será confirmada no WhatsApp."
+        : (dados.erro || "Não foi possível calcular agora. A taxa será confirmada no WhatsApp.");
+      throw new Error(mensagem);
+    }
+
+    salvarCacheRota(endereco.chave, dados);
+    aplicarRotaCalculada(dados, endereco.chave);
+  } catch (erro) {
+    if (idSolicitacao !== solicitacaoEntregaAtual) return;
+    taxaEntregaAtual = {
+      estado: "erro",
+      chave: endereco.chave,
+      mensagem: limparTexto(erro?.message || "") || "Não foi possível calcular agora. A taxa será confirmada no WhatsApp."
+    };
+    atualizarInterfaceTaxaEntrega();
+    atualizarCarrinho();
+  }
+}
+
+function agendarCalculoTaxaEntrega() {
+  window.clearTimeout(timerCalculoEntrega);
+  invalidarTaxaEntrega();
+  if (document.getElementById("tipoPedido")?.value !== "Entrega" || !dadosEnderecoParaEntrega().completo) return;
+  timerCalculoEntrega = window.setTimeout(() => calcularTaxaEntrega(false), 750);
+}
+
+["cepCliente", "ruaCliente", "numeroCliente", "bairroCliente"].forEach(id => {
+  document.getElementById(id)?.addEventListener("input", agendarCalculoTaxaEntrega);
+});
+
+window.calcularTaxaEntrega = calcularTaxaEntrega;
+
 function atualizarEstadoCardapio(erro, usandoCache = false) {
   const status = document.getElementById("statusCardapioSite");
   if (!status) return;
@@ -371,6 +585,18 @@ function normalizarUrlExterna(valor = "") {
   }
 }
 
+function configuracaoTaxasEntrega() {
+  const ate3Km = Math.max(0, Number(lojaConfig.taxasEntrega?.ate3Km ?? 5));
+  const ate5Km = Math.max(0, Number(lojaConfig.taxasEntrega?.ate5Km ?? 7));
+  const limiteKm = Math.max(3, Number(lojaConfig.taxasEntrega?.limiteKm ?? 5));
+  return { ate3Km, ate5Km, limiteKm };
+}
+
+function textoFaixasEntrega() {
+  const taxas = configuracaoTaxasEntrega();
+  return `${formatarMoeda(taxas.ate3Km)} até 3 km • ${formatarMoeda(taxas.ate5Km)} até ${taxas.limiteKm.toLocaleString("pt-BR")} km`;
+}
+
 
 function aplicarConfiguracoesSite() {
   document.querySelectorAll(".brand strong").forEach(el => {
@@ -382,8 +608,8 @@ function aplicarConfiguracoesSite() {
   const festaEntrega = document.getElementById("festaEntregaTexto");
   const status = document.getElementById("statusLojaTexto");
 
-  if (entrega) entrega.textContent = lojaConfig.entrega || "Taxa conforme distância";
-  if (festaEntrega) festaEntrega.textContent = lojaConfig.entrega || "Taxa conforme distância";
+  if (entrega) entrega.textContent = textoFaixasEntrega();
+  if (festaEntrega) festaEntrega.textContent = textoFaixasEntrega();
   if (retirada) retirada.textContent = lojaConfig.retirada || "Disponível na loja";
 
   const numeroWhatsApp = String(lojaConfig.whatsapp || APP_CONFIG.whatsapp).replace(/\D/g, "");
@@ -446,6 +672,13 @@ function aplicarConfiguracoesSite() {
   status.innerHTML = "";
   status.textContent = resultado.texto;
 }
+
+  if (taxaEntregaAtual?.estado === "calculada") {
+    const faixa = taxaPorDistancia(taxaEntregaAtual.distanciaKm);
+    taxaEntregaAtual = { ...taxaEntregaAtual, ...faixa };
+  }
+  atualizarInterfaceTaxaEntrega();
+  atualizarCarrinho();
 }
 
 
@@ -957,10 +1190,23 @@ function atualizarCarrinho() {
     box.appendChild(wrapper);
   });
 
-  const total = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+  const subtotal = carrinho.reduce((soma, item) => soma + item.preco * item.quantidade, 0);
+  const entregaSelecionada = document.getElementById("tipoPedido")?.value === "Entrega";
+  const taxaValida = entregaSelecionada
+    && taxaEntregaAtual?.estado === "calculada"
+    && !taxaEntregaAtual.foraArea
+    && taxaEntregaAtual.chave === dadosEnderecoParaEntrega().chave;
+  const taxaAplicadaNoTotal = taxaValida && subtotal > 0;
+  const total = subtotal + (taxaAplicadaNoTotal ? Number(taxaEntregaAtual.valor || 0) : 0);
   const quantidade = carrinho.reduce((soma, item) => soma + item.quantidade, 0);
 
   document.getElementById("totalPedido").textContent = formatarMoeda(total);
+  const rotuloTotal = document.getElementById("rotuloTotalPedido");
+  if (rotuloTotal) {
+    rotuloTotal.textContent = entregaSelecionada
+      ? (taxaAplicadaNoTotal ? "Total com entrega" : "Subtotal sem a taxa")
+      : "Total";
+  }
   document.getElementById("contadorItens").textContent = quantidade;
   const contadorTopo = document.getElementById("contadorTopo");
   if (contadorTopo) contadorTopo.textContent = quantidade;
@@ -1103,6 +1349,13 @@ function montarMensagemPedidoWhatsApp(pedido) {
   const endereco = pedido.tipo === "Entrega"
     ? `\n📍 Endereço\n${pedido.endereco}\n`
     : "";
+  const entregaCalculada = pedido.tipo === "Entrega" && Number.isFinite(Number(pedido.taxaEntrega));
+  const resumoTaxa = pedido.tipo === "Entrega"
+    ? entregaCalculada
+      ? `📏 Distância da rota: ${Number(pedido.distanciaEntregaKm).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km\n🛵 Taxa de entrega: ${formatarMoeda(pedido.taxaEntrega)}\n🧾 Subtotal dos produtos: ${formatarMoeda(pedido.subtotalProdutos)}\n`
+      : "🛵 Taxa de entrega: a confirmar pelo WhatsApp\n"
+    : "";
+  const tituloTotal = pedido.tipo === "Entrega" && !entregaCalculada ? "💰 SUBTOTAL SEM A TAXA" : "💰 TOTAL";
 
   return `━━━━━━━━━━━━━━━━━━━━━━
 🍽️ DELÍCIAS DA VÓ
@@ -1124,12 +1377,13 @@ ${linhasItens}
 
 ${tipoEntrega}
 ${endereco}
+${resumoTaxa}
 💳 PAGAMENTO
 ${pedido.pagamento}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 TOTAL
+${tituloTotal}
 ${formatarMoeda(pedido.total)}
 
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -1164,6 +1418,7 @@ function abrirRevisaoPedido(dados) {
   const itens = document.getElementById("revisaoItensPedido");
   const detalhes = document.getElementById("revisaoDetalhesPedido");
   const total = document.getElementById("revisaoTotalPedido");
+  const totalRotulo = document.getElementById("revisaoTotalRotulo");
   if (!modal) return;
 
   urlWhatsAppPedidoPendente = dados.urlWhatsApp || "";
@@ -1185,10 +1440,12 @@ function abrirRevisaoPedido(dados) {
     detalhes.innerHTML = `
       <span><b>📦 Recebimento</b>${escaparHtmlRevisao(dados.tipo || "Retirada")}</span>
       ${dados.tipo === "Entrega" && dados.endereco ? `<span><b>📍 Endereço</b>${escaparHtmlRevisao(dados.endereco)}</span>` : ""}
+      ${dados.tipo === "Entrega" ? `<span><b>🛵 Taxa de entrega</b>${escaparHtmlRevisao(dados.taxaEntregaTexto || "A confirmar pelo WhatsApp")}</span>` : ""}
       <span><b>💳 Pagamento</b>${escaparHtmlRevisao(dados.pagamento || "Não informado")}</span>`;
   }
 
   if (total) total.textContent = formatarMoeda(dados.total || 0);
+  if (totalRotulo) totalRotulo.textContent = dados.totalIncluiTaxa === false ? "Subtotal sem a taxa" : "Total do pedido";
 
   fecharCarrinhoImpl();
   document.body.classList.add("modal-em-foco");
@@ -1202,8 +1459,16 @@ function fecharRevisaoPedido() {
 
 function limparCarrinhoAposEnvio() {
   carrinho = [];
+  window.clearTimeout(timerCalculoEntrega);
+  solicitacaoEntregaAtual += 1;
+  taxaEntregaAtual = null;
   salvarLocal(APP_CONFIG.storageCarrinho, carrinho);
   atualizarCarrinho();
+
+  const cep = document.getElementById("cepCliente");
+  if (cep) cep.value = "";
+  const statusCep = document.getElementById("statusCepCliente");
+  if (statusCep) statusCep.textContent = "";
 
   const camposParaLimpar = [
     "nomeCliente",
@@ -1263,6 +1528,16 @@ function atualizarEnderecoPedidoNormal() {
   const tipo = document.getElementById("tipoPedido")?.value || "Retirada na loja";
   const campos = document.getElementById("camposEnderecoPedidoNormal");
   if (campos) campos.hidden = tipo !== "Entrega";
+
+  if (tipo === "Entrega") {
+    atualizarInterfaceTaxaEntrega();
+    if (dadosEnderecoParaEntrega().completo) agendarCalculoTaxaEntrega();
+  } else {
+    window.clearTimeout(timerCalculoEntrega);
+    solicitacaoEntregaAtual += 1;
+    taxaEntregaAtual = null;
+    atualizarCarrinho();
+  }
 }
 window.atualizarEnderecoPedidoNormal = atualizarEnderecoPedidoNormal;
 
@@ -1307,6 +1582,16 @@ async function finalizarPedidoImpl() {
     return;
   }
 
+  if (tipo === "Entrega") {
+    const enderecoCalculo = dadosEnderecoParaEntrega();
+    const calculoAtualValido = taxaEntregaAtual?.estado === "calculada"
+      && taxaEntregaAtual.chave === enderecoCalculo.chave;
+    if (!calculoAtualValido) {
+      setBotaoFinalizarPedido("📍 Calculando entrega...", true);
+      await calcularTaxaEntrega(true);
+    }
+  }
+
   setBotaoFinalizarPedido("⏳ Preparando pedido...", true);
 
   try {
@@ -1324,7 +1609,14 @@ async function finalizarPedidoImpl() {
       subtotal: Number(item.preco || 0) * Number(item.quantidade || 0)
     }));
 
-    const total = itens.reduce((soma, item) => soma + item.subtotal, 0);
+    const subtotalProdutos = itens.reduce((soma, item) => soma + item.subtotal, 0);
+    const enderecoCalculo = dadosEnderecoParaEntrega();
+    const taxaEntregaValida = tipo === "Entrega"
+      && taxaEntregaAtual?.estado === "calculada"
+      && !taxaEntregaAtual.foraArea
+      && taxaEntregaAtual.chave === enderecoCalculo.chave;
+    const taxaEntrega = taxaEntregaValida ? Number(taxaEntregaAtual.valor || 0) : null;
+    const total = subtotalProdutos + (taxaEntrega ?? 0);
 
     setBotaoFinalizarPedido("📦 Gerando número...", true);
 
@@ -1350,7 +1642,15 @@ async function finalizarPedidoImpl() {
       total
     });
 
-    const mensagem = montarMensagemPedidoWhatsApp(pedido);
+    const pedidoExibicao = {
+      ...pedido,
+      subtotalProdutos,
+      taxaEntrega,
+      distanciaEntregaKm: tipo === "Entrega" && taxaEntregaAtual?.estado === "calculada"
+        ? Number(taxaEntregaAtual.distanciaKm)
+        : null
+    };
+    const mensagem = montarMensagemPedidoWhatsApp(pedidoExibicao);
     const numero = lojaConfig.whatsapp || APP_CONFIG.whatsapp;
 
     abrirRevisaoPedido({
@@ -1360,6 +1660,12 @@ async function finalizarPedidoImpl() {
       endereco: pedido.endereco || endereco,
       pagamento: pedido.pagamento || pagamento,
       total: pedido.total || total,
+      taxaEntregaTexto: taxaEntregaValida
+        ? `${formatarMoeda(taxaEntrega)} • ${Number(taxaEntregaAtual.distanciaKm).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
+        : taxaEntregaAtual?.foraArea
+          ? `A combinar • endereço a ${Number(taxaEntregaAtual.distanciaKm).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })} km`
+          : "A confirmar pelo WhatsApp",
+      totalIncluiTaxa: tipo !== "Entrega" || taxaEntregaValida,
       urlWhatsApp: `https://wa.me/${numero}?text=${textoWhatsApp(mensagem)}`
     });
 
