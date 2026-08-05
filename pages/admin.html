@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Delícias da Vó | Painel ADM</title>
+
+  <meta name="theme-color" content="#47190f" />
+  <link rel="icon" href="../assets/icon-192.png" />
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <section class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-logo-wrap">
+        <span class="logo-glow" aria-hidden="true"></span>
+        <img class="logo-admin-img" src="../assets/logo-delicias-da-vo.png" alt="Delícias da Vó" />
+      </div>
+      <h1>Painel Delícias da Vó</h1>
+      <p>Entre com sua conta para administrar a loja com segurança.</p>
+      <div id="adminUsuario"></div>
+    </div>
+  </section>
+
+  <main class="admin-app" id="adminApp">
+    <aside class="sidebar" id="adminSidebar" aria-label="Menu do painel">
+      <div class="sidebar-brand">
+        <img class="logo-admin-img small" src="../assets/logo-delicias-da-vo.png" alt="" />
+        <div>
+          <strong>Delícias da Vó</strong>
+          <span>Painel de gestão</span>
+        </div>
+        <button class="sidebar-close" type="button" onclick="fecharMenuAdmin()" aria-label="Fechar menu">✕</button>
+      </div>
+
+      <p class="sidebar-group">Visão geral</p>
+      <button class="tab-btn active" onclick="abrirAba('dashboard', this)">🏠 Dashboard</button>
+      <p class="sidebar-group">Operação</p>
+      <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
+      <button class="tab-btn" onclick="abrirAba('festas', this)">🎉 Salgados para festas</button>
+      <button class="tab-btn tab-encomendas" onclick="abrirAba('encomendas', this)">📅 Agenda de encomendas <span id="badgeEncomendas" class="badge-encomendas" hidden>0</span></button>
+      <button class="tab-btn" onclick="abrirAba('central', this)">📋 Central de pedidos</button>
+      <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
+      <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
+      <button class="tab-btn" onclick="abrirAba('digitalizacao', this)">📸 Digitalizar registros</button>
+      <p class="sidebar-group">Gestão</p>
+      <button class="tab-btn" onclick="abrirAba('financeiro', this)">📊 Financeiro</button>
+      <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
+      <button class="tab-btn" onclick="abrirAba('categorias', this)">🏷️ Categorias</button>
+      <button class="tab-btn" onclick="abrirAba('backup', this)">💾 Backup</button>
+      <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações</button>
+
+      <a class="site-link" href="../index.html">🌐 Ver site</a>
+      <button class="logout" onclick="sairConta()">Sair</button>
+    </aside>
+    <button class="sidebar-backdrop" type="button" onclick="fecharMenuAdmin()" aria-label="Fechar menu"></button>
+
+    <section class="content">
+      <header class="admin-top">
+        <button class="sidebar-toggle" type="button" onclick="alternarMenuAdmin()" aria-label="Abrir menu" aria-controls="adminSidebar" aria-expanded="false">☰</button>
+        <div>
+          <p class="eyebrow">Delícias da Vó OS</p>
+          <h1 id="tituloAba">Dashboard</h1>
+          <p id="descricaoAba">Resumo da loja, vendas, produtos e estoque em tempo real.</p>
+        </div>
+      </header>
+
+      <section class="aba active" id="aba-dashboard">
+        <div class="atalhos-grid">
+          <button onclick="abrirAbaPorNome('venda')">🧾 <strong>Venda rápida</strong><span>Registrar venda da loja física</span></button>
+          <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Novo produto</strong><span>Cadastrar ou editar produtos</span></button>
+          <button onclick="abrirAbaPorNome('caixa')">💰 <strong>Caixa</strong><span>Ver vendas e pagamentos</span></button>
+          <button onclick="abrirAbaPorNome('financeiro')">📊 <strong>Financeiro</strong><span>Entradas, despesas e relatórios</span></button>
+          <button onclick="abrirAbaPorNome('central')">📋 <strong>Central de pedidos</strong><span>Localizar qualquer pedido ou venda</span></button>
+          <button onclick="abrirAbaPorNome('backup')">💾 <strong>Backup</strong><span>Proteger os dados da loja</span></button>
+          <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas e descontos</span></button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat destaque"><span>💰 Vendas hoje</span><strong id="statVendasHoje">R$ 0,00</strong><small id="statQtdVendas">0 vendas registradas</small></div>
+          <div class="stat destaque-site"><span>📲 Pedidos pelo site</span><strong id="statPedidosSiteHoje">0</strong><small id="statUltimoPedidoSite">Nenhum pedido enviado hoje</small></div>
+          <div class="stat destaque-encomendas"><span>🔔 Novas encomendas</span><strong id="statNovasEncomendas">0</strong><small id="statProximaFesta">Nenhuma nova encomenda</small></div>
+          <div class="stat"><span>📦 Produtos</span><strong id="statProdutos">0</strong><small id="statAtivosTexto">0 ativos</small></div>
+          <div class="stat"><span>⚠ Estoque baixo</span><strong id="statBaixo">0</strong><small>Produtos em atenção</small></div>
+          <div class="stat"><span>🔥 Mais vendido</span><strong id="statMaisVendido">—</strong><small id="statMaisVendidoQtd">Hoje</small></div>
+          <div class="stat financeiro-resultado"><span>📈 Lucro estimado do mês</span><strong id="statResultadoMes">R$ 0,00</strong><small id="statFinanceiroMes">Entradas menos despesas</small></div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-title">
+              <div>
+                <h2>⚠ Produtos em atenção</h2>
+                <p>Produtos com estoque baixo ou esgotado.</p>
+              </div>
+            </div>
+            <div id="avisosDashboard" class="lista-simples"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <div>
+                <h2>🧾 Últimas vendas</h2>
+                <p>Vendas físicas registradas hoje.</p>
+              </div>
+            </div>
+            <div id="ultimasVendasDashboard" class="lista-simples"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-produtos">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Catálogo</p>
+            <h2>Produtos</h2>
+            <p>Crie, edite, desative ou exclua produtos.</p>
+          </div>
+
+          <button class="primary-btn" onclick="abrirModalProduto()">➕ Novo produto</button>
+        </div>
+
+        <input class="input-full" id="buscaAdminProduto" placeholder="Pesquisar produto..." oninput="renderProdutosAdmin()" />
+        <div id="listaProdutosAdmin" class="lista-produtos-admin"></div>
+      </section>
+
+
+      <section class="aba" id="aba-festas">
+        <div class="panel-head festas-panel-head">
+          <div>
+            <p class="eyebrow">Encomendas</p>
+            <h2>🎉 Salgados para festas</h2>
+            <p>Gerencie os salgados vendidos por cento, sabores e disponibilidade.</p>
+          </div>
+          <div class="festas-head-actions">
+            <button id="btnMigrarFestas" class="secondary-btn festas-migrar-btn" onclick="migrarFestasParaFirestore()">☁️ Enviar produtos atuais para o Firestore</button>
+            <button class="primary-btn festas-novo-btn" onclick="abrirModalFesta()">➕ Novo produto</button>
+          </div>
+        </div>
+        <div id="retornoMigracaoFestas" class="festas-migracao-retorno" aria-live="polite"></div>
+
+        <div class="festas-resumo" aria-label="Resumo dos salgados para festas">
+          <div class="festas-resumo-card"><span>Produtos</span><strong id="festaTotalProdutos">0</strong></div>
+          <div class="festas-resumo-card"><span>Ativos</span><strong id="festaTotalAtivos">0</strong></div>
+          <div class="festas-resumo-card"><span>Fritos</span><strong id="festaTotalFritos">0</strong></div>
+          <div class="festas-resumo-card"><span>Assados</span><strong id="festaTotalAssados">0</strong></div>
+        </div>
+
+        <div class="panel festas-admin-panel">
+          <div id="statusFestaAdmin" class="festas-conexao-alerta" role="status"></div>
+          <div class="festas-toolbar">
+            <label class="festas-busca">
+              <span>🔎</span>
+              <input id="buscaFestaAdmin" type="search" placeholder="Pesquisar produto ou sabor..." oninput="renderFestasAdmin()">
+            </label>
+            <select id="filtroFestaAdmin" onchange="renderFestasAdmin()" aria-label="Filtrar salgados para festas">
+              <option value="todos">Todos os produtos</option>
+              <option value="fritos">Somente fritos</option>
+              <option value="assados">Somente assados</option>
+              <option value="ativos">Somente ativos</option>
+              <option value="inativos">Somente inativos</option>
+            </select>
+          </div>
+          <div id="listaFestaAdmin" class="festas-admin-grid"></div>
+        </div>
+      </section>
+
+      
+      <section class="aba" id="aba-encomendas">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Organização</p>
+            <h2>📅 Agenda de encomendas</h2>
+            <p>Acompanhe pedidos de festas e atualize cada etapa até a entrega.</p>
+          </div>
+        </div>
+        <div class="agenda-resumo">
+          <div class="agenda-stat"><span>Novas</span><strong id="agendaNovas">0</strong></div>
+          <div class="agenda-stat"><span>Confirmadas</span><strong id="agendaConfirmadas">0</strong></div>
+          <div class="agenda-stat"><span>Em produção</span><strong id="agendaProducao">0</strong></div>
+          <div class="agenda-stat"><span>Prontas</span><strong id="agendaProntas">0</strong></div>
+        </div>
+        <div class="panel">
+          <div class="agenda-toolbar">
+            <input id="buscaEncomenda" class="input-full" placeholder="Buscar cliente, número ou produto..." oninput="renderAgendaEncomendas()">
+            <select id="filtroEncomenda" onchange="renderAgendaEncomendas()">
+              <option value="todos">Todos os status</option>
+              <option value="aguardando_confirmacao">Aguardando confirmação</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="em_producao">Em produção</option>
+              <option value="pronto">Pronto</option>
+              <option value="entregue">Entregue</option>
+            </select>
+          </div>
+          <div id="statusAgendaEncomendas" class="festas-conexao-alerta"></div>
+          <div id="listaAgendaEncomendas" class="agenda-lista"></div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-venda">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Loja física</p>
+            <h2>Venda rápida</h2>
+            <p>Registre vendas presenciais e baixe o estoque automaticamente.</p>
+          </div>
+        </div>
+
+        <div class="venda-layout">
+          <div class="panel">
+            <div class="panel-title">
+              <div>
+                <h3>Produtos</h3>
+                <p>Clique em adicionar para montar a venda.</p>
+              </div>
+            </div>
+
+            <input class="input-full" id="buscaVenda" placeholder="Buscar produto..." oninput="renderVendaRapida()" />
+            <div id="listaVendaRapida" class="lista-venda"></div>
+          </div>
+
+          <div class="panel venda-atual-card">
+            <div class="panel-title">
+              <div>
+                <h3>Venda atual</h3>
+                <p>Confira antes de finalizar.</p>
+              </div>
+            </div>
+
+            <div id="itensVendaRapida" class="lista-simples"></div>
+
+            <div class="total-venda">
+              <span>Total</span>
+              <strong id="totalVendaRapida">R$ 0,00</strong>
+            </div>
+
+            <select id="formaPagamentoVenda">
+              <option>Pix</option>
+              <option>Dinheiro</option>
+              <option>Cartão débito</option>
+              <option>Cartão crédito</option>
+            </select>
+
+            <input id="obsVenda" placeholder="Observação da venda (opcional)" />
+
+            <div class="venda-actions">
+              <button class="secondary-btn" onclick="limparVendaRapida()">Limpar</button>
+              <button class="primary-btn" onclick="finalizarVendaRapida()">Finalizar venda</button>
+            </div>
+
+            <div id="mensagemVenda" class="mensagem-venda"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-caixa">
+        <div class="panel">
+          <div class="panel-title">
+            <div>
+              <p class="eyebrow">Financeiro</p>
+              <h2>Caixa do dia</h2>
+              <p>Resumo das vendas físicas registradas hoje.</p>
+            </div>
+          </div>
+
+          <div id="resumoCaixa" class="caixa-grid"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <div>
+              <h2>Histórico de vendas</h2>
+              <p>Cancele vendas lançadas errado sem apagar o histórico.</p>
+            </div>
+          </div>
+          <div id="historicoVendas" class="lista-simples"></div>
+        </div>
+      </section>
+
+
+
+      <section class="aba" id="aba-central">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Visão geral</p>
+            <h2>📋 Central de pedidos</h2>
+            <p>Pedidos do site, vendas rápidas e encomendas reunidos em ordem cronológica.</p>
+          </div>
+        </div>
+
+        <div class="central-resumo">
+          <div><span>Todos</span><strong id="centralTotal">0</strong></div>
+          <div><span>Em andamento</span><strong id="centralAndamento">0</strong></div>
+          <div><span>Concluídos</span><strong id="centralConcluidos">0</strong></div>
+          <div><span>Cancelados</span><strong id="centralCancelados">0</strong></div>
+        </div>
+
+        <div class="panel">
+          <div class="central-toolbar">
+            <input id="buscaCentralPedidos" class="input-full" placeholder="Buscar número, cliente ou produto..." oninput="renderCentralPedidos()">
+            <select id="filtroOrigemCentral" onchange="renderCentralPedidos()">
+              <option value="todos">Todas as origens</option>
+              <option value="normal">Pedidos do site</option>
+              <option value="venda">Vendas rápidas</option>
+              <option value="festa">Encomendas de festa</option>
+            </select>
+            <select id="filtroStatusCentral" onchange="renderCentralPedidos()">
+              <option value="todos">Todos os status</option>
+              <option value="andamento">Em andamento</option>
+              <option value="concluido">Concluídos</option>
+              <option value="cancelado">Cancelados</option>
+            </select>
+          </div>
+          <div id="statusCentralPedidos" class="festas-conexao-alerta"></div>
+          <div id="listaCentralPedidos" class="central-lista"></div>
+        </div>
+      </section>
+
+
+      <section class="aba" id="aba-digitalizacao">
+        <div class="section-heading">
+          <div><p class="eyebrow">Scanner inteligente</p><h2>📸 Digitalizar compra ou venda</h2><p>Fotografe o papel, remova o fundo e confirme o valor. O resto é automático.</p></div>
+        </div>
+        <div class="scanner-steps" aria-label="Etapas da digitalização">
+          <span class="active"><b>1</b> Fotografar</span>
+          <span><b>2</b> Melhorar</span>
+          <span><b>3</b> Conferir</span>
+        </div>
+        <div class="scanner-layout">
+          <div class="panel scanner-capture">
+            <div class="scanner-mode">
+              <label><input type="radio" name="scannerTipo" value="nota" checked> 🧾 Compra</label>
+              <label><input type="radio" name="scannerTipo" value="caixa"> 💰 Venda</label>
+            </div>
+            <div class="scanner-source-actions">
+              <label class="scanner-source primary-source">📷 Tirar foto<input id="scannerArquivoCamera" type="file" accept="image/*" capture="environment"></label>
+              <label class="scanner-source">🖼️ Escolher imagem<input id="scannerArquivoGaleria" type="file" accept="image/*"></label>
+            </div>
+            <p class="scanner-tip">Dica: deixe o papel inteiro visível e evite sombras fortes.</p>
+
+            <div id="scannerEditor" class="scanner-editor" hidden>
+              <div class="scanner-canvas-wrap" id="scannerCanvasWrap">
+                <canvas id="scannerCanvas" aria-label="Imagem com área de recorte"></canvas>
+                <svg id="scannerOverlay" class="scanner-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <polygon id="scannerPolygon" points="5,5 95,5 95,95 5,95"></polygon>
+                </svg>
+                <button class="scanner-handle" data-point="0" type="button" aria-label="Ajustar canto superior esquerdo"></button>
+                <button class="scanner-handle" data-point="1" type="button" aria-label="Ajustar canto superior direito"></button>
+                <button class="scanner-handle" data-point="2" type="button" aria-label="Ajustar canto inferior direito"></button>
+                <button class="scanner-handle" data-point="3" type="button" aria-label="Ajustar canto inferior esquerdo"></button>
+              </div>
+              <small class="texto-suave">Se precisar, arraste os quatro círculos para os cantos do papel.</small>
+              <div class="scanner-edit-actions">
+                <button id="scannerAutoDetectar" class="secondary-btn" type="button">✨ Detectar papel</button>
+                <button id="scannerMelhorar" class="primary-btn" type="button">✂️ Remover fundo e melhorar</button>
+              </div>
+            </div>
+
+            <div id="scannerResultado" class="scanner-result" hidden>
+              <div class="scanner-result-head"><strong>Imagem pronta para leitura</strong><span>✓ melhorada</span></div>
+              <img id="scannerPreview" class="scanner-preview" alt="Documento recortado e melhorado">
+              <button id="scannerVoltarRecorte" class="secondary-btn" type="button">← Ajustar recorte</button>
+            </div>
+
+            <button id="scannerLer" class="primary-btn scanner-read-btn" type="button" disabled>🔎 Ler valor e pagamento</button>
+            <div class="scanner-progress-shell" aria-hidden="true"><i id="scannerProgressoBarra"></i></div>
+            <div id="scannerProgresso" class="scanner-progress" aria-live="polite"></div>
+          </div>
+          <div class="panel scanner-review">
+            <div class="panel-title">
+              <div><h3 id="scannerTituloRevisao">Revisar compra</h3><p id="scannerTextoRevisao">Confira apenas o valor pago e a forma de pagamento.</p></div>
+              <span id="scannerConfianca" class="scanner-confidence">Aguardando</span>
+            </div>
+            <div class="scanner-fields scanner-simple-fields">
+              <label id="scannerValorLabel">Valor da compra (R$)<input id="scannerValor" type="number" min="0" step="0.01" inputmode="decimal"></label>
+              <label>Pagamento<select id="scannerPagamento"><option>Não informado</option><option>Pix</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Pagamento misto</option></select></label>
+              <div id="scannerPagamentosMistos" class="scanner-mixed-payments" hidden>
+                <p><strong>Valores por forma de pagamento</strong></p>
+                <label>Pix (R$)<input id="scannerMistoPix" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>Dinheiro (R$)<input id="scannerMistoDinheiro" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>Cartão débito (R$)<input id="scannerMistoDebito" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <label>Cartão crédito (R$)<input id="scannerMistoCredito" type="number" min="0" step="0.01" inputmode="decimal"></label>
+                <small id="scannerMistoResumo">Preencha os valores. A soma deve ser igual ao total.</small>
+              </div>
+            </div>
+            <details><summary>Texto reconhecido pelo OCR</summary><textarea id="scannerTextoBruto" rows="8" readonly></textarea></details>
+            <div id="scannerSalvarStatus" class="scanner-save-status" aria-live="polite"></div>
+            <div class="modal-actions scanner-review-actions"><button id="scannerLimpar" type="button">Nova foto</button><button id="scannerConfirmar" class="primary-btn" type="button" disabled>Confirmar compra</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-financeiro">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Gestão da loja</p>
+            <h2>📊 Controle financeiro</h2>
+            <p>Vendas automáticas, despesas, custos e relatórios em um só lugar.</p>
+          </div>
+          <div class="financeiro-head-actions">
+            <button class="secondary-btn" onclick="abrirModalMovimento('entrada')">＋ Entrada manual</button>
+            <button class="secondary-btn" onclick="fecharMesFinanceiro()">🔒 Fechar mês</button>
+            <button class="primary-btn" onclick="abrirModalMovimento('saida')">－ Registrar despesa</button>
+          </div>
+        </div>
+
+        <div class="financeiro-filtros panel">
+          <div class="financeiro-periodos">
+            <button class="periodo-btn" data-periodo="hoje" onclick="selecionarPeriodoFinanceiro('hoje',this)">Hoje</button>
+            <button class="periodo-btn" data-periodo="semana" onclick="selecionarPeriodoFinanceiro('semana',this)">Esta semana</button>
+            <button class="periodo-btn ativo" data-periodo="mes" onclick="selecionarPeriodoFinanceiro('mes',this)">Este mês</button>
+            <button class="periodo-btn" data-periodo="personalizado" onclick="selecionarPeriodoFinanceiro('personalizado',this)">Personalizado</button>
+          </div>
+          <div id="financeiroPeriodoPersonalizado" class="financeiro-periodo-personalizado" hidden>
+            <label>De<input id="financeiroDataInicio" type="date" onchange="renderFinanceiro()"></label>
+            <label>Até<input id="financeiroDataFim" type="date" onchange="renderFinanceiro()"></label>
+          </div>
+          <button class="exportar-excel-btn" onclick="exportarFinanceiroExcel()">📥 Exportar para Excel</button>
+        </div>
+
+        <div class="financeiro-resumo-grid">
+          <div class="financeiro-resumo-card entrada"><span>Entradas</span><strong id="financeiroEntradas">R$ 0,00</strong><small id="financeiroQtdEntradas">0 lançamentos</small></div>
+          <div class="financeiro-resumo-card saida"><span>Despesas</span><strong id="financeiroSaidas">R$ 0,00</strong><small id="financeiroQtdSaidas">0 lançamentos</small></div>
+          <div class="financeiro-resumo-card resultado"><span>Resultado</span><strong id="financeiroResultado">R$ 0,00</strong><small>Entradas menos despesas</small></div>
+          <div class="financeiro-resumo-card custo"><span>Custo estimado vendido</span><strong id="financeiroCustoVendido">R$ 0,00</strong><small>Com base nos custos cadastrados</small></div>
+          <div class="financeiro-resumo-card lucro"><span>Lucro estimado</span><strong id="financeiroLucroEstimado">R$ 0,00</strong><small>Entradas − despesas − custos vendidos</small></div>
+        </div>
+
+        <div class="financeiro-grid">
+          <div class="panel">
+            <div class="panel-title">
+              <div><h3>Movimentações</h3><p>Vendas automáticas e lançamentos manuais.</p></div>
+              <select id="financeiroFiltroTipo" onchange="renderFinanceiro()">
+                <option value="todos">Tudo</option>
+                <option value="entrada">Entradas</option>
+                <option value="saida">Despesas</option>
+              </select>
+            </div>
+            <div id="listaMovimentosFinanceiros" class="financeiro-movimentos"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <div><h3>Resumo por pagamento</h3><p>Quanto entrou em cada forma de pagamento.</p></div>
+            </div>
+            <div id="financeiroPagamentos" class="financeiro-pagamentos"></div>
+
+            <div class="panel-title financeiro-produtos-titulo">
+              <div><h3>Produtos mais vendidos</h3><p>Quantidade no período selecionado.</p></div>
+            </div>
+            <div id="financeiroProdutosVendidos" class="financeiro-ranking"></div>
+          </div>
+        </div>
+
+        <div class="panel custos-produtos-panel">
+          <div class="panel-title">
+            <div>
+              <h3>🧾 Custos dos produtos</h3>
+              <p>Preencha apenas o custo aproximado de uma unidade. É opcional e serve para estimar o resultado.</p>
+            </div>
+            <input id="buscaCustoProduto" placeholder="Buscar produto..." oninput="renderCustosProdutos()">
+          </div>
+          <div id="listaCustosProdutos" class="custos-produtos-grid"></div>
+          <div id="statusCustosProdutos" class="auto-save-status"></div>
+        </div>
+
+        <div class="panel fechamentos-panel">
+          <div class="panel-title">
+            <div>
+              <h3>🔒 Fechamentos mensais</h3>
+              <p>Resultados congelados para não mudarem quando os custos forem atualizados.</p>
+            </div>
+          </div>
+          <div id="listaFechamentosFinanceiros" class="fechamentos-lista"></div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-promocoes">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Ofertas</p>
+            <h2>Promoções</h2>
+            <p>Crie quantas promoções quiser e controle quando aparecem no site.</p>
+          </div>
+          <button class="primary-btn" onclick="abrirModalPromocao()">➕ Nova promoção</button>
+        </div>
+
+        <div class="panel">
+          <h3>Promoções cadastradas</h3>
+          <p>Promoções ativas aparecem no site e destacam o preço promocional.</p>
+          <div id="listaPromocoes" class="lista-promocoes"></div>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-categorias">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Organização</p>
+            <h2>Categorias</h2>
+            <p>Gerencie as categorias que aparecem no painel e no site.</p>
+          </div>
+          <div class="panel-actions">
+            <button class="primary-btn" onclick="abrirModalCategoria()">➕ Nova categoria</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Categorias cadastradas</h3>
+          <p>Ative, edite ou exclua categorias do cardápio.</p>
+          <div id="listaCategoriasAdmin" class="lista-promocoes"></div>
+        </div>
+      </section>
+
+
+      <section class="aba" id="aba-backup">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Segurança</p>
+            <h2>💾 Backup dos dados</h2>
+            <p>O GitHub protege o código. Este backup protege produtos, vendas, pedidos e configurações do Firestore.</p>
+          </div>
+        </div>
+
+        <div class="backup-grid">
+          <div class="panel backup-card exportar">
+            <div class="backup-icone">📤</div>
+            <h3>Exportar backup completo</h3>
+            <p>Baixa um arquivo JSON com os dados atuais da Delícias da Vó.</p>
+            <ul>
+              <li>Produtos, categorias e preços</li>
+              <li>Estoque, horários e configurações</li>
+              <li>Vendas, despesas e encomendas</li>
+              <li>Custos e fechamentos financeiros</li>
+            </ul>
+            <button id="btnExportarBackup" class="primary-btn" onclick="exportarBackupCompleto()">Baixar backup agora</button>
+          </div>
+
+          <div class="panel backup-card restaurar">
+            <div class="backup-icone">📥</div>
+            <h3>Restaurar um backup</h3>
+            <p>Recupera os documentos do arquivo sem apagar os dados que não estiverem nele.</p>
+            <label class="backup-arquivo">
+              <span>Escolher arquivo JSON</span>
+              <input id="arquivoBackup" type="file" accept=".json,application/json" onchange="prepararRestauracaoBackup(this)">
+            </label>
+            <div id="backupArquivoSelecionado" class="backup-arquivo-info">Nenhum arquivo selecionado.</div>
+            <button id="btnRestaurarBackup" class="secondary-btn" onclick="confirmarRestauracaoBackup()" disabled>Restaurar dados</button>
+          </div>
+        </div>
+
+        <div id="statusBackup" class="panel backup-status">
+          <strong>Recomendação</strong>
+          <p>Faça um backup antes de atualizações grandes e pelo menos uma vez por mês.</p>
+        </div>
+      </section>
+
+      <section class="aba" id="aba-config">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Loja</p>
+            <h2>Configurações</h2>
+            <p>Altere informações da loja sem abrir o código.</p>
+          </div>
+          <button class="primary-btn" onclick="salvarConfiguracoesLoja()">Salvar configurações</button>
+        </div>
+
+        <div class="config-grid">
+          <div class="panel">
+            <h3>Identidade</h3>
+            <label>Nome da loja<input id="configNomeLoja" placeholder="Delícias da Vó"></label>
+            <label>Slogan<input id="configSlogan" placeholder="Feito com carinho"></label>
+            <label>Instagram<input id="configInstagram" placeholder="@deliciasda_vo"></label>
+          </div>
+
+          <div class="panel">
+            <h3>Contato</h3>
+            <label>WhatsApp da loja<input id="configWhatsapp" placeholder="5518991178906"></label>
+            <label>Endereço<input id="configEndereco" placeholder="Endereço da loja"></label>
+            <label>Horário<input id="configHorario" placeholder="Segunda a sábado, 9h às 18h"></label>
+          </div>
+
+          <div class="panel">
+            <h3>Entrega</h3>
+            <label>Texto de entrega<input id="configEntrega" placeholder="Taxa conforme distância"></label>
+            <label>Texto de retirada<input id="configRetirada" placeholder="Retirada na loja"></label>
+            <label>Status da loja
+              <select id="configStatusLoja">
+                <option value="aberta">Aberta</option>
+                <option value="fechada">Fechada</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="panel full-config">
+            <h3>🍛 Cardápio do Dia</h3>
+            <p>Mostre no site o cardápio das marmitas do dia, sem precisar criar produto novo.</p>
+
+            <label class="check">
+              <input id="cardapioDiaAtivo" type="checkbox" />
+              Mostrar cardápio do dia no site
+            </label>
+
+            <label>Título
+              <input id="cardapioDiaTituloInput" placeholder="Cardápio de hoje">
+            </label>
+
+            <label class="full">Itens do cardápio <small>um item por linha</small>
+              <textarea id="cardapioDiaItensInput" rows="7" placeholder="Arroz\nFeijão\nFeijoada\nFarofa\nSalada"></textarea>
+            </label>
+
+            <label class="full">Observação
+              <input id="cardapioDiaObsInput" placeholder="Ex: Disponível enquanto durar">
+            </label>
+          </div>
+
+          <div class="panel full-config">
+  <h3>🕒 Horário de Atendimento</h3>
+  <p>Configure os horários em que a loja aparece como aberta no site.</p>
+<button type="button" class="secondary-btn" onclick="copiarSegundaParaTodos()">
+  ⚡ Aplicar segunda para todos os dias
+</button>
+  <div id="horariosAtendimento" class="horarios-grid"></div>
+</div>
+<div id="statusHorarioAuto" class="auto-save-status"></div>
+        </div>
+
+        <div id="statusConfig" class="mensagem-venda"></div>
+      </section>
+    </section>
+  </main>
+
+  <div class="modal" id="modalProduto">
+    <div class="modal-box">
+      <button class="modal-close" onclick="fecharModalProduto()">✕</button>
+      <h2 id="modalTitulo">Novo produto</h2>
+
+      <div class="ai-box">
+        <div>
+          <strong>🤖 Sugestão com IA</strong>
+          <p>Digite o nome do produto e deixe a IA sugerir categoria, emoji e descrição.</p>
+        </div>
+        <button class="secondary-btn" onclick="gerarProdutoComIA()">✨ Gerar</button>
+      </div>
+      <div id="statusIA" class="ai-status"></div>
+
+      <div class="form-grid">
+        <label>Nome<input id="produtoNome" /></label>
+        <label>Categoria
+          <select id="produtoCategoria" onchange="atualizarCampoSelecaoProduto()">
+            <option value="salgados">Salgados</option>
+            <option value="paes">Pães</option>
+            <option value="bebidas">Bebidas</option>
+            <option value="outros">Outros</option>
+          </select>
+        </label>
+        <label>Preço<input id="produtoPreco" type="number" step="0.01" /></label>
+        <label>Emoji<input id="produtoEmoji" /></label>
+        <label class="full">Descrição<textarea id="produtoDescricao"></textarea></label>
+        <label class="full">Ingredientes <small>separe por vírgula</small><textarea id="produtoIngredientes" placeholder="Ex: pão, queijo, presunto, tomate, alface"></textarea></label>
+        <label>Imagem do produto<input id="produtoImagemFile" type="file" accept="image/*" /></label>
+        <div class="image-preview-wrap"><img id="produtoImagemPreview" src="" alt="Preview" /></div>
+
+        <div class="variacoes-admin">
+          <div class="variacoes-head">
+            <strong>Variações</strong>
+            <button type="button" class="secondary-btn" id="btnAdicionarVariacao">➕ Adicionar variação</button>
+          </div>
+          <div id="variacoesAdminList"></div>
+        </div>
+
+        <label id="produtoSaboresLabel">Sabores <small>separe por vírgula</small><input id="produtoSabores" /></label>
+        <label>Estoque<input id="produtoEstoque" type="number" /></label>
+        <label>Mínimo<input id="produtoMinimo" type="number" /></label>
+        <label class="check"><input id="produtoAtivo" type="checkbox" checked /> Produto ativo</label>
+        <label class="check"><input id="produtoDestaque" type="checkbox" /> Destaque</label>
+        <label class="check"><input id="produtoSobEncomenda" type="checkbox" /> Sob encomenda</label>
+      </div>
+
+      <div class="modal-actions">
+        <button onclick="fecharModalProduto()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarProdutoAdmin()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalConfirmarVenda">
+    <div class="modal-box venda-confirm-box">
+      <button class="modal-close" onclick="fecharConfirmacaoVenda()">✕</button>
+      <h2>Confirmar venda</h2>
+      <p>Confira se está tudo certo antes de finalizar.</p>
+
+      <div id="resumoConfirmacaoVenda" class="lista-simples"></div>
+
+      <div class="modal-actions">
+        <button onclick="fecharConfirmacaoVenda()">Voltar e corrigir</button>
+        <button class="primary-btn" onclick="confirmarFinalizacaoVenda()">Confirmar venda</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalPromocao">
+    <div class="modal-box">
+      <button class="modal-close" onclick="fecharModalPromocao()">✕</button>
+      <h2 id="modalTituloPromocao">Nova promoção</h2>
+
+      <div class="form-grid">
+        <label>Título da promoção<input id="promoTitulo" placeholder="Ex: Combo da tarde"></label>
+        <label>Status
+          <select id="promoAtiva">
+            <option value="true">Ativa</option>
+            <option value="false">Inativa</option>
+          </select>
+        </label>
+        <label>Produto
+          <select id="promoProduto"></select>
+        </label>
+        <label>Categoria
+          <select id="promoCategoria">
+            <option value="">-- Sem categoria --</option>
+          </select>
+        </label>
+        <label>Variação
+          <select id="promoVariacao">
+            <option value="">-- Nenhuma variação --</option>
+          </select>
+        </label>
+        <label>Preço promocional<input id="promoPreco" type="number" step="0.01" placeholder="Ex: 6.99"></label>
+        <label class="full">Descrição<textarea id="promoDescricao" placeholder="Ex: Promoção válida enquanto durar o estoque."></textarea></label>
+        <label>Data inicial<input id="promoInicio" type="date"></label>
+        <label>Data final<input id="promoFim" type="date"></label>
+      </div>
+
+      <div class="modal-actions">
+        <button onclick="fecharModalPromocao()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarPromocaoAdmin()">Salvar promoção</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modalCategoria">
+    <div class="modal-box">
+      <button class="modal-close" onclick="fecharModalCategoria()">✕</button>
+      <h2 id="categoriaModalTitulo">Nova categoria</h2>
+
+      <div class="form-grid">
+        <label>Nome<input id="categoriaNome" placeholder="Ex: Snacks"></label>
+        <label>Emoji<input id="categoriaEmoji" placeholder="Ex: 🍿"></label>
+        <label>Ordem<input id="categoriaOrdem" type="number" step="1" placeholder="1"></label>
+        <label class="full">Texto da escolha<input id="categoriaTituloSelecao" placeholder="Ex: Escolha o sabor"></label>
+        <label class="check"><input id="categoriaAtiva" type="checkbox" checked /> Categoria ativa</label>
+      </div>
+
+      <div class="modal-actions">
+        <button onclick="fecharModalCategoria()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarCategoriaAdmin()">Salvar categoria</button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="modalFesta">
+    <div class="modal-box"><button class="modal-close" onclick="fecharModalFesta()">✕</button><h2 id="tituloModalFesta">Novo salgado para festa</h2>
+      <div class="form-grid festa-form-grid">
+        <label>Nome do produto<input id="festaNome" placeholder="Ex: Mini pastel"></label>
+        <label>Emoji<input id="festaEmoji" placeholder="🥟" maxlength="8"></label>
+        <label>Tipo<select id="festaCategoria"><option value="fritos">🍳 Frito</option><option value="assados">🔥 Assado</option></select></label>
+        <label>Ordem de exibição<input id="festaOrdem" type="number" min="1" step="1" value="99"></label>
+        <label>Quantidade inicial<input id="festaQuantidadeInicial" type="number" min="50" step="50" value="50"><small>Primeira opção mostrada ao cliente</small></label>
+        <label>Aumentar de quanto em quanto<input id="festaIncrementoQuantidade" type="number" min="50" step="50" value="50"><small>Ex.: 50 gera 50, 100, 150...</small></label>
+        <label>Quantidade máxima<input id="festaQuantidadeMaxima" type="number" min="50" step="50" value="500"><small>Última opção exibida no seletor</small></label>
+        <div class="full festa-preco-editor">
+          <div class="festa-preco-editor-titulo">
+            <span>💰</span>
+            <div>
+              <b>Como este produto é cobrado?</b>
+              <small>Use “por cento” nos fritos e assados. Para empadinha mini, use “por unidade”; a venda continua começando em 50 unidades.</small>
+            </div>
+          </div>
+          <div class="festa-preco-editor-grid">
+            <label>Forma de cobrança
+              <select id="festaTipoPreco" onchange="atualizarCamposPrecoFesta()">
+                <option value="cento">Por cento (100 unidades)</option>
+                <option value="unitario">Por unidade</option>
+              </select>
+            </label>
+            <label id="campoFestaPrecoCento">Valor de 100 unidades (R$)
+              <input id="festaPrecoCento" type="number" min="0" step="0.01" value="75" oninput="atualizarPreviaPrecoFesta()">
+              <small>Fritos: R$ 75,00 • Assados: R$ 80,00.</small>
+            </label>
+            <label id="campoFestaPrecoUnitario" hidden>Valor de cada unidade (R$)
+              <input id="festaPrecoUnitario" type="number" min="0" step="0.01" value="1.50" oninput="atualizarPreviaPrecoFesta()">
+              <small>Empadinha mini: R$ 1,50 cada, com venda mínima de 50 unidades.</small>
+            </label>
+          </div>
+          <div id="festaPreviaPreco" class="festa-preco-previa" aria-live="polite"></div>
+        </div>
+        <label class="check festa-check"><input id="festaAtivo" type="checkbox" checked><span><b>Produto ativo</b><small>Aparece na área de salgados para festas</small></span></label>
+        <label class="full">Descrição<textarea id="festaDescricao" rows="3" placeholder="Descreva o produto de forma atrativa."></textarea></label>
+        <label class="full">Sabores <small>Separe cada sabor por vírgula</small><input id="festaSabores" placeholder="Ex: Carne, Frango, Presunto e queijo"></label>
+      </div>
+      <div class="modal-actions"><button onclick="fecharModalFesta()">Cancelar</button><button class="primary-btn" onclick="salvarFestaAdmin()">Salvar produto</button></div>
+    </div>
+  </div>
+
+
+  <div class="modal" id="modalMovimentoFinanceiro">
+    <div class="modal-box movimento-modal-box">
+      <button class="modal-close" onclick="fecharModalMovimento()">✕</button>
+      <div class="movimento-modal-topo">
+        <span id="movimentoModalEmoji">💸</span>
+        <div>
+          <p class="eyebrow">Financeiro</p>
+          <h2 id="movimentoModalTitulo">Registrar despesa</h2>
+        </div>
+      </div>
+      <input id="movimentoTipo" type="hidden" value="saida">
+      <div class="form-grid">
+        <label class="full">Descrição<input id="movimentoDescricao" placeholder="Ex: Compra de frango"></label>
+        <label>Categoria
+          <select id="movimentoCategoria">
+            <option>Ingredientes</option>
+            <option>Embalagens</option>
+            <option>Bebidas</option>
+            <option>Gás</option>
+            <option>Entrega</option>
+            <option>Taxas</option>
+            <option>Energia</option>
+            <option>Manutenção</option>
+            <option>Vendas</option>
+            <option>Outros</option>
+          </select>
+        </label>
+        <label>Valor (R$)<input id="movimentoValor" type="number" min="0.01" step="0.01" placeholder="0,00"></label>
+        <label>Forma de pagamento
+          <select id="movimentoPagamento">
+            <option>Pix</option>
+            <option>Dinheiro</option>
+            <option>Cartão débito</option>
+            <option>Cartão crédito</option>
+            <option>Boleto</option>
+            <option>Não informado</option>
+          </select>
+        </label>
+        <label>Data<input id="movimentoData" type="date"></label>
+        <label class="full">Observação<textarea id="movimentoObservacao" rows="3" placeholder="Detalhes opcionais"></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button onclick="fecharModalMovimento()">Cancelar</button>
+        <button class="primary-btn" onclick="salvarMovimentoAdmin()">Salvar lançamento</button>
+      </div>
+    </div>
+  </div>
+
+
+  <script type="module" src="../js/admin/admin.js"></script>
+  <script type="module" src="../js/admin/documentScanner.js"></script>
+</body>
+</html>
