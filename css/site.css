@@ -304,11 +304,19 @@ nav button {
 }
 
 .carrinho-conteudo {
-    display: contents
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-gutter: stable
 }
 
 .cart-head {
     display: flex;
+    flex: 0 0 auto;
     justify-content: space-between;
     align-items: center
 }
@@ -321,10 +329,9 @@ nav button {
 }
 
 .itens-carrinho {
-    flex: 1;
-    overflow-y: auto;
+    overflow: visible;
     margin: 15px 0;
-    min-height: 0;
+    min-height: 80px;
 }
 
 .item-cart {
