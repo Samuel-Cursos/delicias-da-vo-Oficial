@@ -1,0 +1,54 @@
+SCANNER PROFISSIONAL V5.4 - DELÍCIAS DA VÓ
+
+O QUE ELE FAZ
+- Tira foto usando a câmera traseira do celular ou escolhe uma imagem da galeria.
+- Lê vendas manuscritas e letra cursiva com Gemini, sem recorte obrigatório.
+- Lê notas de compra impressas localmente com Tesseract.
+- Para notas, detecta as bordas, corrige a perspectiva e melhora o contraste.
+- Permite usar recorte e leitura local como alternativa para qualquer foto.
+- Lê o valor total e a forma de pagamento.
+- Sempre mostra uma tela de conferência antes de salvar.
+- Aceita Pix, dinheiro, débito, crédito e pagamento misto.
+
+COMPRA
+- Salva uma despesa em movimentosFinanceiros.
+- Categoria automática: Compras.
+- Aparece no Controle financeiro.
+
+VENDA
+- Salva uma entrada em vendas.
+- Aparece no Caixa e também no Financeiro.
+- Não altera o estoque, pois a foto não identifica os produtos vendidos.
+- Usa a leitura rápida com IA para entender letra cursiva.
+- A leitura começa automaticamente depois da foto.
+
+COMO USAR EM VENDA MANUSCRITA
+1. Abra o Painel ADM e entre em “Digitalizar registros”.
+2. Marque “Venda” antes de tirar a foto.
+3. Fotografe de perto, com boa luz, deixando valor e pagamento visíveis.
+4. A leitura inteligente começa sozinha, sem pedir recorte.
+5. Confira o valor e a forma de pagamento antes de confirmar.
+6. Se não conseguir ler, toque em “Usar leitura local” ou digite o valor manualmente.
+7. Em pagamento misto, informe ao menos duas formas; a soma precisa bater com o total.
+8. Toque em “Confirmar venda”.
+
+COMO USAR EM COMPRA IMPRESSA
+1. Marque “Compra”.
+2. Toque em “Tirar foto” ou “Escolher imagem”.
+3. O sistema detecta o papel, melhora a imagem e faz a leitura local.
+4. Se o recorte não estiver perfeito, toque em “Ajustar recorte” e arraste os círculos.
+5. Confira os dados e toque em “Confirmar compra”.
+
+IMPORTANTE
+- Não precisa instalar programa no computador.
+- Use o site por HTTPS ou pelo “Go Live” do VS Code para a câmera funcionar corretamente.
+- A venda manuscrita envia uma versão reduzida da foto ao Gemini. Não inclua CPF,
+  telefone ou outros dados pessoais que não sejam necessários.
+- O site não salva a foto enviada à IA, mas a utilização está sujeita aos termos do
+  serviço Gemini configurado na conta Google.
+- A chave GEMINI_API_KEY precisa estar ativa em Preview e Production na Vercel.
+- Somente a conta administradora autenticada pode chamar a leitura inteligente.
+- Na primeira leitura local, mantenha a internet ligada para carregar OpenCV.js e Tesseract.js.
+- Se o tratamento profissional não carregar, existe uma melhoria compatível automática.
+- Se a IA ou o OCR não reconhecer o valor, basta digitá-lo manualmente e confirmar.
+- O arquivo firestore.rules desta pasta já contém as permissões necessárias para o administrador.

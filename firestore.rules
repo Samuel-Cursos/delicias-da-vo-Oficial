@@ -14,6 +14,89 @@ service cloud.firestore {
         && request.auth.token.email == "deliciasdavo54@gmail.com";
     }
 
+    function equipeAtiva() {
+      return logado()
+        && exists(/databases/$(database)/documents/equipe/$(request.auth.uid))
+        && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.ativo == true;
+    }
+
+    function podePedidos() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.pedidos == true);
+    }
+
+    function podeCozinha() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.cozinha == true);
+    }
+
+    function podeEntregas() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.entregas == true);
+    }
+
+    function podeCaixa() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.caixa == true);
+    }
+
+    function podeEstoque() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.estoque == true);
+    }
+
+    function podeCompras() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.compras == true);
+    }
+
+    function podeFinanceiro() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.financeiro == true);
+    }
+
+    function podeClientes() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.clientes == true);
+    }
+
+    function podeRelatorios() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.relatorios == true);
+    }
+
+    function podeConfiguracoes() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.configuracoes == true);
+    }
+
+    function podeOperacao() {
+      return podePedidos() || podeCozinha() || podeEntregas();
+    }
+
+    function podeConsultarPedidos() {
+      return podeOperacao() || podeClientes() || podeRelatorios();
+    }
+
+    function movimentoAutomaticoPedidoValido(movimentoId) {
+      return movimentoId.matches('pedido-.*')
+        && request.resource.data.tipo == "entrada"
+        && request.resource.data.origem in ["pedido-site", "pedido-manual"]
+        && (
+          (request.resource.data.origem == "pedido-site" && movimentoId.matches('pedido-site-.*'))
+          || (request.resource.data.origem == "pedido-manual" && movimentoId.matches('pedido-manual-.*'))
+        )
+        && request.resource.data.pedidoId is string
+        && request.resource.data.valor is number
+        && request.resource.data.valor >= 0;
+    }
+
+    function movimentoAutomaticoCompraValido(movimentoId) {
+      return movimentoId.matches('compra-.*')
+        && request.resource.data.tipo == "saida"
+        && request.resource.data.origem == "compra-gestao"
+        && request.resource.data.compraId is string
+        && request.resource.data.valor is number
+        && request.resource.data.valor >= 0;
+    }
+
+    function atualizacaoEstoqueProdutoValida() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "estoque", "variacoes", "atualizadoEm"
+        ])
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
     function enderecoValido(endereco) {
       return endereco is map
         && endereco.keys().hasOnly(["rua", "numero", "bairro", "complemento"])
@@ -67,10 +150,20 @@ service cloud.firestore {
         ]);
     }
 
+    function atualizacaoObservacaoClienteValida() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "observacaoGestao", "atualizadoEm"
+        ])
+        && request.resource.data.observacaoGestao is string
+        && request.resource.data.observacaoGestao.size() <= 1000
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
     function pedidoSiteValido(dataPedido, pedidoId) {
       return request.resource.data.keys().hasOnly([
           "origem", "loja", "cliente", "tipo", "endereco", "enderecoDetalhado",
-          "pagamento", "itens", "total", "usuarioId", "id", "numero",
+          "pagamento", "itens", "subtotalProdutos", "taxaEntrega", "distanciaEntregaKm",
+          "total", "usuarioId", "id", "numero",
           "numeroFormatado", "status", "dataISO", "dataBR", "horaBR",
           "criadoEmMs", "criadoEm"
         ])
@@ -102,6 +195,9 @@ service cloud.firestore {
         && request.resource.data.total is number
         && request.resource.data.total >= 0
         && request.resource.data.total <= 100000
+        && (!request.resource.data.keys().hasAny(["subtotalProdutos"]) || request.resource.data.subtotalProdutos is number)
+        && (!request.resource.data.keys().hasAny(["taxaEntrega"]) || request.resource.data.taxaEntrega == null || request.resource.data.taxaEntrega is number)
+        && (!request.resource.data.keys().hasAny(["distanciaEntregaKm"]) || request.resource.data.distanciaEntregaKm == null || request.resource.data.distanciaEntregaKm is number)
         && request.resource.data.criadoEmMs is int
         && request.resource.data.criadoEm == request.time;
     }
@@ -144,34 +240,36 @@ service cloud.firestore {
 
     match /usuarios/{uid} {
       allow create: if logado() && request.auth.uid == uid && perfilNovoValido(uid);
-      allow read: if logado() && (request.auth.uid == uid || isAdmin());
-      allow update: if logado() && (isAdmin() || atualizacaoPerfilValida(uid));
+      allow read: if logado() && (request.auth.uid == uid || isAdmin() || podeClientes());
+      allow update: if logado() && (isAdmin() || atualizacaoPerfilValida(uid) || (podeClientes() && atualizacaoObservacaoClienteValida()));
       allow delete: if isAdmin();
     }
 
     match /produtos/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin() || podeConfiguracoes();
+      allow update: if isAdmin() || podeEstoque() || podeConfiguracoes()
+        || (podeOperacao() && atualizacaoEstoqueProdutoValida());
     }
 
     match /categorias/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || podeConfiguracoes();
     }
 
     match /promocoes/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || podeConfiguracoes();
     }
 
     match /configuracoes/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isAdmin() || podeConfiguracoes();
     }
 
     match /salgadosFesta/{produtoId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin() || podeConfiguracoes();
     }
 
     // Contadores antigos ficam preservados para histórico, mas deixam de aceitar
@@ -181,20 +279,31 @@ service cloud.firestore {
     }
 
     match /pedidosSite/{dataPedido} {
-      allow read: if isAdmin();
+      allow read: if podeConsultarPedidos();
 
       match /pedidos/{pedidoId} {
         allow create: if pedidoSiteValido(dataPedido, pedidoId);
-        allow read, update, delete: if isAdmin();
+        allow read: if podeConsultarPedidos();
+        allow update: if podeOperacao();
+        allow delete: if isAdmin();
       }
     }
 
     match /{caminho=**}/pedidos/{pedidoId} {
-      allow read: if isAdmin();
+      allow read: if podeConsultarPedidos();
+    }
+
+    match /pedidosManuais/{pedidoId} {
+      allow read: if podeConsultarPedidos();
+      allow create: if podePedidos();
+      allow update: if podePedidos() || podeCozinha() || podeEntregas();
+      allow delete: if isAdmin();
     }
 
     match /vendas/{id} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin() || podeCaixa() || podeFinanceiro() || podeRelatorios();
+      allow create, update: if isAdmin() || podeCaixa();
+      allow delete: if isAdmin() || podeFinanceiro();
     }
 
     match /contadores/{id} {
@@ -203,27 +312,98 @@ service cloud.firestore {
 
     match /encomendasFesta/{pedidoId} {
       allow create: if encomendaFestaValida();
-      allow read, update, delete: if isAdmin();
+      allow read: if podeConsultarPedidos();
+      allow update: if podeOperacao();
+      allow delete: if isAdmin();
     }
 
     match /movimentosFinanceiros/{movimentoId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read: if isAdmin() || podeFinanceiro() || podeCaixa() || podeRelatorios();
+      allow get: if podeOperacao()
+        && movimentoId.matches('pedido-(site|manual)-.*');
+      allow create, update: if isAdmin() || podeFinanceiro() || podeCaixa()
+        || (podeOperacao() && movimentoAutomaticoPedidoValido(movimentoId))
+        || (podeCompras() && movimentoAutomaticoCompraValido(movimentoId));
+      allow delete: if isAdmin() || podeFinanceiro()
+        || (podeOperacao() && resource.data.origem in ["pedido-site", "pedido-manual"]);
     }
 
     match /custosProdutos/{produtoId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read: if isAdmin() || podeFinanceiro() || podeEstoque() || podeRelatorios();
+      allow create, update, delete: if isAdmin() || podeFinanceiro();
     }
 
     match /contasReceber/{contaId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read, create, update, delete: if isAdmin() || podeFinanceiro();
     }
 
     match /sessoesCaixa/{sessaoId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read, create, update: if isAdmin() || podeCaixa() || podeFinanceiro();
+      allow delete: if isAdmin();
     }
 
     match /fechamentosFinanceiros/{mesId} {
-      allow read, create, update, delete: if isAdmin();
+      allow read, create, update, delete: if isAdmin() || podeFinanceiro();
+    }
+
+    match /cardapiosDiarios/{data} {
+      allow read: if true;
+      allow create, update: if isAdmin() || podePedidos() || podeConfiguracoes();
+      allow delete: if isAdmin();
+    }
+
+    match /estoqueInsumos/{id} {
+      allow read: if isAdmin() || podeEstoque() || podeCompras() || podeRelatorios();
+      allow create, update: if isAdmin() || podeEstoque() || podeCompras();
+      allow delete: if isAdmin();
+    }
+
+    match /movimentacoesEstoque/{id} {
+      allow read: if isAdmin() || podeEstoque() || podeCompras() || podeRelatorios();
+      allow create: if isAdmin() || podeEstoque() || podeCompras();
+      allow update, delete: if isAdmin();
+    }
+
+    match /fichasTecnicas/{id} {
+      allow read: if isAdmin() || podeEstoque() || podeCompras() || podeFinanceiro() || podeRelatorios();
+      allow create, update: if isAdmin() || podeEstoque() || podeFinanceiro();
+      allow delete: if isAdmin();
+    }
+
+    match /perdasEstoque/{id} {
+      allow read: if isAdmin() || podeEstoque() || podeFinanceiro() || podeRelatorios();
+      allow create: if isAdmin() || podeEstoque();
+      allow update, delete: if isAdmin();
+    }
+
+    match /fornecedores/{id} {
+      allow read: if isAdmin() || podeCompras() || podeFinanceiro();
+      allow create, update: if isAdmin() || podeCompras();
+      allow delete: if isAdmin();
+    }
+
+    match /compras/{id} {
+      allow read: if isAdmin() || podeCompras() || podeFinanceiro() || podeRelatorios();
+      allow create, update: if isAdmin() || podeCompras();
+      allow delete: if isAdmin();
+    }
+
+    match /movimentosCaixa/{id} {
+      allow read, create: if isAdmin() || podeCaixa() || podeFinanceiro();
+      allow update, delete: if isAdmin();
+    }
+
+    match /equipe/{uid} {
+      allow read: if isAdmin() || (logado() && request.auth.uid == uid);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /solicitacoesAcesso/{uid} {
+      allow create: if logado() && request.auth.uid == uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email;
+      allow read: if isAdmin() || (logado() && request.auth.uid == uid);
+      allow update, delete: if isAdmin();
     }
 
     match /{document=**} {

@@ -1,0 +1,51 @@
+.login-shell[hidden],
+.app-shell[hidden] {
+  display: none !important;
+}
+
+.sidebar .sidebar-close {
+  display: none;
+}
+
+.smart-scan {
+  background: linear-gradient(135deg, #fff6ec, #fffdf9);
+  border-color: #e9c7aa !important;
+}
+
+.smart-scan p {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: .86rem;
+  line-height: 1.5;
+}
+
+.smart-scan small {
+  display: block;
+  margin-top: 9px;
+  color: var(--muted);
+}
+
+.scan-upload {
+  display: inline-flex !important;
+  width: auto !important;
+  cursor: pointer;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--wine);
+  color: #fff !important;
+  font-weight: 800;
+}
+
+.scan-upload input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar .sidebar-close {
+    display: grid;
+  }
+}

@@ -1,0 +1,138 @@
+DELÍCIAS DA VÓ — SISTEMA DE GESTÃO V1
+======================================
+
+O QUE FOI CRIADO
+----------------
+
+Esta versão adiciona um sistema interno completo dentro do MESMO projeto do
+site. Não é necessário criar outro repositório, outro Firebase nem outro projeto
+na Vercel.
+
+Depois da publicação, os endereços serão:
+
+- Loja: https://delicias-da-vo.vercel.app/
+- Gestão: https://delicias-da-vo.vercel.app/gestao/
+- Painel antigo: https://delicias-da-vo.vercel.app/pages/admin.html
+
+O painel antigo foi preservado para configurações, produtos, promoções, backup
+e o scanner já existente. Ele agora possui um atalho para a nova Gestão.
+
+MÓDULOS DA GESTÃO
+-----------------
+
+1. Hoje
+   Resumo em tempo real de pedidos, cozinha, entregas, faturamento, saldo,
+   estoque baixo e próximas encomendas.
+
+2. Pedidos
+   Junta automaticamente os pedidos do site, as encomendas e os pedidos
+   cadastrados pelo atendimento/WhatsApp. O pedido percorre as etapas Novo,
+   Confirmado, Em produção, Pronto, Em entrega e Entregue.
+
+3. Cozinha
+   Kanban de produção e soma automática do que precisa ser preparado.
+
+4. Cardápio do dia
+   Seleciona os produtos que aparecem no site naquela data. Não apaga nem
+   desativa o produto definitivamente.
+
+5. Balcão
+   Venda presencial, desconto, pagamento simples ou misto e baixa automática
+   do estoque de produtos prontos.
+
+6. Entregas
+   Pedidos separados por pendentes, em rota e entregues. O endereço abre
+   diretamente no Google Maps. Mostra distância e taxa quando o site calculou.
+
+7. Encomendas
+   Agenda integrada aos pedidos de festa já recebidos pelo site.
+
+8. Caixa
+   Abertura, dinheiro inicial, sangria, suprimento, recebimentos e fechamento
+   com cálculo da diferença entre valor esperado e contado.
+
+9. Estoque
+   Insumos, produtos prontos, estoque mínimo, validade, movimentações, fichas
+   técnicas e registro de perdas.
+
+10. Compras e fornecedores
+    Entrada de mercadoria atualiza o estoque e lança a despesa no financeiro.
+    O administrador também pode fotografar uma nota para a IA tentar preencher
+    total final, desconto e pagamento. Os dados sempre devem ser conferidos.
+
+11. Financeiro
+    Entradas, despesas, resultado, ticket médio, busca e período personalizado.
+
+12. Clientes
+    Usa os clientes que já entram com Google no site: nome, telefone, endereço,
+    histórico de pedidos e observações internas.
+
+13. Relatórios
+    Receita, despesas, resultado, vendas por dia, produtos mais vendidos e
+    formas de pagamento.
+
+14. Equipe
+    Um funcionário entra com Google, solicita acesso e o administrador escolhe
+    exatamente quais áreas ele pode usar. As regras do Firebase também impedem
+    leitura/gravação fora da permissão concedida.
+
+15. Configurações internas
+    Meta diária, tempo padrão, limite de pedidos, som de pedido novo e opção de
+    baixa automática de estoque.
+
+O sistema também pode ser instalado na tela inicial do celular pelo menu do
+navegador, funcionando com aparência de aplicativo. A conexão continua sendo
+necessária para sincronizar os dados novos com o Firebase.
+
+COMO O SITE E A GESTÃO TRABALHAM JUNTOS
+---------------------------------------
+
+Os dois usam o mesmo Firebase. Um pedido feito pelo cliente no site é gravado
+em pedidosSite e aparece automaticamente na Gestão. Quando a loja altera o
+status na Gestão, ela altera aquele mesmo pedido, sem copiar dados.
+
+O cardápio publicado na Gestão também passa a controlar o que o cliente vê no
+site. A Gestão não depende de uma segunda hospedagem.
+
+PRIMEIRO ACESSO
+---------------
+
+1. Publique os arquivos e as novas regras do Firestore.
+2. Abra /gestao/ usando deliciasdavo54@gmail.com.
+3. Entre em Configurações e confira as preferências.
+4. Cadastre os insumos em Estoque.
+5. Se quiser usar custos, cadastre as fichas técnicas.
+6. Publique o Cardápio do dia.
+7. Abra o Caixa antes do atendimento presencial.
+
+ACESSO DE FUNCIONÁRIOS
+----------------------
+
+1. O funcionário abre /gestao/ e entra com Google.
+2. Clica em Solicitar acesso.
+3. O administrador entra em Gestão > Equipe.
+4. Clica em Analisar, escolhe cargo e áreas e libera.
+5. O funcionário atualiza a página e recebe somente as áreas autorizadas.
+
+OBSERVAÇÕES IMPORTANTES
+-----------------------
+
+- A integração com WhatsApp é por cadastro rápido do atendente. Receber e ler
+  mensagens automaticamente exigiria a API oficial do WhatsApp e não foi
+  ativado nesta versão.
+- O scanner com IA depende de GEMINI_API_KEY já configurada na Vercel.
+- As regras do Firestore precisam ser publicadas. Sem isso, os novos módulos
+  aparecerão, mas não conseguirão salvar ou consultar os dados internos.
+- Não coloque chaves secretas dentro de arquivos JavaScript do navegador.
+
+VERIFICAÇÃO REALIZADA ANTES DA ENTREGA
+-------------------------------------
+
+- sintaxe de todos os arquivos JavaScript;
+- testes dos cálculos de financeiro e gestão;
+- consolidação das três origens de pedido;
+- cálculos de cozinha, estoque e relatórios;
+- layout desktop em 1440 px;
+- layout celular em 390 px, sem rolagem lateral;
+- modal longo no celular, com rolagem interna funcionando;
+- links e arquivos usados pelo cache offline.

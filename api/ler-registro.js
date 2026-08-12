@@ -79,6 +79,8 @@ function normalizarPagamento(valor = "") {
 
 function normalizarResultado(resultado = {}) {
   const valor = Math.max(0, Math.min(1_000_000, Number(resultado.valor || 0)));
+  const subtotal = Math.max(0, Math.min(1_000_000, Number(resultado.subtotal || 0)));
+  const desconto = Math.max(0, Math.min(1_000_000, Number(resultado.desconto || 0)));
   const pagamentos = Array.isArray(resultado.pagamentos)
     ? resultado.pagamentos
       .map(item => ({
@@ -94,6 +96,8 @@ function normalizarResultado(resultado = {}) {
 
   return {
     valor: Number(valor.toFixed(2)),
+    subtotal: Number(subtotal.toFixed(2)),
+    desconto: Number(desconto.toFixed(2)),
     pagamento,
     pagamentos,
     confianca: Math.round(Math.max(0, Math.min(100, Number(resultado.confianca || 0)))),
@@ -110,7 +114,8 @@ async function chamarGemini(imagem, modo, apiKey) {
   const prompt = `Analise esta foto de uma anotação brasileira de ${contexto}. A escrita pode ser cursiva.
 
 Extraia SOMENTE:
-- o valor total final;
+- o valor total final já com descontos;
+- quando aparecerem claramente, o subtotal antes do desconto e o desconto aplicado;
 - a forma de pagamento: Pix, Dinheiro, Cartão débito, Cartão crédito, Pagamento misto ou Não informado;
 - no pagamento misto, o valor de cada forma;
 - uma transcrição curta do trecho que justificou a leitura.
@@ -119,6 +124,7 @@ Regras:
 - Nunca invente valor ou pagamento.
 - Se não estiver legível, use valor 0 e confiança baixa.
 - Ignore datas, telefones, quantidades e valores que não sejam o total final.
+- Se subtotal ou desconto não estiverem claros, retorne 0 nesses campos.
 - Converta vírgula decimal brasileira corretamente. Exemplo: 18,50 = 18.5.
 - A confiança deve ser um número inteiro de 0 a 100.`;
 
@@ -144,6 +150,8 @@ Regras:
               type: "OBJECT",
               properties: {
                 valor: { type: "NUMBER" },
+                subtotal: { type: "NUMBER" },
+                desconto: { type: "NUMBER" },
                 pagamento: {
                   type: "STRING",
                   enum: ["Pix", "Dinheiro", "Cartão débito", "Cartão crédito", "Pagamento misto", "Não informado"]
@@ -163,7 +171,7 @@ Regras:
                 textoReconhecido: { type: "STRING" },
                 observacao: { type: "STRING" }
               },
-              required: ["valor", "pagamento", "pagamentos", "confianca", "textoReconhecido", "observacao"]
+              required: ["valor", "subtotal", "desconto", "pagamento", "pagamentos", "confianca", "textoReconhecido", "observacao"]
             }
           }
         })
