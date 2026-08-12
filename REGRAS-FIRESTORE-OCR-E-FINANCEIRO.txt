@@ -1,0 +1,5 @@
+ARQUIVO HISTÓRICO — NÃO PUBLIQUE ESTAS REGRAS ANTIGAS.
+
+Na versão V5.2, use somente o arquivo "firestore.rules" da raiz do projeto.
+Ele já reúne as regras do site, pedidos, perfil dos clientes, financeiro e OCR,
+com a proteção administrativa corrigida.

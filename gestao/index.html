@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#46180f">
+  <title>Delícias da Vó Gestão</title>
+  <link rel="icon" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" href="../assets/icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./css/gestao.css">
+  <link rel="stylesheet" href="./css/scan.css">
+</head>
+<body>
+  <section id="gestaoLogin" class="login-shell">
+    <div class="login-orbit orbit-a" aria-hidden="true"></div>
+    <div class="login-orbit orbit-b" aria-hidden="true"></div>
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="login-logo-glow" aria-hidden="true"></span>
+        <img src="../assets/logo-delicias-da-vo.webp" alt="Delícias da Vó" width="1000" height="1000">
+      </div>
+      <p class="kicker">Central privada da loja</p>
+      <h1>Delícias da Vó <span>Gestão</span></h1>
+      <p>Pedidos, cozinha, caixa, estoque e financeiro trabalhando juntos.</p>
+      <div id="gestaoUsuario" class="login-action" aria-live="polite"></div>
+      <a href="../index.html" class="login-site-link">← Voltar ao site da loja</a>
+    </div>
+  </section>
+
+  <div id="gestaoApp" class="app-shell" hidden>
+    <aside id="gestaoSidebar" class="sidebar" aria-label="Navegação do sistema">
+      <div class="sidebar-brand">
+        <img src="../assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="">
+        <div><strong>Delícias da Vó</strong><span>Gestão da operação</span></div>
+        <button id="fecharMenuGestao" class="icon-btn sidebar-close" type="button" aria-label="Fechar menu">✕</button>
+      </div>
+
+      <nav id="gestaoNav">
+        <p class="nav-label">Visão geral</p>
+        <button class="nav-item active" data-page="dashboard" data-permission="dashboard"><span>⌂</span> Hoje</button>
+
+        <p class="nav-label">Operação</p>
+        <button class="nav-item" data-page="pedidos" data-permission="pedidos"><span>▤</span> Pedidos <b id="badgePedidos" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" data-page="cozinha" data-permission="cozinha"><span>♨</span> Cozinha <b id="badgeCozinha" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" data-page="cardapio" data-permission="pedidos"><span>◫</span> Cardápio do dia</button>
+        <button class="nav-item" data-page="balcao" data-permission="caixa"><span>▣</span> Balcão</button>
+        <button class="nav-item" data-page="entregas" data-permission="entregas"><span>➜</span> Entregas <b id="badgeEntregas" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" data-page="encomendas" data-permission="pedidos"><span>◇</span> Encomendas</button>
+
+        <p class="nav-label">Gestão</p>
+        <button class="nav-item" data-page="caixa" data-permission="caixa"><span>▱</span> Caixa</button>
+        <button class="nav-item" data-page="estoque" data-permission="estoque"><span>▦</span> Estoque <b id="badgeEstoque" class="nav-badge warning" hidden>0</b></button>
+        <button class="nav-item" data-page="compras" data-permission="compras"><span>⌑</span> Compras</button>
+        <button class="nav-item" data-page="financeiro" data-permission="financeiro"><span>⌁</span> Financeiro</button>
+        <button class="nav-item" data-page="clientes" data-permission="clientes"><span>♙</span> Clientes</button>
+        <button class="nav-item" data-page="relatorios" data-permission="relatorios"><span>▥</span> Relatórios</button>
+        <button class="nav-item" data-page="equipe" data-admin-only="true"><span>♟</span> Equipe <b id="badgeEquipe" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" data-page="configuracoes" data-permission="configuracoes"><span>⚙</span> Configurações</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <a href="../index.html"><span>↗</span> Abrir loja</a>
+        <a href="../pages/admin.html"><span>↗</span> Painel antigo</a>
+        <button id="sairGestao" type="button"><span>⇥</span> Sair</button>
+      </div>
+    </aside>
+    <button id="gestaoBackdrop" class="sidebar-backdrop" type="button" aria-label="Fechar menu"></button>
+
+    <main class="main-shell">
+      <header class="topbar">
+        <button id="abrirMenuGestao" class="icon-btn menu-btn" type="button" aria-label="Abrir menu">☰</button>
+        <div class="topbar-title">
+          <p id="paginaKicker">Operação em tempo real</p>
+          <h1 id="paginaTitulo">Hoje na loja</h1>
+          <span id="paginaDescricao">Tudo que precisa de atenção agora.</span>
+        </div>
+        <div class="topbar-actions">
+          <span id="conexaoGestao" class="connection-pill"><i></i> Sincronizado</span>
+          <button id="acaoRapida" class="primary-btn" type="button">＋ Novo pedido</button>
+          <button id="usuarioGestaoBotao" class="user-button" type="button" aria-label="Conta atual"><span id="usuarioGestaoIniciais">DV</span></button>
+        </div>
+      </header>
+
+      <div id="alertaPermissao" class="permission-alert" hidden></div>
+
+      <section id="page-dashboard" class="page active" data-page="dashboard">
+        <div class="day-hero">
+          <div>
+            <p id="saudacaoGestao" class="kicker">Boa tarde</p>
+            <h2>Vamos organizar a loja de hoje.</h2>
+            <p id="resumoDiaTexto">Carregando a operação…</p>
+          </div>
+          <div class="day-clock"><strong id="relogioGestao">--:--</strong><span id="dataGestao">--</span></div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat-card accent"><span>Pedidos hoje</span><strong id="kpiPedidosHoje">0</strong><small id="kpiPedidosAbertos">0 em aberto</small></article>
+          <article class="stat-card"><span>Em produção</span><strong id="kpiProducao">0</strong><small>na fila da cozinha</small></article>
+          <article class="stat-card"><span>Prontos</span><strong id="kpiProntos">0</strong><small>aguardando saída</small></article>
+          <article class="stat-card"><span>Entregas</span><strong id="kpiEntregas">0</strong><small>pendentes</small></article>
+          <article class="stat-card money"><span>Receita do dia</span><strong id="kpiReceita">R$ 0,00</strong><small id="kpiSaldo">Saldo R$ 0,00</small></article>
+          <article class="stat-card warning"><span>Estoque</span><strong id="kpiEstoque">0</strong><small>itens em atenção</small></article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="surface span-2">
+            <div class="surface-head"><div><p class="kicker">Fluxo ao vivo</p><h3>Pedidos que precisam de ação</h3></div><button class="text-btn" data-go="pedidos">Ver todos →</button></div>
+            <div id="dashboardPedidos" class="compact-list empty-state">Nenhum pedido aguardando.</div>
+          </article>
+          <article class="surface">
+            <div class="surface-head"><div><p class="kicker">Cozinha</p><h3>Resumo da produção</h3></div><button class="text-btn" data-go="cozinha">Abrir →</button></div>
+            <div id="dashboardProducao" class="production-summary empty-state">Nada na fila.</div>
+          </article>
+          <article class="surface">
+            <div class="surface-head"><div><p class="kicker">Atenção</p><h3>Estoque baixo</h3></div><button class="text-btn" data-go="estoque">Controlar →</button></div>
+            <div id="dashboardEstoque" class="compact-list empty-state">Estoque tranquilo.</div>
+          </article>
+          <article class="surface span-2">
+            <div class="surface-head"><div><p class="kicker">Agenda</p><h3>Próximas encomendas</h3></div><button class="text-btn" data-go="encomendas">Ver agenda →</button></div>
+            <div id="dashboardEncomendas" class="compact-list empty-state">Nenhuma encomenda próxima.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="page-pedidos" class="page" data-page="pedidos">
+        <div class="page-toolbar">
+          <div class="search-field"><span>⌕</span><input id="buscaPedidos" type="search" placeholder="Buscar cliente, número ou telefone"></div>
+          <select id="filtroOrigemPedidos" aria-label="Filtrar origem"><option value="todos">Todas as origens</option><option value="site">Site</option><option value="manual">Atendimento</option><option value="festa">Encomendas</option></select>
+          <select id="filtroStatusPedidos" aria-label="Filtrar status"><option value="abertos">Pedidos abertos</option><option value="todos">Todos</option><option value="registrado">Novos</option><option value="confirmado">Confirmados</option><option value="producao">Em produção</option><option value="pronto">Prontos</option><option value="saiu_entrega">Em entrega</option><option value="entregue">Entregues</option><option value="cancelado">Cancelados</option></select>
+          <button class="primary-btn" data-action="novo-pedido">＋ Novo pedido</button>
+        </div>
+        <div class="order-summary-row" id="resumoPedidosFaixas"></div>
+        <div id="listaPedidosGestao" class="orders-list"></div>
+      </section>
+
+      <section id="page-cozinha" class="page" data-page="cozinha">
+        <div class="kitchen-top">
+          <article class="surface kitchen-needs"><div class="surface-head"><div><p class="kicker">Totais</p><h3>O que precisa ser preparado</h3></div><span id="cozinhaAtualizada" class="soft-pill">Agora</span></div><div id="necessidadesCozinha" class="need-chips"></div></article>
+        </div>
+        <div class="kanban" id="kanbanCozinha">
+          <div class="kanban-column" data-status="confirmado"><div class="kanban-head"><span>Confirmados</span><b id="countConfirmados">0</b></div><div id="cozinhaConfirmados" class="kanban-list"></div></div>
+          <div class="kanban-column hot" data-status="producao"><div class="kanban-head"><span>Em produção</span><b id="countProducao">0</b></div><div id="cozinhaProducao" class="kanban-list"></div></div>
+          <div class="kanban-column ready" data-status="pronto"><div class="kanban-head"><span>Prontos</span><b id="countProntos">0</b></div><div id="cozinhaProntos" class="kanban-list"></div></div>
+        </div>
+      </section>
+
+      <section id="page-cardapio" class="page" data-page="cardapio">
+        <div class="page-toolbar cardapio-toolbar">
+          <label>Data do cardápio<input id="dataCardapioGestao" type="date"></label>
+          <label class="grow">Recado do dia<input id="observacaoCardapioGestao" placeholder="Ex.: pedidos até 12h"></label>
+          <label class="switch-label"><input id="publicarCardapioGestao" type="checkbox" checked><span></span> Publicado</label>
+          <button id="salvarCardapioGestao" class="primary-btn" type="button">Salvar no site</button>
+        </div>
+        <article class="surface">
+          <div class="surface-head"><div><p class="kicker">Ligado ao site</p><h3>Escolha o que aparece hoje</h3><p>Produtos desmarcados somem do cardápio público apenas nesta data.</p></div><button id="selecionarTodosCardapio" class="secondary-btn" type="button">Selecionar todos</button></div>
+          <div id="produtosCardapioGestao" class="menu-product-grid"></div>
+        </article>
+      </section>
+
+      <section id="page-balcao" class="page" data-page="balcao">
+        <div class="pos-layout">
+          <article class="surface pos-catalog">
+            <div class="surface-head"><div><p class="kicker">Venda rápida</p><h3>Produtos disponíveis</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaBalcao" type="search" placeholder="Buscar produto"></div></div>
+            <div id="produtosBalcao" class="pos-products"></div>
+          </article>
+          <aside class="surface pos-cart">
+            <div class="surface-head"><div><p class="kicker">Balcão</p><h3>Venda atual</h3></div><button id="limparVendaBalcao" class="text-btn danger" type="button">Limpar</button></div>
+            <div id="itensVendaBalcao" class="pos-items empty-state">Toque em um produto para começar.</div>
+            <div class="pos-totals"><span>Subtotal <b id="subtotalBalcao">R$ 0,00</b></span><label>Desconto <span><small>R$</small><input id="descontoBalcao" type="number" min="0" step="0.01" value="0"></span></label><strong>Total <b id="totalBalcao">R$ 0,00</b></strong></div>
+            <label class="field">Pagamento<select id="pagamentoBalcao"><option>Pix</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Pagamento misto</option></select></label>
+            <div id="pagamentosMistosBalcao" class="mixed-box" hidden><label>Pix<input data-pay="Pix" type="number" min="0" step="0.01"></label><label>Dinheiro<input data-pay="Dinheiro" type="number" min="0" step="0.01"></label><label>Débito<input data-pay="Cartão débito" type="number" min="0" step="0.01"></label><label>Crédito<input data-pay="Cartão crédito" type="number" min="0" step="0.01"></label><small id="somaMistoBalcao">Soma: R$ 0,00</small></div>
+            <label class="field">Observação<textarea id="observacaoBalcao" rows="2" placeholder="Opcional"></textarea></label>
+            <button id="finalizarVendaBalcao" class="primary-btn wide" type="button">Finalizar venda</button>
+          </aside>
+        </div>
+      </section>
+
+      <section id="page-entregas" class="page" data-page="entregas">
+        <div class="page-toolbar"><div class="segmented" id="filtroEntregas"><button class="active" data-delivery-filter="pendentes">Pendentes</button><button data-delivery-filter="rota">Em rota</button><button data-delivery-filter="entregues">Entregues</button></div></div>
+        <div id="listaEntregasGestao" class="delivery-grid"></div>
+      </section>
+
+      <section id="page-encomendas" class="page" data-page="encomendas">
+        <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaEncomendas" type="search" placeholder="Buscar encomenda ou cliente"></div><select id="filtroEncomendas"><option value="abertas">Próximas e abertas</option><option value="todas">Todas</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div>
+        <div id="listaEncomendasGestao" class="appointment-list"></div>
+      </section>
+
+      <section id="page-caixa" class="page" data-page="caixa">
+        <div id="caixaStatusCard" class="cash-status-card"></div>
+        <div class="finance-kpis">
+          <article><span>Dinheiro esperado</span><strong id="caixaDinheiroEsperado">R$ 0,00</strong></article>
+          <article><span>Vendas do dia</span><strong id="caixaVendasDia">R$ 0,00</strong></article>
+          <article><span>Sangrias</span><strong id="caixaSangrias">R$ 0,00</strong></article>
+          <article><span>Suprimentos</span><strong id="caixaSuprimentos">R$ 0,00</strong></article>
+        </div>
+        <div class="two-columns">
+          <article class="surface"><div class="surface-head"><div><p class="kicker">Conferência</p><h3>Por forma de pagamento</h3></div></div><div id="resumoPagamentosCaixa" class="payment-list"></div></article>
+          <article class="surface"><div class="surface-head"><div><p class="kicker">Histórico</p><h3>Últimos caixas</h3></div></div><div id="historicoCaixa" class="compact-list"></div></article>
+        </div>
+      </section>
+
+      <section id="page-estoque" class="page" data-page="estoque">
+        <div class="page-toolbar"><div class="segmented" id="abasEstoque"><button class="active" data-stock-tab="insumos">Insumos</button><button data-stock-tab="produtos">Produtos prontos</button><button data-stock-tab="fichas">Fichas técnicas</button><button data-stock-tab="perdas">Perdas</button></div><button class="primary-btn" data-action="novo-insumo">＋ Novo insumo</button></div>
+        <div id="conteudoEstoqueGestao"></div>
+      </section>
+
+      <section id="page-compras" class="page" data-page="compras">
+        <div class="page-toolbar"><button class="secondary-btn" data-action="novo-fornecedor">＋ Fornecedor</button><button class="primary-btn" data-action="nova-compra">＋ Registrar compra</button></div>
+        <div class="finance-kpis"><article><span>Compras no mês</span><strong id="comprasMesValor">R$ 0,00</strong></article><article><span>Pedidos de compra</span><strong id="comprasMesQtd">0</strong></article><article><span>Fornecedores ativos</span><strong id="fornecedoresQtd">0</strong></article><article><span>Contas pendentes</span><strong id="comprasPendentes">0</strong></article></div>
+        <div class="two-columns wide-left"><article class="surface"><div class="surface-head"><div><p class="kicker">Histórico</p><h3>Compras registradas</h3></div></div><div id="listaComprasGestao" class="data-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Parceiros</p><h3>Fornecedores</h3></div></div><div id="listaFornecedoresGestao" class="compact-list"></div></article></div>
+      </section>
+
+      <section id="page-financeiro" class="page" data-page="financeiro">
+        <div class="page-toolbar"><label>De<input id="financeiroInicio" type="date"></label><label>Até<input id="financeiroFim" type="date"></label><button id="aplicarPeriodoFinanceiro" class="secondary-btn">Atualizar</button><button class="primary-btn" data-action="novo-movimento">＋ Lançamento</button></div>
+        <div class="finance-kpis"><article class="positive"><span>Entradas</span><strong id="financeiroEntradas">R$ 0,00</strong></article><article class="negative"><span>Despesas</span><strong id="financeiroSaidas">R$ 0,00</strong></article><article><span>Resultado</span><strong id="financeiroResultado">R$ 0,00</strong></article><article><span>Ticket médio</span><strong id="financeiroTicket">R$ 0,00</strong></article></div>
+        <article class="surface"><div class="surface-head"><div><p class="kicker">Movimentações</p><h3>Histórico financeiro</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaFinanceiro" placeholder="Buscar lançamento"></div></div><div id="listaFinanceiroGestao" class="finance-table"></div></article>
+      </section>
+
+      <section id="page-clientes" class="page" data-page="clientes">
+        <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaClientes" type="search" placeholder="Buscar nome, telefone ou e-mail"></div></div>
+        <div class="finance-kpis"><article><span>Clientes cadastrados</span><strong id="clientesTotal">0</strong></article><article><span>Compraram este mês</span><strong id="clientesAtivosMes">0</strong></article><article><span>Pedidos identificados</span><strong id="clientesPedidos">0</strong></article><article><span>Ticket médio</span><strong id="clientesTicket">R$ 0,00</strong></article></div>
+        <div id="listaClientesGestao" class="customer-grid"></div>
+      </section>
+
+      <section id="page-relatorios" class="page" data-page="relatorios">
+        <div class="page-toolbar"><label>De<input id="relatorioInicio" type="date"></label><label>Até<input id="relatorioFim" type="date"></label><button id="gerarRelatorioGestao" class="primary-btn">Gerar relatório</button></div>
+        <div class="finance-kpis"><article class="positive"><span>Receita</span><strong id="relatorioReceita">R$ 0,00</strong></article><article class="negative"><span>Despesas</span><strong id="relatorioDespesas">R$ 0,00</strong></article><article><span>Resultado</span><strong id="relatorioResultado">R$ 0,00</strong></article><article><span>Pedidos e vendas</span><strong id="relatorioPedidos">0</strong></article></div>
+        <div class="report-grid"><article class="surface span-2"><div class="surface-head"><div><p class="kicker">Evolução</p><h3>Vendas por dia</h3></div></div><div id="graficoVendasDias" class="bar-chart"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Ranking</p><h3>Mais vendidos</h3></div></div><div id="rankingProdutos" class="ranking-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Recebimentos</p><h3>Pagamentos</h3></div></div><div id="rankingPagamentos" class="ranking-list"></div></article></div>
+      </section>
+
+      <section id="page-equipe" class="page" data-page="equipe">
+        <div class="two-columns"><article class="surface"><div class="surface-head"><div><p class="kicker">Aguardando</p><h3>Solicitações de acesso</h3></div></div><div id="solicitacoesEquipe" class="compact-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Usuários internos</p><h3>Equipe cadastrada</h3></div></div><div id="membrosEquipe" class="team-list"></div></article></div>
+      </section>
+
+      <section id="page-configuracoes" class="page" data-page="configuracoes">
+        <form id="formConfiguracaoOperacao" class="surface settings-form">
+          <div class="surface-head"><div><p class="kicker">Funcionamento</p><h3>Preferências do sistema</h3><p>Estas opções afetam somente a central de gestão.</p></div></div>
+          <div class="form-grid">
+            <label>Meta de faturamento diário (R$)<input id="configMetaDiaria" type="number" min="0" step="0.01"></label>
+            <label>Tempo padrão de preparo (min)<input id="configTempoPreparo" type="number" min="1" step="1"></label>
+            <label>Quantidade máxima de pedidos simultâneos<input id="configLimitePedidos" type="number" min="1" step="1"></label>
+            <label>Nome exibido do responsável<input id="configResponsavel" maxlength="120"></label>
+            <label class="toggle-row"><input id="configSomPedidos" type="checkbox"><span><b>Aviso sonoro de pedido novo</b><small>Toca apenas enquanto o sistema estiver aberto.</small></span></label>
+            <label class="toggle-row"><input id="configBaixaEstoque" type="checkbox"><span><b>Baixa de estoque ao confirmar</b><small>Evita vender quantidade maior que a disponível.</small></span></label>
+          </div>
+          <div class="form-actions"><a class="secondary-btn link-button" href="../pages/admin.html">Abrir configurações do site</a><button class="primary-btn" type="submit">Salvar preferências</button></div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div id="gestaoModal" class="modal" hidden aria-hidden="true">
+    <button class="modal-backdrop" type="button" data-modal-close aria-label="Fechar janela"></button>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTituloGestao">
+      <div class="modal-head"><div><p id="modalKickerGestao" class="kicker">Delícias da Vó</p><h2 id="modalTituloGestao">Janela</h2></div><button class="icon-btn" type="button" data-modal-close aria-label="Fechar">✕</button></div>
+      <div id="modalConteudoGestao" class="modal-content"></div>
+    </section>
+  </div>
+
+  <div id="toastGestao" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script type="module" src="./js/gestao.js"></script>
+</body>
+</html>

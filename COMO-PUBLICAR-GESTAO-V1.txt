@@ -1,0 +1,88 @@
+COMO PUBLICAR A GESTÃO V1 COM SEGURANÇA
+=======================================
+
+IMPORTANTE
+----------
+
+Use a mesma pasta do VS Code e o mesmo repositório. Não crie outro Firebase,
+outro GitHub ou outro projeto na Vercel.
+
+1. ABRIR A BRANCH DE TESTE (ANTES DE SUBSTITUIR OS ARQUIVOS)
+------------------------------------------------------------
+
+Abra o terminal do VS Code na pasta do projeto e rode um comando por vez:
+
+git switch main
+git pull origin main
+git switch -c sistema-gestao-v1
+
+Depois extraia o ZIP e substitua os arquivos dentro desta mesma pasta.
+Não copie a pasta principal do ZIP como uma pasta dentro do projeto.
+
+2. CONFERIR E ENVIAR A BRANCH
+-----------------------------
+
+git status
+git add .
+git commit -m "feat: adiciona sistema completo de gestao da loja"
+git push -u origin sistema-gestao-v1
+
+A Vercel deverá criar uma linha Preview para sistema-gestao-v1. Abra esse
+Preview e acrescente /gestao/ no final do endereço.
+
+Se o Google mostrar auth/unauthorized-domain somente na Preview, copie apenas o
+domínio da Preview (sem https e sem barras) e adicione temporariamente em:
+Firebase Console > Authentication > Settings > Authorized domains. O domínio
+oficial delicias-da-vo.vercel.app deve continuar cadastrado.
+
+3. PUBLICAR AS REGRAS DO FIRESTORE PARA O TESTE FUNCIONAR
+---------------------------------------------------------
+
+Jeito mais simples, sem instalar nada:
+
+1. Abra https://console.firebase.google.com/
+2. Entre no projeto delicias-da-vo-70953.
+3. Abra Firestore Database > Regras.
+4. No VS Code, abra o arquivo firestore.rules desta versão.
+5. Copie todo o conteúdo e substitua o conteúdo da tela do Firebase.
+6. Clique em Publicar.
+
+As regras novas continuam aceitando o site atual e acrescentam somente as
+coleções e permissões necessárias para a Gestão.
+
+4. ROTEIRO DE TESTE NA PREVIEW
+------------------------------
+
+1. Abra /gestao/ e entre com deliciasdavo54@gmail.com.
+2. Confirme que Hoje, Pedidos, Cozinha e Cardápio abrem.
+3. Crie um pedido manual pequeno e avance até Pronto.
+4. Faça uma venda de teste no Balcão.
+5. Cadastre um insumo e faça uma entrada e uma saída.
+6. Cadastre uma compra pequena e confirme Estoque e Financeiro.
+7. Teste no celular e confirme que os modais rolam até o botão final.
+8. Abra o site público, faça um pedido e confirme que ele aparece na Gestão.
+
+5. TRAZER A VERSÃO APROVADA PARA A MAIN
+---------------------------------------
+
+git switch main
+git pull origin main
+git merge --no-ff sistema-gestao-v1 -m "merge: publica sistema de gestao v1"
+git push origin main
+
+A Vercel publicará a main em produção automaticamente.
+
+6. APAGAR A BRANCH SOMENTE DEPOIS DE CONFERIR A PRODUÇÃO
+---------------------------------------------------------
+
+git branch -d sistema-gestao-v1
+git push origin --delete sistema-gestao-v1
+
+7. SE O TESTE DER PROBLEMA
+--------------------------
+
+Não faça o merge. Volte para a versão principal com:
+
+git switch main
+
+A main e o site de produção continuarão na versão anterior.

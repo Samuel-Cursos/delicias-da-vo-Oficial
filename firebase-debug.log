@@ -1,0 +1,56 @@
+[debug] [2026-08-12T23:32:33.462Z] ----------------------------------------------------------------------
+[debug] [2026-08-12T23:32:33.464Z] Command:       /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node /tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/.bin/firebase emulators:exec --only firestore --project delicias-da-vo-70953 node -e "console.log('regras carregadas')"
+[debug] [2026-08-12T23:32:33.464Z] CLI Version:   14.12.0
+[debug] [2026-08-12T23:32:33.464Z] Platform:      linux
+[debug] [2026-08-12T23:32:33.464Z] Node Version:  v24.14.0
+[debug] [2026-08-12T23:32:33.464Z] Time:          Wed Aug 12 2026 18:32:33 GMT-0500 (Peru Standard Time)
+[debug] [2026-08-12T23:32:33.464Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-08-12T23:32:33.466Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-08-12T23:32:33.674Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] Failed to authenticate, have you run firebase login?
+[warn] ⚠  emulators: You are not currently authenticated so some features may not work correctly. Please run firebase login to authenticate the CLI. 
+[debug] [2026-08-12T23:32:33.703Z] openjdk version "17.0.19" 2026-04-21
+OpenJDK Runtime Environment (build 17.0.19+10-1-24.04.2-Ubuntu)
+
+[debug] [2026-08-12T23:32:33.704Z] OpenJDK 64-Bit Server VM (build 17.0.19+10-1-24.04.2-Ubuntu, mixed mode, sharing)
+
+[debug] [2026-08-12T23:32:33.706Z] Parsed Java major version: 17
+[info] i  emulators: Starting emulators: firestore {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: firestore"}}
+[debug] [2026-08-12T23:32:33.709Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-08-12T23:32:33.710Z] [firestore] Firestore Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-08-12T23:32:33.710Z] [firestore.websocket] websocket server for firestore only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2026-08-12T23:32:33.710Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2026-08-12T23:32:33.712Z] [hub] writing locator at /tmp/hub-delicias-da-vo-70953.json
+[info] i  firestore: downloading cloud-firestore-emulator-v1.19.8.jar... {"metadata":{"emulator":{"name":"firestore"},"message":"downloading cloud-firestore-emulator-v1.19.8.jar..."}}
+[debug] [2026-08-12T23:32:33.720Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] i  emulators: Shutting down emulators. {"metadata":{"emulator":{"name":"hub"},"message":"Shutting down emulators."}}
+[info] i  firestore: Stopping Firestore Emulator {"metadata":{"emulator":{"name":"firestore"},"message":"Stopping Firestore Emulator"}}
+[info] i  hub: Stopping emulator hub {"metadata":{"emulator":{"name":"hub"},"message":"Stopping emulator hub"}}
+[debug] [2026-08-12T23:32:33.747Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[debug] [2026-08-12T23:32:33.751Z] Error: ENOENT: no such file or directory, mkdir '/root/.cache/firebase/emulators'
+    at Object.mkdirSync (node:fs:1349:26)
+    at module.exports.makeDirSync (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/fs-extra/lib/mkdirs/make-dir.js:23:13)
+    at downloadEmulator (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/download.js:21:8)
+    at Object.start (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/downloadableEmulators.js:384:51)
+    at FirestoreEmulator.start (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/firestoreEmulator.js:42:38)
+    at EmulatorRegistry.start (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/registry.js:19:24)
+    at startEmulator (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/controller.js:294:44)
+    at Object.startAll (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/controller.js:469:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async emulatorExec (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/emulator/commandUtils.js:292:35)
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-08-12T23:32:34.013Z] Error: ENOENT: no such file or directory, mkdir '/root/.config/configstore'
+    at Object.mkdirSync (node:fs:1349:26)
+    at module.exports.sync (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/make-dir/index.js:114:6)
+    at set all (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/configstore/index.js:59:12)
+    at Configstore.delete (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/configstore/index.js:101:12)
+    at process.<anonymous> (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/bin/cli.js:65:45)
+    at process.emit (node:events:520:35)
+    at process.emit (node:domain:489:12)
+    at process.exit (node:internal/process/per_thread:236:15)
+    at Timeout._onTimeout (/tmp/dv-npm-cache/_npx/59640e0ce18374e7/node_modules/firebase-tools/lib/errorOut.js:20:17)
+    at listOnTimeout (node:internal/timers:605:17)
+[error] 
+[error] Error: An unexpected error has occurred.

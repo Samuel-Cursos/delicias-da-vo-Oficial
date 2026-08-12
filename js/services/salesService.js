@@ -27,38 +27,49 @@ function itensValidos(itens) {
 }
 
 async function atualizarEstoque(transaction, itens, direcao) {
-  const registros = await Promise.all(itens.map(async item => {
-    const ref = doc(db, "produtos", item.id);
-    return { item, ref, snapshot: await transaction.get(ref) };
+  const grupos = new Map();
+  itens.forEach(item => grupos.set(item.id, [...(grupos.get(item.id) || []), item]));
+  const registros = await Promise.all([...grupos.entries()].map(async ([produtoId, itensProduto]) => {
+    const ref = doc(db, "produtos", produtoId);
+    return { itensProduto, ref, snapshot: await transaction.get(ref) };
   }));
 
-  registros.forEach(({ item, ref, snapshot }) => {
-    if (!snapshot.exists()) throw new Error("Produto nao encontrado: " + (item.nome || item.id));
+  registros.forEach(({ itensProduto, ref, snapshot }) => {
+    if (!snapshot.exists()) throw new Error("Produto nao encontrado: " + (itensProduto[0]?.nome || itensProduto[0]?.id));
 
     const produto = snapshot.data();
     if (produto.sobEncomenda) return;
+    const variacoes = Array.isArray(produto.variacoes) ? produto.variacoes.map(variacao => ({ ...variacao })) : [];
+    let estoque = Number(produto.estoque || 0);
+    let alterouVariacoes = false;
+    let alterouEstoque = false;
 
-    if (item.variacaoId) {
-      const variacoes = Array.isArray(produto.variacoes) ? [...produto.variacoes] : [];
-      const indice = variacoes.findIndex(variacao => variacao.id === item.variacaoId);
-      if (indice < 0) throw new Error("Variacao nao encontrada para " + (item.nome || "o produto"));
+    itensProduto.forEach(item => {
+      if (item.variacaoId) {
+        const indice = variacoes.findIndex(variacao => variacao.id === item.variacaoId);
+        if (indice < 0) throw new Error("Variacao nao encontrada para " + (item.nome || "o produto"));
+        if (variacoes[indice].sobEncomenda) return;
 
-      const atual = Number(variacoes[indice].estoque || 0);
-      const proximo = atual + direcao * item.quantidade;
+        const atual = Number(variacoes[indice].estoque || 0);
+        const proximo = atual + direcao * item.quantidade;
+        if (proximo < 0) throw new Error("Estoque insuficiente para " + (item.nome || "o produto"));
+
+        variacoes[indice].estoque = proximo;
+        alterouVariacoes = true;
+        return;
+      }
+
+      const proximo = estoque + direcao * item.quantidade;
       if (proximo < 0) throw new Error("Estoque insuficiente para " + (item.nome || "o produto"));
+      estoque = proximo;
+      alterouEstoque = true;
+    });
 
-      transaction.update(ref, {
-        ["variacoes." + indice + ".estoque"]: proximo,
-        atualizadoEm: serverTimestamp()
-      });
-      return;
-    }
-
-    const atual = Number(produto.estoque || 0);
-    const proximo = atual + direcao * item.quantidade;
-    if (proximo < 0) throw new Error("Estoque insuficiente para " + (item.nome || "o produto"));
-
-    transaction.update(ref, { estoque: proximo, atualizadoEm: serverTimestamp() });
+    if (alterouVariacoes || alterouEstoque) transaction.update(ref, {
+      ...(alterouVariacoes ? { variacoes } : {}),
+      ...(alterouEstoque ? { estoque } : {}),
+      atualizadoEm: serverTimestamp()
+    });
   });
 }
 

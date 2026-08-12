@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-v5-4-scanner-cursiva";
+const CACHE_NAME = "delicias-da-vo-gestao-v1";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -21,7 +21,15 @@ const ARQUIVOS_CACHE = [
   "/js/services/financeService.js",
   "/js/services/documentAiService.js",
   "/js/services/centralOrderService.js",
+  "/js/services/dailyMenuService.js",
+  "/js/services/managementCore.js",
+  "/js/services/managementService.js",
   "/js/services/backupService.js",
+  "/gestao/index.html",
+  "/gestao/manifest.json",
+  "/gestao/css/gestao.css",
+  "/gestao/css/scan.css",
+  "/gestao/js/gestao.js",
   "/assets/logo-delicias-da-vo.webp",
   "/assets/logo-social.png",
   "/assets/icon-192.png",

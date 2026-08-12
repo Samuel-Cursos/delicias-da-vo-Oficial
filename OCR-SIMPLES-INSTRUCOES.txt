@@ -1,0 +1,28 @@
+LEITURA HÍBRIDA — VALOR E PAGAMENTO
+
+O módulo foi simplificado para reconhecer apenas:
+- valor total;
+- forma de pagamento.
+
+COMPRA:
+- cria uma saída em movimentosFinanceiros;
+- usa a data atual;
+- categoria: Compras.
+
+VENDA:
+- cria uma venda em vendas;
+- não exige produto;
+- não altera estoque;
+- aparece no caixa e no financeiro como entrada automática.
+- usa Gemini para tentar reconhecer também a letra cursiva;
+- começa automaticamente sem recorte obrigatório;
+- mantém Tesseract local e digitação manual como alternativas.
+
+COMPRA IMPRESSA:
+- continua usando OCR local para não consumir a cota da IA.
+
+Não é necessário instalar nada na máquina.
+Para venda manuscrita, a Vercel precisa da variável GEMINI_API_KEY ativa em Preview
+e Production. Somente o administrador autenticado pode usar a rota.
+Na primeira leitura local, o navegador precisa de internet para carregar Tesseract.js.
+Não é necessário alterar as regras do Firebase, desde que as coleções movimentosFinanceiros e vendas já estejam permitidas para o administrador.

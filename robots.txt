@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /pages/admin.html
+Disallow: /gestao/
+
+Sitemap: https://delicias-da-vo.vercel.app/sitemap.xml

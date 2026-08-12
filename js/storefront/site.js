@@ -9,6 +9,7 @@ import { createProductCard } from "../core/templates.js";
 import { gerarPedidoSite } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta, calcularPrecoFesta, textoPrecoFesta, normalizarPrecoFesta } from "../services/partyProductService.js";
 import { registrarEncomendaFesta } from "../services/partyOrderService.js";
+import { observarCardapioDiario, produtoLiberadoNoCardapio } from "../services/dailyMenuService.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
@@ -31,14 +32,52 @@ window.addEventListener("perfil-cliente-atualizado", event => {
 
 iniciarAuth();
 observarSalgadosFesta((_, erro) => renderSalgadosFesta(erro));
+observarCardapioDiario(() => {
+  sincronizarCarrinhoDisponibilidade(false);
+  renderCategoriasSite();
+  renderizarProdutos(categoriaAtual);
+  renderPromocoesSite();
+  atualizarCarrinho();
+});
 
 observarProdutos((_, erro, usandoCache) => {
+  sincronizarCarrinhoDisponibilidade(true);
   renderCategoriasSite();
   renderizarProdutos(categoriaAtual);
   renderPromocoesSite();
   atualizarCarrinho();
   atualizarEstadoCardapio(erro, usandoCache);
 });
+
+function sincronizarCarrinhoDisponibilidade(verificarCatalogo = true) {
+  const anterior = JSON.stringify(carrinho);
+  const restantes = new Map();
+  carrinho = carrinho.filter(item => produtoLiberadoNoCardapio(item.id));
+
+  if (verificarCatalogo) {
+    carrinho = carrinho.filter(item => {
+      const produto = produtos.find(registro => registro.id === item.id);
+      if (!produto || produto.ativo === false) return false;
+      const variacao = item.variacaoId
+        ? (produto.variacoes || []).find(registro => registro.id === item.variacaoId && registro.ativa !== false)
+        : null;
+      if (item.variacaoId && !variacao) return false;
+      const sobEncomenda = Boolean(produto.sobEncomenda || variacao?.sobEncomenda);
+      if (sobEncomenda) return true;
+      const chaveEstoque = `${produto.id}|${variacao?.id || ""}`;
+      if (!restantes.has(chaveEstoque)) restantes.set(chaveEstoque, Math.max(0, Number(variacao?.estoque ?? produto.estoque ?? 0)));
+      const disponivel = restantes.get(chaveEstoque);
+      item.quantidade = Math.min(Math.max(0, Number(item.quantidade || 0)), disponivel);
+      item.estoqueAtual = disponivel;
+      restantes.set(chaveEstoque, Math.max(0, disponivel - item.quantidade));
+      return item.quantidade > 0;
+    });
+  }
+
+  const mudou = anterior !== JSON.stringify(carrinho);
+  if (mudou) salvarLocal(APP_CONFIG.storageCarrinho, carrinho);
+  return mudou;
+}
 
 observarCategorias(() => {
   renderCategoriasSite();
@@ -917,7 +956,7 @@ function renderPromocoesSite() {
     const fimOk = !p.fim || p.fim >= hoje;
 
     return inicioOk && fimOk;
-  }).filter(promo => produtos.some(produto => produto.id === promo.produtoId && produto.ativo !== false));
+  }).filter(promo => produtos.some(produto => produto.id === promo.produtoId && produto.ativo !== false && produtoLiberadoNoCardapio(produto.id)));
 
   if (!ativas.length) {
     if (section) section.hidden = true;
@@ -928,7 +967,7 @@ function renderPromocoesSite() {
 
   ativas.forEach(promo => {
     const produto = produtos.find(p => p.id === promo.produtoId);
-    if (!produto || produto.ativo === false) return;
+    if (!produto || produto.ativo === false || !produtoLiberadoNoCardapio(produto.id)) return;
 
     const card = createProductCard(produto, {
       promo: true,
@@ -944,7 +983,7 @@ function renderPromocoesSite() {
 }
 
 function renderizarGrupo(container, categoria, titulo, descricao) {
-  const lista = produtos.filter(p => p.ativo !== false && p.categoria === categoria);
+  const lista = produtos.filter(p => p.ativo !== false && produtoLiberadoNoCardapio(p.id) && p.categoria === categoria);
 
   if (!lista.length) return;
 
@@ -972,7 +1011,7 @@ function renderizarProdutos(categoria = "todos") {
     const grid = document.createElement('div'); grid.className = 'produtos-grid'; bloco.appendChild(grid);
 
     produtos
-      .filter(p => p.ativo !== false && p.categoria === categoria)
+      .filter(p => p.ativo !== false && produtoLiberadoNoCardapio(p.id) && p.categoria === categoria)
       .forEach(p => grid.appendChild(cardProduto(p)));
 
     container.appendChild(bloco);
@@ -1021,7 +1060,7 @@ function pesquisarProdutosImpl() {
   const grid = document.createElement('div'); grid.className = 'produtos-grid'; bloco.appendChild(grid);
 
   produtos
-    .filter(p => p.ativo !== false)
+    .filter(p => p.ativo !== false && produtoLiberadoNoCardapio(p.id))
     .filter(p =>
       p.nome.toLowerCase().includes(termo) ||
       (p.descricao || '').toLowerCase().includes(termo) ||
@@ -1551,6 +1590,11 @@ function montarEndereco({ rua, numero, bairro, complemento }) {
 }
 
 async function finalizarPedidoImpl() {
+  if (sincronizarCarrinhoDisponibilidade(true)) {
+    atualizarCarrinho();
+    alert("O cardápio ou o estoque mudou. Ajustamos seu carrinho; confira os itens antes de continuar.");
+    return;
+  }
   if (!carrinho.length) {
     alert("Adicione pelo menos um produto.");
     return;
@@ -1639,6 +1683,11 @@ async function finalizarPedidoImpl() {
       } : null,
       pagamento,
       itens,
+      subtotalProdutos,
+      taxaEntrega,
+      distanciaEntregaKm: tipo === "Entrega" && taxaEntregaAtual?.estado === "calculada"
+        ? Number(taxaEntregaAtual.distanciaKm)
+        : null,
       total
     });
 

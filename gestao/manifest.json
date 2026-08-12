@@ -1,0 +1,30 @@
+{
+  "name": "Delícias da Vó Gestão",
+  "short_name": "Gestão DV",
+  "description": "Central interna de pedidos, cozinha, caixa, estoque e financeiro da Delícias da Vó.",
+  "lang": "pt-BR",
+  "start_url": "/gestao/",
+  "scope": "/gestao/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fbf5ea",
+  "theme_color": "#46180f",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
