@@ -24,6 +24,7 @@ export const estadoGestao = {
   movimentosCaixa: [],
   perdasEstoque: [],
   equipe: [],
+  convitesEquipe: [],
   solicitacoesAcesso: [],
   configuracaoOperacao: {},
   erros: {}
@@ -94,6 +95,7 @@ export function iniciarObservadoresGestao(aoMudar, acesso = {}) {
   if (permitido("estoque", "financeiro", "relatorios")) adicionar("perdasEstoque", collection(db, "perdasEstoque"), aoMudar);
   if (acesso.admin) {
     adicionar("equipe", collection(db, "equipe"), aoMudar);
+    adicionar("convitesEquipe", collection(db, "convitesEquipe"), aoMudar);
     adicionar("solicitacoesAcesso", collection(db, "solicitacoesAcesso"), aoMudar);
   }
 
@@ -243,6 +245,7 @@ export async function salvarPedidoManual(dados = {}) {
   const total = Math.max(0, numeroSeguro(dados.total || totalItens + taxaEntrega));
   if (!dados.cliente?.nome) throw new Error("Informe o nome do cliente.");
   if (!(dados.itens || []).length) throw new Error("Adicione pelo menos um item.");
+  if (dados.tipo === "Entrega" && !String(dados.endereco || "").trim()) throw new Error("Informe o endereço da entrega.");
 
   const pedido = {
     origem: dados.origem === "whatsapp" ? "whatsapp" : "atendimento",
@@ -276,6 +279,49 @@ export async function salvarPedidoManual(dados = {}) {
   };
   await setDoc(referencia, pedido);
   return { id: referencia.id, ...pedido };
+}
+
+export async function atualizarPedidoManualGestao(id, dados = {}) {
+  if (!id) throw new Error("Pedido inválido.");
+  const referencia = doc(db, "pedidosManuais", id);
+  const itens = itensAgrupados(dados.itens || []);
+  if (!String(dados.cliente?.nome || "").trim()) throw new Error("Informe o nome do cliente.");
+  if (!itens.length) throw new Error("Adicione pelo menos um item.");
+  if (dados.tipo === "Entrega" && !String(dados.endereco || "").trim()) throw new Error("Informe o endereço da entrega.");
+  const subtotalProdutos = itens.reduce((soma, item) => soma + numeroSeguro(item.preco) * numeroSeguro(item.quantidade), 0);
+  const taxaEntrega = dados.tipo === "Entrega" ? Math.max(0, numeroSeguro(dados.taxaEntrega)) : 0;
+
+  await runTransaction(db, async transaction => {
+    const snapshot = await transaction.get(referencia);
+    if (!snapshot.exists()) throw new Error("Pedido não encontrado.");
+    const atual = snapshot.data();
+    if (atual.estoqueBaixado || !["registrado", "aguardando_confirmacao"].includes(atual.status || "registrado")) {
+      throw new Error("Só é possível editar pedidos novos, antes da confirmação.");
+    }
+    transaction.update(referencia, {
+      cliente: {
+        nome: String(dados.cliente.nome || "").trim().slice(0, 120),
+        telefone: String(dados.cliente.telefone || "").trim().slice(0, 30)
+      },
+      tipo: dados.tipo === "Entrega" ? "Entrega" : "Retirada na loja",
+      endereco: String(dados.endereco || "").trim().slice(0, 500),
+      pagamento: dados.pagamento || "Não informado",
+      itens: itens.map(item => ({
+        id: String(item.id || "").slice(0, 120),
+        variacaoId: String(item.variacaoId || "").slice(0, 120),
+        nome: String(item.nome || "Item").slice(0, 160),
+        sabor: String(item.sabor || "").slice(0, 120),
+        quantidade: Math.max(0, numeroSeguro(item.quantidade)),
+        preco: Math.max(0, numeroSeguro(item.preco)),
+        observacao: String(item.observacao || "").slice(0, 300)
+      })),
+      subtotalProdutos,
+      taxaEntrega,
+      total: subtotalProdutos + taxaEntrega,
+      observacao: String(dados.observacao || "").trim().slice(0, 500),
+      atualizadoEm: serverTimestamp()
+    });
+  });
 }
 
 export async function salvarCardapioDia({ dataISO = dataLojaISO(), produtoIds = [], publicado = true, titulo = "", itens = [], observacao = "" } = {}) {
@@ -449,11 +495,34 @@ export async function registrarCompra(dados = {}) {
       observacao: dados.statusPagamento === "pendente" ? `Conta pendente. Vencimento: ${dados.vencimento || "não informado"}` : "Compra registrada no estoque.",
       origem: "compra-gestao",
       compraId: compraRef.id,
+      statusPagamento: dados.statusPagamento === "pendente" ? "pendente" : "pago",
       criadoEm: serverTimestamp(),
       atualizadoEm: serverTimestamp()
     });
   });
   return compraRef.id;
+}
+
+export async function marcarCompraComoPaga(compra = {}) {
+  if (!compra.id) throw new Error("Compra inválida.");
+  if (compra.statusPagamento === "pago") return;
+  const compraRef = doc(db, "compras", compra.id);
+  const movimentoRef = doc(db, "movimentosFinanceiros", `compra-${compra.id}`);
+  await runTransaction(db, async transaction => {
+    const compraSnapshot = await transaction.get(compraRef);
+    if (!compraSnapshot.exists()) throw new Error("Compra não encontrada.");
+    transaction.update(compraRef, {
+      statusPagamento: "pago",
+      pagoEmMs: Date.now(),
+      pagoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp()
+    });
+    transaction.update(movimentoRef, {
+      statusPagamento: "pago",
+      observacao: "Compra paga e confirmada na Gestão.",
+      atualizadoEm: serverTimestamp()
+    });
+  });
 }
 
 export async function abrirSessaoCaixa({ valorInicial = 0, responsavel = "" } = {}) {
@@ -532,20 +601,98 @@ export async function solicitarAcessoGestao(user) {
   }, { merge: true });
 }
 
+function emailEquipeNormalizado(email = "") {
+  return String(email || "").trim().toLowerCase().slice(0, 200);
+}
+
+function permissoesEquipe(dados = {}, padraoOperacao = false) {
+  return {
+    pedidos: padraoOperacao ? dados.pedidos !== false : Boolean(dados.pedidos),
+    cozinha: padraoOperacao ? dados.cozinha !== false : Boolean(dados.cozinha),
+    entregas: padraoOperacao ? dados.entregas !== false : Boolean(dados.entregas),
+    caixa: Boolean(dados.caixa),
+    estoque: Boolean(dados.estoque),
+    compras: Boolean(dados.compras),
+    financeiro: Boolean(dados.financeiro),
+    clientes: Boolean(dados.clientes),
+    relatorios: Boolean(dados.relatorios),
+    configuracoes: Boolean(dados.configuracoes),
+    site: Boolean(dados.site)
+  };
+}
+
+export async function criarConviteEquipe(dados = {}) {
+  const email = emailEquipeNormalizado(dados.email);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Informe um e-mail válido.");
+  await setDoc(doc(db, "convitesEquipe", email), {
+    email,
+    nome: String(dados.nome || "").trim().slice(0, 120),
+    cargo: String(dados.cargo || "Colaborador").trim().slice(0, 80),
+    ativo: true,
+    status: "pendente",
+    permissoes: permissoesEquipe(dados.permissoes),
+    criadoEmMs: Date.now(),
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp()
+  });
+  return email;
+}
+
+export async function cancelarConviteEquipe(email = "") {
+  const normalizado = emailEquipeNormalizado(email);
+  if (!normalizado) throw new Error("Convite inválido.");
+  await deleteDoc(doc(db, "convitesEquipe", normalizado));
+}
+
+export async function buscarConviteEquipe(user) {
+  const email = emailEquipeNormalizado(user?.email);
+  if (!email) return null;
+  const snapshot = await getDoc(doc(db, "convitesEquipe", email));
+  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
+}
+
+export async function ativarConviteEquipe(user) {
+  const email = emailEquipeNormalizado(user?.email);
+  if (!user?.uid || !email) throw new Error("Entre com a conta Google convidada.");
+  const conviteRef = doc(db, "convitesEquipe", email);
+  const membroRef = doc(db, "equipe", user.uid);
+  let membroCriado = null;
+  await runTransaction(db, async transaction => {
+    const [conviteSnapshot, membroSnapshot] = await Promise.all([
+      transaction.get(conviteRef),
+      transaction.get(membroRef)
+    ]);
+    if (membroSnapshot.exists() && membroSnapshot.data().ativo === true) {
+      membroCriado = { id: membroSnapshot.id, ...membroSnapshot.data() };
+      return;
+    }
+    if (!conviteSnapshot.exists()) throw new Error("Este e-mail ainda não possui convite.");
+    const convite = conviteSnapshot.data();
+    if (convite.ativo !== true || convite.status !== "pendente" || emailEquipeNormalizado(convite.email) !== email) {
+      throw new Error("Este convite não está mais disponível.");
+    }
+    const dadosMembro = {
+      uid: user.uid,
+      nome: String(convite.nome || user.displayName || "Colaborador").trim().slice(0, 120),
+      email,
+      foto: String(user.photoURL || "").slice(0, 2000),
+      cargo: String(convite.cargo || "Colaborador").slice(0, 80),
+      ativo: true,
+      permissoes: permissoesEquipe(convite.permissoes),
+      conviteEmail: email,
+      origemAcesso: "convite",
+      criadoEm: serverTimestamp(),
+      atualizadoEm: serverTimestamp()
+    };
+    transaction.set(membroRef, dadosMembro);
+    membroCriado = { id: user.uid, ...dadosMembro };
+  });
+  return membroCriado;
+}
+
 export async function aprovarAcessoGestao(solicitacao, dados = {}) {
   if (!solicitacao?.uid) throw new Error("Solicitação inválida.");
-  const permissoes = {
-    pedidos: dados.permissoes?.pedidos !== false,
-    cozinha: dados.permissoes?.cozinha !== false,
-    entregas: dados.permissoes?.entregas !== false,
-    caixa: Boolean(dados.permissoes?.caixa),
-    estoque: Boolean(dados.permissoes?.estoque),
-    compras: Boolean(dados.permissoes?.compras),
-    financeiro: Boolean(dados.permissoes?.financeiro),
-    clientes: Boolean(dados.permissoes?.clientes),
-    relatorios: Boolean(dados.permissoes?.relatorios),
-    configuracoes: Boolean(dados.permissoes?.configuracoes)
-  };
+  const permissoes = permissoesEquipe(dados.permissoes, true);
   await setDoc(doc(db, "equipe", solicitacao.uid), {
     uid: solicitacao.uid,
     nome: solicitacao.nome || "Colaborador",

@@ -2,9 +2,11 @@ import { auth, db, googleProvider, signInWithPopup, signOut, onAuthStateChanged,
 import { APP_CONFIG } from "./config.js";
 import { createUserChip } from "./templates.js";
 import { limparTexto } from "./utils.js";
+import { ativarConviteEquipe, buscarConviteEquipe } from "../services/managementService.js";
 
 window.usuarioAtual = null;
 window.isAdmin = false;
+window.podeEditarSite = false;
 window.perfilClienteAtual = null;
 
 function emailAdministrador(email = "") {
@@ -111,6 +113,7 @@ export function iniciarAuth() {
   onAuthStateChanged(auth, async user => {
     window.usuarioAtual = user;
     window.isAdmin = user ? emailAdministrador(user.email) : false;
+    window.podeEditarSite = window.isAdmin;
 
     const area = document.getElementById("areaUsuario");
     const adminArea = document.getElementById("adminUsuario");
@@ -144,6 +147,21 @@ export function iniciarAuth() {
       return;
     }
 
+    if (adminArea && !window.isAdmin) {
+      try {
+        let membroSnapshot = await getDoc(doc(db, "equipe", user.uid));
+        let membro = membroSnapshot.exists() ? membroSnapshot.data() : null;
+        if (!membro?.ativo) {
+          const convite = await buscarConviteEquipe(user).catch(() => null);
+          if (convite?.ativo === true && convite.status === "pendente") membro = await ativarConviteEquipe(user);
+        }
+        window.podeEditarSite = Boolean(membro?.ativo && membro?.permissoes?.site);
+      } catch (erro) {
+        console.error("Não foi possível conferir o acesso ao editor do site:", erro);
+        window.podeEditarSite = false;
+      }
+    }
+
     let perfil;
 
     try {
@@ -163,14 +181,14 @@ export function iniciarAuth() {
     if (adminArea) {
       adminArea.innerHTML = "";
 
-      if (!window.isAdmin) {
+      if (!window.podeEditarSite) {
         const blocked = document.createElement("div");
         blocked.className = "admin-blocked";
         const strong = document.createElement("strong");
         strong.textContent = "Acesso negado";
         blocked.appendChild(strong);
         const p = document.createElement("p");
-        p.textContent = "Este e-mail não é administrador.";
+        p.textContent = "Este e-mail não possui acesso ao editor do site.";
         blocked.appendChild(p);
         const btn = document.createElement("button");
         btn.textContent = "Sair";
@@ -181,9 +199,9 @@ export function iniciarAuth() {
         return;
       }
 
-      const chip = createUserChip(user, true);
+      const chip = createUserChip(user, window.isAdmin);
       const span = chip.querySelector("span");
-      if (span) span.textContent = `ADM: ${user.displayName || user.email}`;
+      if (span) span.textContent = `${window.isAdmin ? "ADM" : "EDITOR"}: ${user.displayName || user.email}`;
       adminArea.appendChild(chip);
       document.body.classList.add("admin-liberado");
       window.iniciarAdminDepoisLogin?.();

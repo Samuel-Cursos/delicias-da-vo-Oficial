@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-painel-organizado-v1-1";
+const CACHE_NAME = "delicias-da-vo-gestao-v1-3";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -34,6 +34,8 @@ const ARQUIVOS_CACHE = [
   "/gestao/manifest.json",
   "/gestao/css/gestao.css",
   "/gestao/css/scan.css",
+  "/gestao/css/gestao-v1-2.css",
+  "/gestao/css/gestao-v1-3.css",
   "/gestao/js/gestao.js",
   "/assets/logo-delicias-da-vo.webp",
   "/assets/logo-social.png",

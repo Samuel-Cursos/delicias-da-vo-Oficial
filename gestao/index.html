@@ -10,6 +10,8 @@
   <link rel="manifest" href="./manifest.json">
   <link rel="stylesheet" href="./css/gestao.css">
   <link rel="stylesheet" href="./css/scan.css">
+  <link rel="stylesheet" href="./css/gestao-v1-2.css">
+  <link rel="stylesheet" href="./css/gestao-v1-3.css">
 </head>
 <body>
   <section id="gestaoLogin" class="login-shell">
@@ -38,31 +40,31 @@
 
       <nav id="gestaoNav">
         <p class="nav-label">Visão geral</p>
-        <button class="nav-item active" data-page="dashboard" data-permission="dashboard"><span>⌂</span> Hoje</button>
+        <button class="nav-item active" type="button" data-page="dashboard" data-permission="dashboard"><span>⌂</span> Hoje</button>
 
         <p class="nav-label">Operação</p>
-        <button class="nav-item" data-page="pedidos" data-permission="pedidos"><span>▤</span> Pedidos <b id="badgePedidos" class="nav-badge" hidden>0</b></button>
-        <button class="nav-item" data-page="cozinha" data-permission="cozinha"><span>♨</span> Cozinha <b id="badgeCozinha" class="nav-badge" hidden>0</b></button>
-        <button class="nav-item" data-page="cardapio" data-permission="pedidos"><span>◫</span> Cardápio do dia</button>
-        <button class="nav-item" data-page="balcao" data-permission="caixa"><span>▣</span> Balcão</button>
-        <button class="nav-item" data-page="entregas" data-permission="entregas"><span>➜</span> Entregas <b id="badgeEntregas" class="nav-badge" hidden>0</b></button>
-        <button class="nav-item" data-page="encomendas" data-permission="pedidos"><span>◇</span> Encomendas</button>
+        <button class="nav-item" type="button" data-page="pedidos" data-permission="pedidos"><span>▤</span> Pedidos <b id="badgePedidos" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" type="button" data-page="cozinha" data-permission="cozinha"><span>♨</span> Cozinha <b id="badgeCozinha" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" type="button" data-page="cardapio" data-permission="pedidos"><span>◫</span> Cardápio do dia</button>
+        <button class="nav-item" type="button" data-page="balcao" data-permission="caixa"><span>▣</span> Balcão</button>
+        <button class="nav-item" type="button" data-page="entregas" data-permission="entregas"><span>➜</span> Entregas <b id="badgeEntregas" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" type="button" data-page="encomendas" data-permission="pedidos"><span>◇</span> Encomendas</button>
 
         <p class="nav-label">Gestão</p>
-        <button class="nav-item" data-page="caixa" data-permission="caixa"><span>▱</span> Caixa</button>
-        <button class="nav-item" data-page="estoque" data-permission="estoque"><span>▦</span> Estoque <b id="badgeEstoque" class="nav-badge warning" hidden>0</b></button>
-        <button class="nav-item" data-page="compras" data-permission="compras"><span>⌑</span> Compras</button>
-        <button class="nav-item" data-page="financeiro" data-permission="financeiro"><span>⌁</span> Financeiro</button>
-        <button class="nav-item" data-page="clientes" data-permission="clientes"><span>♙</span> Clientes</button>
-        <button class="nav-item" data-page="relatorios" data-permission="relatorios"><span>▥</span> Relatórios</button>
-        <button class="nav-item" data-page="backup" data-admin-only="true"><span>⇩</span> Backup</button>
-        <button class="nav-item" data-page="equipe" data-admin-only="true"><span>♟</span> Equipe <b id="badgeEquipe" class="nav-badge" hidden>0</b></button>
-        <button class="nav-item" data-page="configuracoes" data-permission="configuracoes"><span>⚙</span> Configurações</button>
+        <button class="nav-item" type="button" data-page="caixa" data-permission="caixa"><span>▱</span> Caixa</button>
+        <button class="nav-item" type="button" data-page="estoque" data-permission="estoque"><span>▦</span> Estoque <b id="badgeEstoque" class="nav-badge warning" hidden>0</b></button>
+        <button class="nav-item" type="button" data-page="compras" data-permission="compras"><span>⌑</span> Compras</button>
+        <button class="nav-item" type="button" data-page="financeiro" data-permission="financeiro"><span>⌁</span> Financeiro</button>
+        <button class="nav-item" type="button" data-page="clientes" data-permission="clientes"><span>♙</span> Clientes</button>
+        <button class="nav-item" type="button" data-page="relatorios" data-permission="relatorios"><span>▥</span> Relatórios</button>
+        <button class="nav-item" type="button" data-page="backup" data-admin-only="true"><span>⇩</span> Backup</button>
+        <button class="nav-item" type="button" data-page="equipe" data-admin-only="true"><span>♟</span> Equipe <b id="badgeEquipe" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" type="button" data-page="configuracoes" data-permission="configuracoes"><span>⚙</span> Configurações</button>
       </nav>
 
       <div class="sidebar-bottom">
         <a href="../index.html"><span>↗</span> Abrir loja</a>
-        <a href="../pages/admin.html"><span>↗</span> Editar site</a>
+        <a id="editarSiteGestaoLink" href="../pages/admin.html"><span>↗</span> Editar site</a>
         <button id="sairGestao" type="button"><span>⇥</span> Sair</button>
       </div>
     </aside>
@@ -104,21 +106,34 @@
           <article class="stat-card warning"><span>Estoque</span><strong id="kpiEstoque">0</strong><small>itens em atenção</small></article>
         </div>
 
+        <div class="operation-health-grid">
+          <article id="metaDiariaCard" class="surface operation-health-card">
+            <div class="operation-health-head"><div><p class="kicker">Meta do dia</p><h3 id="metaDiariaTitulo">Configure uma meta</h3></div><strong id="metaDiariaPercentual">—</strong></div>
+            <p id="metaDiariaTexto">Defina a meta diária em Configurações para acompanhar o progresso.</p>
+            <div class="progress-track" aria-hidden="true"><i id="metaDiariaBarra"></i></div>
+          </article>
+          <article id="capacidadePedidosCard" class="surface operation-health-card">
+            <div class="operation-health-head"><div><p class="kicker">Capacidade da operação</p><h3 id="capacidadePedidosTitulo">Pedidos simultâneos</h3></div><strong id="capacidadePedidosPercentual">0%</strong></div>
+            <p id="capacidadePedidosTexto">Nenhum pedido aguardando agora.</p>
+            <div class="progress-track capacity" aria-hidden="true"><i id="capacidadePedidosBarra"></i></div>
+          </article>
+        </div>
+
         <div class="dashboard-grid">
           <article class="surface span-2">
-            <div class="surface-head"><div><p class="kicker">Fluxo ao vivo</p><h3>Pedidos que precisam de ação</h3></div><button class="text-btn" data-go="pedidos">Ver todos →</button></div>
+            <div class="surface-head"><div><p class="kicker">Fluxo ao vivo</p><h3>Pedidos que precisam de ação</h3></div><button class="text-btn" type="button" data-go="pedidos">Ver todos →</button></div>
             <div id="dashboardPedidos" class="compact-list empty-state">Nenhum pedido aguardando.</div>
           </article>
           <article class="surface">
-            <div class="surface-head"><div><p class="kicker">Cozinha</p><h3>Resumo da produção</h3></div><button class="text-btn" data-go="cozinha">Abrir →</button></div>
+            <div class="surface-head"><div><p class="kicker">Cozinha</p><h3>Resumo da produção</h3></div><button class="text-btn" type="button" data-go="cozinha">Abrir →</button></div>
             <div id="dashboardProducao" class="production-summary empty-state">Nada na fila.</div>
           </article>
           <article class="surface">
-            <div class="surface-head"><div><p class="kicker">Atenção</p><h3>Estoque baixo</h3></div><button class="text-btn" data-go="estoque">Controlar →</button></div>
+            <div class="surface-head"><div><p class="kicker">Atenção</p><h3>Estoque baixo</h3></div><button class="text-btn" type="button" data-go="estoque">Controlar →</button></div>
             <div id="dashboardEstoque" class="compact-list empty-state">Estoque tranquilo.</div>
           </article>
           <article class="surface span-2">
-            <div class="surface-head"><div><p class="kicker">Agenda</p><h3>Próximas encomendas</h3></div><button class="text-btn" data-go="encomendas">Ver agenda →</button></div>
+            <div class="surface-head"><div><p class="kicker">Agenda</p><h3>Próximas encomendas</h3></div><button class="text-btn" type="button" data-go="encomendas">Ver agenda →</button></div>
             <div id="dashboardEncomendas" class="compact-list empty-state">Nenhuma encomenda próxima.</div>
           </article>
         </div>
@@ -129,7 +144,7 @@
           <div class="search-field"><span>⌕</span><input id="buscaPedidos" type="search" placeholder="Buscar cliente, número ou telefone"></div>
           <select id="filtroOrigemPedidos" aria-label="Filtrar origem"><option value="todos">Todas as origens</option><option value="site">Site</option><option value="manual">Atendimento</option><option value="festa">Encomendas</option></select>
           <select id="filtroStatusPedidos" aria-label="Filtrar status"><option value="abertos">Pedidos abertos</option><option value="todos">Todos</option><option value="registrado">Novos</option><option value="confirmado">Confirmados</option><option value="producao">Em produção</option><option value="pronto">Prontos</option><option value="saiu_entrega">Em entrega</option><option value="entregue">Entregues</option><option value="cancelado">Cancelados</option></select>
-          <button class="primary-btn" data-action="novo-pedido">＋ Novo pedido</button>
+          <button class="primary-btn" type="button" data-action="novo-pedido">＋ Novo pedido</button>
         </div>
         <div class="order-summary-row" id="resumoPedidosFaixas"></div>
         <div id="listaPedidosGestao" class="orders-list"></div>
@@ -149,8 +164,8 @@
       <section id="page-cardapio" class="page" data-page="cardapio">
         <div class="page-toolbar cardapio-toolbar">
           <label>Data do cardápio<input id="dataCardapioGestao" type="date"></label>
-          <label class="grow">Título exibido no site<input id="tituloCardapioGestao" placeholder="Cardápio de hoje"></label>
-          <label class="grow">Recado do dia<input id="observacaoCardapioGestao" placeholder="Ex.: pedidos até 12h"></label>
+          <label class="grow">Título exibido no site<input id="tituloCardapioGestao" type="text" placeholder="Cardápio de hoje"></label>
+          <label class="grow">Recado do dia<input id="observacaoCardapioGestao" type="text" placeholder="Ex.: pedidos até 12h"></label>
           <label class="switch-label"><input id="publicarCardapioGestao" type="checkbox" checked><span></span> Publicado</label>
           <button id="salvarCardapioGestao" class="primary-btn" type="button">Salvar no site</button>
         </div>
@@ -168,7 +183,7 @@
             <div class="surface-head"><div><p class="kicker">Venda rápida</p><h3>Produtos disponíveis</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaBalcao" type="search" placeholder="Buscar produto"></div></div>
             <div id="produtosBalcao" class="pos-products"></div>
           </article>
-          <aside class="surface pos-cart">
+          <aside class="surface pos-cart" aria-label="Venda atual do balcão">
             <div class="surface-head"><div><p class="kicker">Balcão</p><h3>Venda atual</h3></div><button id="limparVendaBalcao" class="text-btn danger" type="button">Limpar</button></div>
             <div id="itensVendaBalcao" class="pos-items empty-state">Toque em um produto para começar.</div>
             <div class="pos-totals"><span>Subtotal <b id="subtotalBalcao">R$ 0,00</b></span><label>Desconto <span><small>R$</small><input id="descontoBalcao" type="number" min="0" step="0.01" value="0"></span></label><strong>Total <b id="totalBalcao">R$ 0,00</b></strong></div>
@@ -181,12 +196,13 @@
       </section>
 
       <section id="page-entregas" class="page" data-page="entregas">
-        <div class="page-toolbar"><div class="segmented" id="filtroEntregas"><button class="active" data-delivery-filter="pendentes">Pendentes</button><button data-delivery-filter="rota">Em rota</button><button data-delivery-filter="entregues">Entregues</button></div></div>
+        <div class="page-toolbar"><div class="segmented" id="filtroEntregas"><button class="active" type="button" data-delivery-filter="pendentes">Pendentes</button><button type="button" data-delivery-filter="rota">Em rota</button><button type="button" data-delivery-filter="entregues">Entregues</button></div></div>
         <div id="listaEntregasGestao" class="delivery-grid"></div>
       </section>
 
       <section id="page-encomendas" class="page" data-page="encomendas">
-        <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaEncomendas" type="search" placeholder="Buscar encomenda ou cliente"></div><select id="filtroEncomendas"><option value="abertas">Próximas e abertas</option><option value="todas">Todas</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div>
+        <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaEncomendas" type="search" placeholder="Buscar encomenda ou cliente"></div><select id="filtroEncomendas"><option value="abertas">Próximas e abertas</option><option value="preparo">Na janela de preparo</option><option value="agendadas">Agendadas para depois</option><option value="todas">Todas</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div>
+        <div class="schedule-explainer surface"><span aria-hidden="true">◷</span><div><strong>Agenda inteligente</strong><p>Encomendas distantes ficam guardadas aqui. Elas só entram em Pedidos e Cozinha quando chegar a antecedência configurada.</p></div></div>
         <div id="listaEncomendasGestao" class="appointment-list"></div>
       </section>
 
@@ -205,20 +221,20 @@
       </section>
 
       <section id="page-estoque" class="page" data-page="estoque">
-        <div class="page-toolbar"><div class="segmented" id="abasEstoque"><button class="active" data-stock-tab="insumos">Insumos</button><button data-stock-tab="produtos">Produtos prontos</button><button data-stock-tab="fichas">Fichas técnicas</button><button data-stock-tab="perdas">Perdas</button></div><button class="primary-btn" data-action="novo-insumo">＋ Novo insumo</button></div>
+        <div class="page-toolbar"><div class="segmented" id="abasEstoque"><button class="active" type="button" data-stock-tab="insumos">Insumos</button><button type="button" data-stock-tab="produtos">Produtos prontos</button><button type="button" data-stock-tab="fichas">Fichas técnicas</button><button type="button" data-stock-tab="perdas">Perdas</button></div><button class="primary-btn" type="button" data-action="novo-insumo">＋ Novo insumo</button></div>
         <div id="conteudoEstoqueGestao"></div>
       </section>
 
       <section id="page-compras" class="page" data-page="compras">
-        <div class="page-toolbar"><button class="secondary-btn" data-action="novo-fornecedor">＋ Fornecedor</button><button class="primary-btn" data-action="nova-compra">＋ Registrar compra</button></div>
+        <div class="page-toolbar"><button class="secondary-btn" type="button" data-action="novo-fornecedor">＋ Fornecedor</button><button class="primary-btn" type="button" data-action="nova-compra">＋ Registrar compra</button></div>
         <div class="finance-kpis"><article><span>Compras no mês</span><strong id="comprasMesValor">R$ 0,00</strong></article><article><span>Pedidos de compra</span><strong id="comprasMesQtd">0</strong></article><article><span>Fornecedores ativos</span><strong id="fornecedoresQtd">0</strong></article><article><span>Contas pendentes</span><strong id="comprasPendentes">0</strong></article></div>
         <div class="two-columns wide-left"><article class="surface"><div class="surface-head"><div><p class="kicker">Histórico</p><h3>Compras registradas</h3></div></div><div id="listaComprasGestao" class="data-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Parceiros</p><h3>Fornecedores</h3></div></div><div id="listaFornecedoresGestao" class="compact-list"></div></article></div>
       </section>
 
       <section id="page-financeiro" class="page" data-page="financeiro">
-        <div class="page-toolbar"><label>De<input id="financeiroInicio" type="date"></label><label>Até<input id="financeiroFim" type="date"></label><button id="aplicarPeriodoFinanceiro" class="secondary-btn">Atualizar</button><button class="primary-btn" data-action="novo-movimento">＋ Lançamento</button></div>
+        <div class="page-toolbar"><label>De<input id="financeiroInicio" type="date"></label><label>Até<input id="financeiroFim" type="date"></label><button id="aplicarPeriodoFinanceiro" class="secondary-btn" type="button">Atualizar</button><button class="primary-btn" type="button" data-action="novo-movimento">＋ Lançamento</button></div>
         <div class="finance-kpis"><article class="positive"><span>Entradas</span><strong id="financeiroEntradas">R$ 0,00</strong></article><article class="negative"><span>Despesas</span><strong id="financeiroSaidas">R$ 0,00</strong></article><article><span>Resultado</span><strong id="financeiroResultado">R$ 0,00</strong></article><article><span>Ticket médio</span><strong id="financeiroTicket">R$ 0,00</strong></article></div>
-        <article class="surface"><div class="surface-head"><div><p class="kicker">Movimentações</p><h3>Histórico financeiro</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaFinanceiro" placeholder="Buscar lançamento"></div></div><div id="listaFinanceiroGestao" class="finance-table"></div></article>
+        <article class="surface"><div class="surface-head"><div><p class="kicker">Movimentações</p><h3>Histórico financeiro</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaFinanceiro" type="search" placeholder="Buscar lançamento"></div></div><div id="listaFinanceiroGestao" class="finance-table"></div></article>
       </section>
 
       <section id="page-clientes" class="page" data-page="clientes">
@@ -228,7 +244,7 @@
       </section>
 
       <section id="page-relatorios" class="page" data-page="relatorios">
-        <div class="page-toolbar"><label>De<input id="relatorioInicio" type="date"></label><label>Até<input id="relatorioFim" type="date"></label><button id="gerarRelatorioGestao" class="primary-btn">Gerar relatório</button><button id="exportarRelatorioGestao" class="secondary-btn">Exportar CSV</button><button id="fecharMesGestao" class="secondary-btn">Fechar mês</button></div>
+        <div class="page-toolbar"><label>De<input id="relatorioInicio" type="date"></label><label>Até<input id="relatorioFim" type="date"></label><button id="gerarRelatorioGestao" class="primary-btn" type="button">Gerar relatório</button><button id="exportarRelatorioGestao" class="secondary-btn" type="button">Exportar CSV</button><button id="imprimirRelatorioGestao" class="secondary-btn" type="button">Imprimir/PDF</button><button id="fecharMesGestao" class="secondary-btn" type="button">Fechar mês</button></div>
         <div class="finance-kpis"><article class="positive"><span>Receita</span><strong id="relatorioReceita">R$ 0,00</strong></article><article class="negative"><span>Despesas</span><strong id="relatorioDespesas">R$ 0,00</strong></article><article><span>Resultado</span><strong id="relatorioResultado">R$ 0,00</strong></article><article><span>Pedidos e vendas</span><strong id="relatorioPedidos">0</strong></article></div>
         <div class="report-grid"><article class="surface span-2"><div class="surface-head"><div><p class="kicker">Evolução</p><h3>Vendas por dia</h3></div></div><div id="graficoVendasDias" class="bar-chart"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Ranking</p><h3>Mais vendidos</h3></div></div><div id="rankingProdutos" class="ranking-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Recebimentos</p><h3>Pagamentos</h3></div></div><div id="rankingPagamentos" class="ranking-list"></div></article></div>
         <article class="surface report-closures"><div class="surface-head"><div><p class="kicker">Histórico protegido</p><h3>Fechamentos mensais</h3><p>Os resultados fechados permanecem registrados mesmo quando os custos mudam.</p></div></div><div id="listaFechamentosGestao" class="data-list"></div></article>
@@ -243,7 +259,8 @@
       </section>
 
       <section id="page-equipe" class="page" data-page="equipe">
-        <div class="two-columns"><article class="surface"><div class="surface-head"><div><p class="kicker">Aguardando</p><h3>Solicitações de acesso</h3></div></div><div id="solicitacoesEquipe" class="compact-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Usuários internos</p><h3>Equipe cadastrada</h3></div></div><div id="membrosEquipe" class="team-list"></div></article></div>
+        <article class="surface team-invite-hero"><div><p class="kicker">Controle por pessoa</p><h3>Convide alguém com o e-mail do Google</h3><p>Escolha exatamente o que a pessoa poderá abrir. Ela não verá caixa, estoque, gestão ou editor do site se você não liberar.</p></div><button class="primary-btn" type="button" data-action="convidar-equipe">＋ Adicionar à equipe</button></article>
+        <div class="two-columns"><article class="surface"><div class="surface-head"><div><p class="kicker">Aguardando</p><h3>Convites e solicitações</h3></div></div><div id="convitesEquipe" class="compact-list"></div><div id="solicitacoesEquipe" class="compact-list team-requests"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Usuários internos</p><h3>Equipe cadastrada</h3></div></div><div id="membrosEquipe" class="team-list"></div></article></div>
       </section>
 
       <section id="page-configuracoes" class="page" data-page="configuracoes">
@@ -252,8 +269,9 @@
           <div class="form-grid">
             <label>Meta de faturamento diário (R$)<input id="configMetaDiaria" type="number" min="0" step="0.01"></label>
             <label>Tempo padrão de preparo (min)<input id="configTempoPreparo" type="number" min="1" step="1"></label>
+            <label>Antecedência das encomendas na produção (dias)<input id="configDiasEncomendas" type="number" min="0" max="90" step="1"><small>Ex.: 7 faz a encomenda entrar na operação uma semana antes.</small></label>
             <label>Quantidade máxima de pedidos simultâneos<input id="configLimitePedidos" type="number" min="1" step="1"></label>
-            <label>Nome exibido do responsável<input id="configResponsavel" maxlength="120"></label>
+            <label>Nome exibido do responsável<input id="configResponsavel" type="text" maxlength="120"></label>
             <label class="toggle-row"><input id="configSomPedidos" type="checkbox"><span><b>Aviso sonoro de pedido novo</b><small>Toca apenas enquanto o sistema estiver aberto.</small></span></label>
             <label class="toggle-row"><input id="configBaixaEstoque" type="checkbox"><span><b>Baixa de estoque ao confirmar</b><small>Evita vender quantidade maior que a disponível.</small></span></label>
           </div>

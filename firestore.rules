@@ -11,7 +11,8 @@ service cloud.firestore {
     // nunca de um campo que o próprio usuário possa gravar no Firestore.
     function isAdmin() {
       return logado()
-        && request.auth.token.email == "deliciasdavo54@gmail.com";
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == "deliciasdavo54@gmail.com";
     }
 
     function equipeAtiva() {
@@ -58,6 +59,39 @@ service cloud.firestore {
 
     function podeConfiguracoes() {
       return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.configuracoes == true);
+    }
+
+    function podeSite() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.site == true);
+    }
+
+    function conviteEquipeAtivo() {
+      return logado()
+        && request.auth.token.email is string
+        && exists(/databases/$(database)/documents/convitesEquipe/$(request.auth.token.email.lower()))
+        && get(/databases/$(database)/documents/convitesEquipe/$(request.auth.token.email.lower())).data.email == request.auth.token.email.lower()
+        && get(/databases/$(database)/documents/convitesEquipe/$(request.auth.token.email.lower())).data.ativo == true
+        && get(/databases/$(database)/documents/convitesEquipe/$(request.auth.token.email.lower())).data.status == "pendente";
+    }
+
+    function ativacaoConviteEquipeValida(uid) {
+      return conviteEquipeAtivo()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          "uid", "nome", "email", "foto", "cargo", "ativo", "permissoes",
+          "conviteEmail", "origemAcesso", "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email.lower()
+        && request.resource.data.conviteEmail == request.auth.token.email.lower()
+        && request.resource.data.origemAcesso == "convite"
+        && request.resource.data.nome is string
+        && request.resource.data.foto is string
+        && request.resource.data.ativo == true
+        && request.resource.data.cargo == get(/databases/$(database)/documents/convitesEquipe/$(request.auth.token.email.lower())).data.cargo
+        && request.resource.data.permissoes == get(/databases/$(database)/documents/convitesEquipe/$(request.auth.token.email.lower())).data.permissoes
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
     }
 
     function podeOperacao() {
@@ -247,29 +281,31 @@ service cloud.firestore {
 
     match /produtos/{id} {
       allow read: if true;
-      allow create, delete: if isAdmin() || podeConfiguracoes();
-      allow update: if isAdmin() || podeEstoque() || podeConfiguracoes()
+      allow create, delete: if isAdmin() || podeSite();
+      allow update: if isAdmin() || podeEstoque() || podeSite()
         || (podeOperacao() && atualizacaoEstoqueProdutoValida());
     }
 
     match /categorias/{id} {
       allow read: if true;
-      allow write: if isAdmin() || podeConfiguracoes();
+      allow write: if isAdmin() || podeSite();
     }
 
     match /promocoes/{id} {
       allow read: if true;
-      allow write: if isAdmin() || podeConfiguracoes();
+      allow write: if isAdmin() || podeSite();
     }
 
     match /configuracoes/{id} {
       allow read: if true;
-      allow write: if isAdmin() || podeConfiguracoes();
+      allow write: if isAdmin()
+        || (id == "operacao" && podeConfiguracoes())
+        || (id != "operacao" && podeSite());
     }
 
     match /salgadosFesta/{produtoId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin() || podeConfiguracoes();
+      allow create, update, delete: if isAdmin() || podeSite();
     }
 
     // Contadores antigos ficam preservados para histórico, mas deixam de aceitar
@@ -395,6 +431,15 @@ service cloud.firestore {
 
     match /equipe/{uid} {
       allow read: if isAdmin() || (logado() && request.auth.uid == uid);
+      allow create: if isAdmin() || ativacaoConviteEquipeValida(uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /convitesEquipe/{email} {
+      allow read: if isAdmin() || (logado()
+        && request.auth.token.email is string
+        && email == request.auth.token.email.lower()
+        && resource.data.email == request.auth.token.email.lower());
       allow create, update, delete: if isAdmin();
     }
 
