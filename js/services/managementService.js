@@ -13,6 +13,7 @@ export const estadoGestao = {
   usuarios: [],
   movimentosFinanceiros: [],
   custosProdutos: [],
+  fechamentosFinanceiros: [],
   insumos: [],
   movimentacoesEstoque: [],
   fichasTecnicas: [],
@@ -78,6 +79,7 @@ export function iniciarObservadoresGestao(aoMudar, acesso = {}) {
   if (permitido("clientes")) adicionar("usuarios", collection(db, "usuarios"), aoMudar);
   if (permitido("financeiro", "caixa", "relatorios")) adicionar("movimentosFinanceiros", collection(db, "movimentosFinanceiros"), aoMudar);
   if (permitido("financeiro", "estoque", "relatorios")) adicionar("custosProdutos", collection(db, "custosProdutos"), aoMudar);
+  if (permitido("financeiro", "relatorios")) adicionar("fechamentosFinanceiros", collection(db, "fechamentosFinanceiros"), aoMudar);
   if (permitido("estoque", "compras", "relatorios")) {
     adicionar("insumos", collection(db, "estoqueInsumos"), aoMudar);
     adicionar("movimentacoesEstoque", collection(db, "movimentacoesEstoque"), aoMudar);
@@ -276,11 +278,13 @@ export async function salvarPedidoManual(dados = {}) {
   return { id: referencia.id, ...pedido };
 }
 
-export async function salvarCardapioDia({ dataISO = dataLojaISO(), produtoIds = [], publicado = true, observacao = "" } = {}) {
+export async function salvarCardapioDia({ dataISO = dataLojaISO(), produtoIds = [], publicado = true, titulo = "", itens = [], observacao = "" } = {}) {
   await setDoc(doc(db, "cardapiosDiarios", dataISO), {
     dataISO,
     produtoIds: [...new Set(produtoIds.map(String))],
     publicado: Boolean(publicado),
+    titulo: String(titulo || "Cardápio de hoje").trim().slice(0, 120),
+    itens: (Array.isArray(itens) ? itens : []).map(item => String(item || "").trim().slice(0, 120)).filter(Boolean).slice(0, 30),
     observacao: String(observacao || "").trim().slice(0, 500),
     atualizadoEm: serverTimestamp()
   }, { merge: true });

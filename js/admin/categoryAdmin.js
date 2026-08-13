@@ -6,6 +6,7 @@ let categoriaEditando = null;
 export function iniciarCategoriasAdmin() {
   observarCategorias(() => {
     renderCategoriasAdmin();
+    window.renderDashboardSite?.();
   });
 }
 

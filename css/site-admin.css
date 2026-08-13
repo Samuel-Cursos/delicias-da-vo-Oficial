@@ -1,0 +1,79 @@
+.site-admin-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 24px;
+  padding: clamp(24px, 4vw, 42px);
+  color: #fff8ef;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 92% 15%, rgba(240, 170, 91, .24), transparent 31%),
+    linear-gradient(135deg, #3a100b, #6f2417 58%, #8e3722);
+  box-shadow: 0 24px 58px rgba(58, 16, 11, .22);
+}
+
+.site-admin-hero::after {
+  content: "";
+  position: absolute;
+  right: -56px;
+  bottom: -98px;
+  width: 240px;
+  height: 240px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 50%;
+  box-shadow: 0 0 0 32px rgba(255, 255, 255, .035), 0 0 0 72px rgba(255, 255, 255, .025);
+}
+
+.site-admin-hero > * { position: relative; z-index: 1; }
+.site-admin-hero h2 { margin: 5px 0 9px; font-size: clamp(1.55rem, 3vw, 2.45rem); }
+.site-admin-hero p { max-width: 720px; margin: 0; color: rgba(255, 248, 239, .78); line-height: 1.6; }
+.site-admin-hero .eyebrow { color: #ffd59d; }
+
+.site-admin-gestao {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding-inline: 20px;
+  color: #4a180e !important;
+  text-decoration: none;
+  background: #fff5e7 !important;
+  box-shadow: 0 12px 30px rgba(30, 6, 3, .2);
+}
+
+.site-stats-grid { grid-template-columns: repeat(5, minmax(145px, 1fr)); }
+.site-status-card strong { color: #2f7d45; }
+.site-admin-shortcuts { margin-top: 24px; }
+.gestao-link { color: #ffd59d !important; }
+
+/* Módulos operacionais foram transferidos para /gestao e não fazem mais parte do editor do site. */
+#aba-encomendas,
+#aba-venda,
+#aba-caixa,
+#aba-central,
+#aba-digitalizacao,
+#aba-financeiro,
+#aba-backup,
+#modalConfirmarVenda,
+#modalMovimentoFinanceiro {
+  display: none !important;
+}
+
+@media (max-width: 1120px) {
+  .site-stats-grid { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .site-admin-hero { align-items: stretch; flex-direction: column; }
+  .site-admin-gestao { width: 100%; }
+  .site-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 440px) {
+  .site-stats-grid { grid-template-columns: 1fr; }
+}

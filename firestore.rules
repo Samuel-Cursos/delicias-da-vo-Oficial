@@ -239,7 +239,7 @@ service cloud.firestore {
     }
 
     match /usuarios/{uid} {
-      allow create: if logado() && request.auth.uid == uid && perfilNovoValido(uid);
+      allow create: if isAdmin() || (logado() && request.auth.uid == uid && perfilNovoValido(uid));
       allow read: if logado() && (request.auth.uid == uid || isAdmin() || podeClientes());
       allow update: if logado() && (isAdmin() || atualizacaoPerfilValida(uid) || (podeClientes() && atualizacaoObservacaoClienteValida()));
       allow delete: if isAdmin();
@@ -282,7 +282,7 @@ service cloud.firestore {
       allow read: if podeConsultarPedidos();
 
       match /pedidos/{pedidoId} {
-        allow create: if pedidoSiteValido(dataPedido, pedidoId);
+        allow create: if isAdmin() || pedidoSiteValido(dataPedido, pedidoId);
         allow read: if podeConsultarPedidos();
         allow update: if podeOperacao();
         allow delete: if isAdmin();
@@ -311,7 +311,7 @@ service cloud.firestore {
     }
 
     match /encomendasFesta/{pedidoId} {
-      allow create: if encomendaFestaValida();
+      allow create: if isAdmin() || encomendaFestaValida();
       allow read: if podeConsultarPedidos();
       allow update: if podeOperacao();
       allow delete: if isAdmin();
@@ -399,9 +399,9 @@ service cloud.firestore {
     }
 
     match /solicitacoesAcesso/{uid} {
-      allow create: if logado() && request.auth.uid == uid
+      allow create: if isAdmin() || (logado() && request.auth.uid == uid
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email;
+        && request.resource.data.email == request.auth.token.email);
       allow read: if isAdmin() || (logado() && request.auth.uid == uid);
       allow update, delete: if isAdmin();
     }

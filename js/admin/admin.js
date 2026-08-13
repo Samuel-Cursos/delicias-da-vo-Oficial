@@ -43,44 +43,22 @@ function iniciarAdminDepoisLogin() {
   observarProdutos(() => {
     renderDashboard();
     renderProdutosAdmin();
-    renderVendaRapida();
     renderPromocoesAdmin();
-    renderCustosProdutos();
   });
 
   iniciarCategoriasAdmin();
-  observarSalgadosFesta((_, erro) => renderFestasAdmin(erro));
-  observarEncomendasFesta((_, erro) => { renderAgendaEncomendas(erro); renderNotificacoesEncomendas(); });
+  observarSalgadosFesta((_, erro) => { renderFestasAdmin(erro); renderDashboard(); });
 
-  observarMovimentosFinanceiros(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
-  observarVendasFinanceiras(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
-  observarEncomendasFinanceiras(() => { renderFinanceiro(); renderDashboardFinanceiro(); });
-  observarCustosProdutos(() => { renderFinanceiro(); renderCustosProdutos(); });
-  observarFechamentosFinanceiros(() => renderFechamentosFinanceiros());
+  observarConfiguracoesLoja(() => {
+    const abaConfigAberta = document.getElementById("aba-config")?.classList.contains("active");
 
-  observarPedidosNormaisCentral((_,erro) => { erroCentralPedidos=erro; renderCentralPedidos(); });
-  observarVendasCentral((_,erro) => { erroCentralPedidos=erro; renderCentralPedidos(); });
-  observarEncomendasCentral((_,erro) => { erroCentralPedidos=erro; renderCentralPedidos(); });
-
-  observarVendasHoje(() => {
+    if (!abaConfigAberta) preencherConfiguracoesLoja();
     renderDashboard();
-    renderCaixa();
   });
-
-  observarResumoPedidosSiteHoje(() => {
-    renderPedidosSiteDashboard();
-  });
-
- observarConfiguracoesLoja(() => {
-  const abaConfigAberta = document.getElementById("aba-config")?.classList.contains("active");
-
-  if (!abaConfigAberta) {
-    preencherConfiguracoesLoja();
-  }
-});
 
   observarPromocoes(() => {
     renderPromocoesAdmin();
+    renderDashboard();
   });
 }
 
@@ -94,35 +72,21 @@ function abrirAba(nome, botao) {
   if (botao) botao.classList.add("active");
 
   const titulos = {
-    dashboard: "Dashboard",
+    dashboard: "Configurações do site",
     produtos: "Produtos",
-    venda: "Venda rápida",
-    caixa: "Caixa",
-    financeiro: "Financeiro",
     promocoes: "Promoções",
     categorias: "Categorias",
     festas: "Salgados para festas",
-    encomendas: "Agenda de encomendas",
-    central: "Central de pedidos",
-    backup: "Backup dos dados",
-    digitalizacao: "Digitalizar registros",
-    config: "Configurações"
+    config: "Configurações do site"
   };
 
   const descricoes = {
-    dashboard: "Resumo da loja, vendas, produtos e estoque em tempo real.",
-    produtos: "Organize o cardápio sem complicação.",
-    venda: "Registre uma venda da loja física.",
-    caixa: "Acompanhe vendas e formas de pagamento.",
-    financeiro: "Veja entradas, despesas e resultado.",
+    dashboard: "Altere somente o que os clientes veem no site.",
+    produtos: "Organize os produtos exibidos no cardápio.",
     promocoes: "Crie ofertas para destacar no site.",
     categorias: "Organize os produtos por categoria.",
-    festas: "Gerencie o catálogo de encomendas.",
-    encomendas: "Acompanhe as próximas festas.",
-    central: "Encontre todos os pedidos em um só lugar.",
-    backup: "Proteja e restaure os dados da loja.",
-    digitalizacao: "Fotografe, confira e salve uma compra ou venda.",
-    config: "Atualize as informações e horários da loja."
+    festas: "Gerencie o catálogo de encomendas exibido no site.",
+    config: "Atualize identidade, contatos, entrega e horários do site."
   };
 
   document.getElementById("tituloAba").textContent = titulos[nome] || "Painel";
@@ -188,59 +152,21 @@ function renderPedidosSiteDashboard() {
 
 
 function renderDashboard() {
-  renderPedidosSiteDashboard();
+  if (!document.getElementById("siteStatProdutos")) return;
+  const produtosAtivos = produtos.filter(item => item.ativo !== false).length;
+  const festasAtivas = salgadosFesta.filter(item => item.ativo !== false).length;
+  const promocoesAtivas = promocoes.filter(item => item.ativa !== false).length;
+  const categoriasAtivas = categorias.filter(item => item.ativa !== false).length;
 
-  const ativos = produtos.filter(p => p.ativo !== false).length;
-
-  const baixos = produtos.filter(p => {
-    const status = statusEstoque(p);
-    return (status.classe === "baixo" || status.classe === "off") && !p.sobEncomenda;
-  });
-
-  const totalHoje = vendasHoje.reduce((soma, venda) => soma + Number(venda.total || 0), 0);
-  const maisVendido = produtoMaisVendidoHoje();
-
-  const statProdutos = document.getElementById("statProdutos");
-  if (!statProdutos) return;
-
-  document.getElementById("statProdutos").textContent = produtos.length;
-  document.getElementById("statAtivosTexto").textContent = `${ativos} ativos`;
-  document.getElementById("statBaixo").textContent = baixos.length;
-  document.getElementById("statVendasHoje").textContent = formatarMoeda(totalHoje);
-  document.getElementById("statQtdVendas").textContent = `${vendasHoje.length} venda(s) registrada(s)`;
-  document.getElementById("statMaisVendido").textContent = maisVendido ? maisVendido[0] : "—";
-  document.getElementById("statMaisVendidoQtd").textContent = maisVendido ? `${maisVendido[1]} unidade(s)` : "Sem vendas hoje";
-
-  const avisos = document.getElementById("avisosDashboard");
-  if (avisos) {
-    avisos.innerHTML = "";
-
-    if (!baixos.length) {
-      const p = document.createElement('p'); p.textContent = 'Nenhum produto em atenção no momento.'; avisos.appendChild(p);
-    }
-
-    baixos.forEach(p => {
-      const el = document.createElement('p'); el.textContent = `⚠ ${p.nome}: estoque ${p.estoque || 0}`; avisos.appendChild(el);
-    });
-  }
-
-  const ultimas = document.getElementById("ultimasVendasDashboard");
-  if (ultimas) {
-    ultimas.innerHTML = "";
-
-    if (!vendasHoje.length) {
-      const p = document.createElement('p'); p.textContent = 'Nenhuma venda registrada hoje.'; ultimas.appendChild(p);
-    }
-
-    vendasHoje.slice(0, 5).forEach(venda => {
-      const itens = (venda.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(", ");
-      const wrapper = document.createElement('div'); wrapper.className = 'venda-historico';
-      const strong = document.createElement('strong'); strong.textContent = `${venda.hora || '--:--'} - ${formatarMoeda(venda.total)}`; wrapper.appendChild(strong);
-      const small1 = document.createElement('small'); small1.textContent = itens; wrapper.appendChild(small1);
-      const small2 = document.createElement('small'); small2.textContent = venda.pagamento; wrapper.appendChild(small2);
-      ultimas.appendChild(wrapper);
-    });
-  }
+  document.getElementById("siteStatProdutos").textContent = produtos.length;
+  document.getElementById("siteStatProdutosAtivos").textContent = `${produtosAtivos} ativos no site`;
+  document.getElementById("siteStatFestas").textContent = salgadosFesta.length;
+  document.getElementById("siteStatFestasAtivas").textContent = `${festasAtivas} ativos no site`;
+  document.getElementById("siteStatPromocoes").textContent = promocoes.length;
+  document.getElementById("siteStatPromocoesAtivas").textContent = `${promocoesAtivas} ativas`;
+  document.getElementById("siteStatCategorias").textContent = categorias.length;
+  document.getElementById("siteStatCategoriasAtivas").textContent = `${categoriasAtivas} ativas`;
+  document.getElementById("siteStatStatus").textContent = lojaConfig.statusLoja === "fechada" ? "Fechada" : "Aberta";
 }
 
 function renderProdutosAdmin() {
@@ -1131,18 +1057,12 @@ function preencherConfiguracoesLoja() {
     configTaxaAte5Km: Number(lojaConfig.taxasEntrega?.ate5Km ?? 7),
     configLimiteEntregaKm: Number(lojaConfig.taxasEntrega?.limiteKm ?? 5),
     configStatusLoja: lojaConfig.statusLoja || "aberta",
-    cardapioDiaTituloInput: lojaConfig.cardapioDia?.titulo || "Cardápio de hoje",
-    cardapioDiaItensInput: Array.isArray(lojaConfig.cardapioDia?.itens) ? lojaConfig.cardapioDia.itens.join("\n") : "",
-    cardapioDiaObsInput: lojaConfig.cardapioDia?.observacao || "Disponível enquanto durar",
   };
 
   Object.entries(campos).forEach(([id, valor]) => {
     const el = document.getElementById(id);
     if (el) el.value = valor;
   });
-
-  const cardapioAtivo = document.getElementById("cardapioDiaAtivo");
-  if (cardapioAtivo) cardapioAtivo.checked = lojaConfig.cardapioDia?.ativo === true;
 
   renderHorariosAtendimento();
 }
@@ -1181,17 +1101,8 @@ async function salvarConfiguracoesLoja() {
       ate5Km: numeroConfiguracao("configTaxaAte5Km", 7, 0, 500),
       limiteKm: numeroConfiguracao("configLimiteEntregaKm", 5, 3, 100)
     },
-   statusLoja: document.getElementById("configStatusLoja").value,
-horariosAtendimento: coletarHorariosAtendimento(),
-    cardapioDia: {
-      ativo: document.getElementById("cardapioDiaAtivo")?.checked || false,
-      titulo: limparTexto(document.getElementById("cardapioDiaTituloInput")?.value) || "Cardápio de hoje",
-      itens: (document.getElementById("cardapioDiaItensInput")?.value || "")
-        .split("\n")
-        .map(item => limparTexto(item))
-        .filter(Boolean),
-      observacao: limparTexto(document.getElementById("cardapioDiaObsInput")?.value) || ""
-    }
+    statusLoja: document.getElementById("configStatusLoja").value,
+    horariosAtendimento: coletarHorariosAtendimento()
   };
 
   await salvarConfiguracoes(dados);
@@ -1206,6 +1117,7 @@ horariosAtendimento: coletarHorariosAtendimento(),
 }
 window.criarProdutosBase = criarProdutosBase;
 window.iniciarAdminDepoisLogin = iniciarAdminDepoisLogin;
+window.renderDashboardSite = renderDashboard;
 window.abrirAba = abrirAba;
 window.abrirAbaPorNome = abrirAbaPorNome;
 window.alternarMenuAdmin = alternarMenuAdmin;

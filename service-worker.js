@@ -1,10 +1,15 @@
-const CACHE_NAME = "delicias-da-vo-gestao-v1";
+const CACHE_NAME = "delicias-da-vo-painel-organizado-v1-1";
 
 const ARQUIVOS_CACHE = [
   "/",
   "/index.html",
   "/manifest.json",
   "/css/site.css",
+  "/css/admin.css",
+  "/css/site-admin.css",
+  "/pages/admin.html",
+  "/js/admin/admin.js",
+  "/js/admin/categoryAdmin.js",
   "/js/storefront/site.js",
   "/js/core/auth.js",
   "/js/core/config.js",

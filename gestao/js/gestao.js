@@ -4,8 +4,9 @@ import {
 } from "../../js/core/firebase.js";
 import { APP_CONFIG } from "../../js/core/config.js";
 import { registrarVendaRapida } from "../../js/services/salesService.js";
-import { salvarMovimentoFinanceiro } from "../../js/services/financeService.js";
+import { salvarMovimentoFinanceiro, salvarCustoProduto, salvarFechamentoFinanceiro } from "../../js/services/financeService.js";
 import { lerRegistroComIA } from "../../js/services/documentAiService.js";
+import { gerarBackupCompleto, baixarBackupJson, restaurarBackupCompleto } from "../../js/services/backupService.js";
 import {
   estadoGestao, limparEstadoGestao, iniciarObservadoresGestao, atualizarStatusPedidoGestao,
   salvarPedidoManual, salvarCardapioDia, salvarInsumo, movimentarInsumo,
@@ -36,6 +37,7 @@ const titulos = {
   financeiro: ["Saúde do negócio", "Financeiro", "Entradas, despesas, resultado e histórico."],
   clientes: ["Relacionamento", "Clientes", "Dados, histórico e observações importantes."],
   relatorios: ["Decisões com dados", "Relatórios", "Vendas, produtos, pagamentos e desempenho."],
+  backup: ["Segurança dos dados", "Backup", "Baixe ou restaure todos os dados da loja."],
   equipe: ["Acesso seguro", "Equipe", "Libere somente o necessário para cada pessoa."],
   configuracoes: ["Preferências internas", "Configurações", "Ajuste o funcionamento do sistema."],
 };
@@ -51,6 +53,7 @@ let carrinhoBalcao = [];
 let itensPedidoModal = [];
 let itensCompraModal = [];
 let ingredientesFichaModal = [];
+let arquivoBackupPendente = null;
 let ultimoTotalPedidos = 0;
 let toastTimer = null;
 
@@ -168,6 +171,8 @@ function liberarSistema(user) {
   $("alertaPermissao").hidden = isAdmin;
   if (!isAdmin) $("alertaPermissao").textContent = `Acesso de ${membroAtual?.cargo || "colaborador"}: o menu mostra somente as áreas liberadas pelo administrador.`;
   atualizarNavegacaoPermitida();
+  $("digitalizarVendaGestao").hidden = !isAdmin;
+  $("fecharMesGestao").hidden = !(isAdmin || pode("financeiro"));
   pararObservadoresGestao?.();
   limparEstadoGestao();
   pararObservadoresGestao = iniciarObservadoresGestao((_, evento) => {
@@ -223,15 +228,14 @@ function navegar(pagina) {
   $("paginaKicker").textContent = kicker;
   $("paginaTitulo").textContent = titulo;
   $("paginaDescricao").textContent = descricao;
-  const acaoPagina = pagina === "estoque"
-    ? ["＋ Novo insumo", "estoque"]
-    : pagina === "compras"
-      ? ["＋ Registrar compra", "compras"]
-      : pagina === "financeiro"
-        ? ["＋ Lançamento", "financeiro"]
-        : ["＋ Novo pedido", "pedidos"];
-  $("acaoRapida").textContent = acaoPagina[0];
-  $("acaoRapida").hidden = !pode(acaoPagina[1]);
+  const acoesRapidas = {
+    dashboard: ["＋ Novo pedido", "pedidos"], pedidos: ["＋ Novo pedido", "pedidos"], cozinha: ["＋ Novo pedido", "pedidos"],
+    balcao: ["＋ Novo pedido", "pedidos"], entregas: ["＋ Novo pedido", "pedidos"], encomendas: ["＋ Novo pedido", "pedidos"],
+    estoque: ["＋ Novo insumo", "estoque"], compras: ["＋ Registrar compra", "compras"], financeiro: ["＋ Lançamento", "financeiro"]
+  };
+  const acaoPagina = acoesRapidas[pagina];
+  $("acaoRapida").hidden = !acaoPagina || !pode(acaoPagina[1]);
+  if (acaoPagina) $("acaoRapida").textContent = acaoPagina[0];
   document.body.classList.remove("menu-open");
   window.scrollTo({ top: 0, behavior: "smooth" });
   renderPagina(pagina);
@@ -352,6 +356,8 @@ function renderCozinha() {
 function renderCardapio() {
   const data = $("dataCardapioGestao")?.value || dataLojaISO();
   const registro = estadoGestao.cardapios.find(item => item.id === data || item.dataISO === data);
+  if ($("tituloCardapioGestao")) $("tituloCardapioGestao").value = registro?.titulo || "Cardápio de hoje";
+  if ($("itensTextoCardapioGestao")) $("itensTextoCardapioGestao").value = Array.isArray(registro?.itens) ? registro.itens.join("\n") : "";
   if ($("observacaoCardapioGestao")) $("observacaoCardapioGestao").value = registro?.observacao || "";
   if ($("publicarCardapioGestao")) $("publicarCardapioGestao").checked = registro?.publicado !== false;
   const selecionados = new Set(registro?.produtoIds || estadoGestao.produtos.filter(item => item.ativo !== false).map(item => item.id));
@@ -429,6 +435,54 @@ async function finalizarBalcao() {
   } catch (erro) { toast(erro.message || "Não foi possível finalizar a venda.", "error"); }
 }
 
+function abrirDigitalizacaoVenda() {
+  if (!isAdmin) return toast("A leitura inteligente está liberada somente ao administrador.", "error");
+  abrirModal("Ler venda manuscrita", `<form id="formVendaDigitalizada" class="modal-form"><fieldset class="smart-scan"><legend>📷 Foto da anotação</legend><p>Tire uma foto próxima e nítida. Não precisa recortar: a IA lê letra cursiva, valor e pagamento; você sempre confere antes de salvar.</p><label class="scan-upload">Tirar ou escolher foto<input id="vendaDigitalizadaArquivo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label><img id="vendaDigitalizadaPreview" class="scan-preview" alt="Prévia da anotação" hidden><small id="vendaDigitalizadaStatus">Você também pode preencher os campos manualmente.</small></fieldset><div class="form-grid"><label>Valor total (R$)<input id="vendaDigitalizadaValor" type="number" min="0.01" step="0.01" required></label><label>Pagamento<select id="vendaDigitalizadaPagamento"><option>Pix</option><option>Dinheiro</option><option>Cartão débito</option><option>Cartão crédito</option><option>Pagamento misto</option><option>Não informado</option></select></label></div><div id="vendaDigitalizadaMistos" class="mixed-box" hidden><label>Pix<input data-scan-pay="Pix" type="number" min="0" step="0.01"></label><label>Dinheiro<input data-scan-pay="Dinheiro" type="number" min="0" step="0.01"></label><label>Débito<input data-scan-pay="Cartão débito" type="number" min="0" step="0.01"></label><label>Crédito<input data-scan-pay="Cartão crédito" type="number" min="0" step="0.01"></label><small id="vendaDigitalizadaSoma">Soma: R$ 0,00</small></div><label>Texto reconhecido / observação<textarea id="vendaDigitalizadaTexto" rows="4" placeholder="O que estava escrito na anotação"></textarea></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Confirmar venda</button></div></form>`, "Balcão e caixa");
+
+  const atualizarMistos = () => {
+    const misto = $("vendaDigitalizadaPagamento").value === "Pagamento misto";
+    $("vendaDigitalizadaMistos").hidden = !misto;
+    const soma = [...document.querySelectorAll("[data-scan-pay]")].reduce((total, campo) => total + numeroSeguro(campo.value), 0);
+    $("vendaDigitalizadaSoma").textContent = `Soma: ${formatarMoedaGestao(soma)}`;
+  };
+  $("vendaDigitalizadaPagamento").addEventListener("change", atualizarMistos);
+  document.querySelectorAll("[data-scan-pay]").forEach(campo => campo.addEventListener("input", atualizarMistos));
+
+  $("vendaDigitalizadaArquivo").addEventListener("change", async evento => {
+    const arquivo = evento.target.files?.[0];
+    if (!arquivo) return;
+    const status = $("vendaDigitalizadaStatus");
+    status.textContent = "Preparando e lendo a foto…";
+    try {
+      const imagem = await prepararImagemParaIA(arquivo);
+      $("vendaDigitalizadaPreview").src = imagem;
+      $("vendaDigitalizadaPreview").hidden = false;
+      const dados = await lerRegistroComIA(imagem, "venda");
+      if (dados.valor > 0) $("vendaDigitalizadaValor").value = dados.valor.toFixed(2);
+      if ([...$("vendaDigitalizadaPagamento").options].some(opcao => opcao.value === dados.pagamento)) $("vendaDigitalizadaPagamento").value = dados.pagamento;
+      document.querySelectorAll("[data-scan-pay]").forEach(campo => { campo.value = ""; });
+      (dados.pagamentos || []).forEach(item => { const campo = [...document.querySelectorAll("[data-scan-pay]")].find(entrada => entrada.dataset.scanPay === item.tipo); if (campo) campo.value = numeroSeguro(item.valor).toFixed(2); });
+      $("vendaDigitalizadaTexto").value = [dados.textoReconhecido, dados.observacao, dados.desconto > 0 ? `Desconto identificado: ${formatarMoedaGestao(dados.desconto)}` : ""].filter(Boolean).join(" • ");
+      atualizarMistos();
+      status.textContent = dados.valor > 0 ? `Leitura concluída com ${dados.confianca}% de confiança. Confira os campos.` : "A IA não encontrou o total. Preencha o valor manualmente.";
+    } catch (erro) {
+      status.textContent = `${erro.message || "Não foi possível ler a foto."} Você pode preencher os campos manualmente.`;
+    }
+  });
+
+  $("formVendaDigitalizada").addEventListener("submit", async evento => {
+    evento.preventDefault();
+    const total = numeroSeguro($("vendaDigitalizadaValor").value);
+    const pagamento = $("vendaDigitalizadaPagamento").value;
+    const pagamentos = pagamento === "Pagamento misto" ? [...document.querySelectorAll("[data-scan-pay]")].map(campo => ({ tipo: campo.dataset.scanPay, valor: numeroSeguro(campo.value) })).filter(item => item.valor > 0) : [{ tipo: pagamento, valor: total }];
+    try {
+      await registrarVendaRapida({ total, pagamento, pagamentos, permitirSemItens: true, origem: "gestao-digitalizacao", observacao: $("vendaDigitalizadaTexto").value || "Venda lida de anotação manuscrita" });
+      fecharModal();
+      toast("Venda digitalizada e registrada no caixa.", "success");
+    } catch (erro) { toast(erro.message || "Não foi possível registrar a venda.", "error"); }
+  });
+}
+
 function renderEntregas() {
   const pedidos = pedidosConsolidados().filter(item => item.tipoAtendimento === "Entrega");
   const lista = pedidos.filter(item => filtroEntregaAtual === "pendentes" ? ["confirmado", "producao", "pronto"].includes(item.status) : filtroEntregaAtual === "rota" ? item.status === "saiu_entrega" : item.status === "entregue");
@@ -486,7 +540,8 @@ function renderEstoque() {
     container.querySelectorAll("[data-stock-move]").forEach(botao => botao.addEventListener("click", () => abrirMovimentoInsumo(estadoGestao.insumos.find(item => item.id === botao.dataset.stockMove))));
     container.querySelectorAll("[data-stock-edit]").forEach(botao => botao.addEventListener("click", () => abrirInsumo(estadoGestao.insumos.find(item => item.id === botao.dataset.stockEdit))));
   } else if (abaEstoqueAtual === "produtos") {
-    container.innerHTML = `<div class="stock-table"><div class="stock-row header"><span>Produto</span><span>Disponível</span><span>Mínimo</span><span>Preço</span><span>Status</span><span></span></div>${todasOpcoesProdutos().map(item => `<div class="stock-row"><div><strong>${escapar(item.nome)}</strong><small>Produto pronto</small></div><span class="${!item.sobEncomenda && item.estoque <= 0 ? "stock-low" : ""}">${item.sobEncomenda ? "Sob encomenda" : `${item.estoque} un`}</span><span>—</span><span>${formatarMoedaGestao(item.preco)}</span><span>${item.sobEncomenda || item.estoque > 0 ? "Disponível" : "Esgotado"}</span><span></span></div>`).join("")}</div>`;
+    container.innerHTML = `<div class="stock-table"><div class="stock-row header"><span>Produto</span><span>Disponível</span><span>Custo unit.</span><span>Preço</span><span>Status</span><span>Ação</span></div>${todasOpcoesProdutos().map(item => { const custo = estadoGestao.custosProdutos.find(registro => registro.id === item.id || registro.produtoId === item.id); return `<div class="stock-row"><div><strong>${escapar(item.nome)}</strong><small>Produto pronto</small></div><span class="${!item.sobEncomenda && item.estoque <= 0 ? "stock-low" : ""}">${item.sobEncomenda ? "Sob encomenda" : `${item.estoque} un`}</span><span>${formatarMoedaGestao(custo?.custoUnitario || 0)}</span><span>${formatarMoedaGestao(item.preco)}</span><span>${item.sobEncomenda || item.estoque > 0 ? "Disponível" : "Esgotado"}</span><span>${isAdmin || pode("financeiro") ? `<button class="text-btn" data-product-cost="${escapar(item.id)}">Editar custo</button>` : "—"}</span></div>`; }).join("")}</div>`;
+    container.querySelectorAll("[data-product-cost]").forEach(botao => botao.addEventListener("click", () => abrirCustoProduto(estadoGestao.produtos.find(item => item.id === botao.dataset.productCost))));
   } else if (abaEstoqueAtual === "fichas") {
     container.innerHTML = `<div class="page-toolbar"><button class="primary-btn" data-action="nova-ficha">＋ Nova ficha técnica</button></div><div class="data-list">${estadoGestao.fichasTecnicas.map(item => `<div class="data-row"><div class="row-main"><strong>${escapar(item.produtoNome)}</strong><small>${(item.ingredientes || []).map(ingrediente => `${ingrediente.quantidade} ${ingrediente.unidade} ${ingrediente.nome}`).join(" • ")}</small></div><span class="row-value">${formatarMoedaGestao(item.custoCalculado)}</span></div>`).join("") || '<div class="surface empty-state">Nenhuma ficha técnica cadastrada.</div>'}</div>`;
   } else {
@@ -560,6 +615,108 @@ function renderRelatorios() {
   $("graficoVendasDias").innerHTML = relatorio.dias.length ? relatorio.dias.map(item => `<div class="bar-column" title="${textoData(item.data)} — ${formatarMoedaGestao(item.valor)}"><b>${formatarMoedaGestao(item.valor).replace("R$ ", "")}</b><i style="height:${Math.max(3, (item.valor / maximo) * 170)}px"></i><span>${item.data.slice(8, 10)}/${item.data.slice(5, 7)}</span></div>`).join("") : '<div class="empty-state">Sem dados neste período.</div>';
   $("rankingProdutos").innerHTML = relatorio.produtos.slice(0, 10).map((item, indice) => `<div class="ranking-row"><span>${indice + 1}. ${escapar(item.nome)}</span><strong>${item.quantidade} un</strong></div>`).join("") || '<div class="empty-state">Sem produtos vendidos.</div>';
   $("rankingPagamentos").innerHTML = relatorio.pagamentos.map(item => `<div class="ranking-row"><span>${escapar(item.tipo)}</span><strong>${formatarMoedaGestao(item.valor)}</strong></div>`).join("") || '<div class="empty-state">Sem pagamentos registrados.</div>';
+  renderFechamentosGestao();
+}
+
+function renderFechamentosGestao() {
+  const container = $("listaFechamentosGestao");
+  if (!container) return;
+  container.innerHTML = estadoGestao.fechamentosFinanceiros.length ? estadoGestao.fechamentosFinanceiros.map(item => `<div class="data-row"><div class="row-main"><strong>${escapar(item.mesId || item.id)}</strong><small>${numeroSeguro(item.pedidos)} pedido(s) • Receita ${formatarMoedaGestao(item.receita)}</small></div><span class="row-value ${numeroSeguro(item.resultado) < 0 ? "stock-low" : ""}">${formatarMoedaGestao(item.resultado)}</span></div>`).join("") : '<div class="empty-state">Nenhum mês fechado ainda.</div>';
+}
+
+function relatorioSelecionado() {
+  const inicio = $("relatorioInicio").value || periodoPadrao().inicio;
+  const fim = $("relatorioFim").value || periodoPadrao().fim;
+  return { inicio, fim, relatorio: calcularRelatorioGestao({ pedidos: pedidosConsolidados(), vendas: estadoGestao.vendas, movimentos: estadoGestao.movimentosFinanceiros, inicio, fim }) };
+}
+
+function campoCsv(valor) {
+  return `"${String(valor ?? "").replace(/"/g, '""')}"`;
+}
+
+function exportarRelatorioCsv() {
+  const { inicio, fim, relatorio } = relatorioSelecionado();
+  const linhas = [
+    ["Relatório Delícias da Vó", `${inicio} a ${fim}`],
+    ["Receita", relatorio.receita.toFixed(2)],
+    ["Despesas", relatorio.despesas.toFixed(2)],
+    ["Resultado", relatorio.resultado.toFixed(2)],
+    ["Pedidos e vendas", relatorio.pedidos],
+    [],
+    ["Vendas por dia"], ["Data", "Valor"],
+    ...relatorio.dias.map(item => [item.data, numeroSeguro(item.valor).toFixed(2)]),
+    [],
+    ["Produtos mais vendidos"], ["Produto", "Quantidade"],
+    ...relatorio.produtos.map(item => [item.nome, item.quantidade]),
+    [],
+    ["Formas de pagamento"], ["Pagamento", "Valor"],
+    ...relatorio.pagamentos.map(item => [item.tipo, numeroSeguro(item.valor).toFixed(2)])
+  ];
+  const csv = `\uFEFF${linhas.map(linha => linha.map(campoCsv).join(";")).join("\r\n")}`;
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `relatorio-delicias-da-vo-${inicio}-${fim}.csv`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast("Relatório exportado para abrir no Excel.", "success");
+}
+
+async function fecharMesRelatorio() {
+  if (!(isAdmin || pode("financeiro"))) return toast("Seu acesso não permite fechar o mês.", "error");
+  const { inicio, fim, relatorio } = relatorioSelecionado();
+  if (inicio.slice(0, 7) !== fim.slice(0, 7)) return toast("Para fechar, escolha o primeiro e o último dia do mesmo mês.", "error");
+  const mesId = inicio.slice(0, 7);
+  if (!confirm(`Fechar o resultado de ${mesId}? Um novo fechamento do mesmo mês atualizará o anterior.`)) return;
+  try {
+    await salvarFechamentoFinanceiro(mesId, { inicio, fim, receita: relatorio.receita, despesas: relatorio.despesas, resultado: relatorio.resultado, pedidos: relatorio.pedidos, ticketMedio: relatorio.ticketMedio, produtos: relatorio.produtos, pagamentos: relatorio.pagamentos, fechadoPor: usuarioAtual?.email || "Administrador" });
+    toast(`Mês ${mesId} fechado com segurança.`, "success");
+  } catch (erro) { toast(erro.message || "Não foi possível fechar o mês.", "error"); }
+}
+
+async function exportarBackupGestao() {
+  const botao = $("exportarBackupGestao");
+  botao.disabled = true;
+  botao.textContent = "Preparando backup…";
+  try {
+    const backup = await gerarBackupCompleto();
+    baixarBackupJson(backup);
+    toast(`${backup.totalDocumentos} documento(s) protegidos no arquivo.`, "success");
+  } catch (erro) { toast(erro.message || "Não foi possível gerar o backup.", "error"); }
+  finally { botao.disabled = false; botao.textContent = "Baixar backup agora"; }
+}
+
+async function selecionarBackupGestao(evento) {
+  arquivoBackupPendente = null;
+  $("restaurarBackupGestao").disabled = true;
+  const arquivo = evento.target.files?.[0];
+  if (!arquivo) return $("arquivoBackupGestaoStatus").textContent = "Nenhum arquivo selecionado.";
+  try {
+    const dados = JSON.parse(await arquivo.text());
+    if (!Array.isArray(dados.documentos)) throw new Error("Arquivo incompatível.");
+    arquivoBackupPendente = dados;
+    $("arquivoBackupGestaoStatus").textContent = `${arquivo.name} • ${dados.documentos.length} documento(s)`;
+    $("restaurarBackupGestao").disabled = false;
+  } catch (erro) {
+    $("arquivoBackupGestaoStatus").textContent = "Este arquivo não é um backup válido da Delícias da Vó.";
+  }
+}
+
+async function restaurarBackupGestao() {
+  if (!arquivoBackupPendente) return;
+  if (!confirm(`Restaurar ${arquivoBackupPendente.documentos.length} documento(s)? Os documentos existentes com o mesmo caminho serão atualizados.`)) return;
+  const botao = $("restaurarBackupGestao");
+  botao.disabled = true;
+  try {
+    const total = await restaurarBackupCompleto(arquivoBackupPendente, (feito, quantidade) => {
+      botao.textContent = `Restaurando ${feito}/${quantidade}…`;
+    });
+    toast(`${total} documento(s) restaurados.`, "success");
+    arquivoBackupPendente = null;
+    $("arquivoBackupGestao").value = "";
+    $("arquivoBackupGestaoStatus").textContent = "Restauração concluída com sucesso.";
+  } catch (erro) { toast(erro.message || "Não foi possível restaurar o backup.", "error"); }
+  finally { botao.textContent = "Restaurar dados"; botao.disabled = !arquivoBackupPendente; }
 }
 
 function renderEquipe() {
@@ -582,7 +739,7 @@ function renderConfiguracoes() {
 }
 
 function renderPagina(pagina = paginaAtual) {
-  const mapa = { dashboard: renderDashboard, pedidos: renderPedidos, cozinha: renderCozinha, cardapio: renderCardapio, balcao: renderBalcao, entregas: renderEntregas, encomendas: renderEncomendas, caixa: renderCaixa, estoque: renderEstoque, compras: renderCompras, financeiro: renderFinanceiro, clientes: renderClientes, relatorios: renderRelatorios, equipe: renderEquipe, configuracoes: renderConfiguracoes };
+  const mapa = { dashboard: renderDashboard, pedidos: renderPedidos, cozinha: renderCozinha, cardapio: renderCardapio, balcao: renderBalcao, entregas: renderEntregas, encomendas: renderEncomendas, caixa: renderCaixa, estoque: renderEstoque, compras: renderCompras, financeiro: renderFinanceiro, clientes: renderClientes, relatorios: renderRelatorios, backup: () => {}, equipe: renderEquipe, configuracoes: renderConfiguracoes };
   mapa[pagina]?.();
 }
 
@@ -651,6 +808,20 @@ async function salvarNovoPedidoModal(evento) {
 function abrirInsumo(item = {}) {
   abrirModal(item.id ? "Editar insumo" : "Novo insumo", `<form id="formInsumo" class="modal-form"><div class="form-grid"><label>Nome<input id="insumoNome" value="${escapar(item.nome || "")}" required></label><label>Categoria<select id="insumoCategoria">${["Ingredientes", "Bebidas", "Embalagens", "Limpeza", "Outros"].map(valor => `<option ${item.categoria === valor ? "selected" : ""}>${valor}</option>`).join("")}</select></label><label>Unidade<select id="insumoUnidade">${["un", "kg", "g", "L", "ml", "pacote", "caixa"].map(valor => `<option ${item.unidade === valor ? "selected" : ""}>${valor}</option>`).join("")}</select></label><label>Quantidade atual<input id="insumoQuantidade" type="number" min="0" step="0.001" value="${numeroSeguro(item.quantidade)}"></label><label>Estoque mínimo<input id="insumoMinimo" type="number" min="0" step="0.001" value="${numeroSeguro(item.minimo)}"></label><label>Custo unitário<input id="insumoCusto" type="number" min="0" step="0.01" value="${numeroSeguro(item.custoUnitario)}"></label><label>Validade<input id="insumoValidade" type="date" value="${escapar(item.validade || "")}"></label><label class="toggle-row"><input id="insumoAtivo" type="checkbox" ${item.ativo !== false ? "checked" : ""}><span><b>Insumo ativo</b></span></label></div><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar</button></div></form>`, "Estoque");
   $("formInsumo").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarInsumo({ id: item.id, nome: $("insumoNome").value, categoria: $("insumoCategoria").value, unidade: $("insumoUnidade").value, quantidade: $("insumoQuantidade").value, minimo: $("insumoMinimo").value, custoUnitario: $("insumoCusto").value, validade: $("insumoValidade").value, ativo: $("insumoAtivo").checked }); fecharModal(); toast("Insumo salvo.", "success"); } catch (erro) { toast(erro.message, "error"); } });
+}
+
+function abrirCustoProduto(item) {
+  if (!item) return;
+  const custoAtual = estadoGestao.custosProdutos.find(registro => registro.id === item.id || registro.produtoId === item.id);
+  abrirModal(`Custo de ${item.nome}`, `<form id="formCustoProdutoGestao" class="modal-form"><p>Use o custo médio de uma unidade pronta. Se existir uma ficha técnica, confira os dois valores antes de alterar.</p><label>Custo unitário (R$)<input id="custoProdutoGestao" type="number" min="0" step="0.01" value="${numeroSeguro(custoAtual?.custoUnitario)}" required></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar custo</button></div></form>`, "Estoque e custos");
+  $("formCustoProdutoGestao").addEventListener("submit", async evento => {
+    evento.preventDefault();
+    try {
+      await salvarCustoProduto(item.id, { nome: item.nome, custoUnitario: $("custoProdutoGestao").value });
+      fecharModal();
+      toast("Custo do produto atualizado.", "success");
+    } catch (erro) { toast(erro.message || "Não foi possível salvar o custo.", "error"); }
+  });
 }
 
 function abrirMovimentoInsumo(item) {
@@ -733,12 +904,13 @@ function lidarAcao(acao) {
     "novo-fornecedor": "compras",
     "nova-compra": "compras",
     "novo-movimento": "financeiro",
+    "digitalizar-venda": "caixa",
     "abrir-caixa": "caixa",
     "movimento-caixa": "caixa",
     "fechar-caixa": "caixa"
   };
   if (permissaoAcao[acao] && !pode(permissaoAcao[acao])) return toast("Seu acesso não permite esta ação.", "error");
-  const mapa = { "novo-pedido": abrirNovoPedido, "novo-insumo": () => abrirInsumo(), "nova-ficha": abrirFicha, "nova-perda": abrirPerda, "novo-fornecedor": () => abrirFornecedor(), "nova-compra": abrirCompra, "novo-movimento": abrirMovimentoFinanceiro, "abrir-caixa": abrirCaixa, "movimento-caixa": abrirMovimentoCaixa, "fechar-caixa": abrirFechamentoCaixa };
+  const mapa = { "novo-pedido": abrirNovoPedido, "novo-insumo": () => abrirInsumo(), "nova-ficha": abrirFicha, "nova-perda": abrirPerda, "novo-fornecedor": () => abrirFornecedor(), "nova-compra": abrirCompra, "novo-movimento": abrirMovimentoFinanceiro, "digitalizar-venda": abrirDigitalizacaoVenda, "abrir-caixa": abrirCaixa, "movimento-caixa": abrirMovimentoCaixa, "fechar-caixa": abrirFechamentoCaixa };
   mapa[acao]?.();
 }
 
@@ -772,11 +944,16 @@ document.querySelectorAll("[data-stock-tab]").forEach(botao => botao.addEventLis
 $("dataCardapioGestao").value = dataLojaISO();
 $("dataCardapioGestao").addEventListener("change", renderCardapio);
 $("selecionarTodosCardapio").addEventListener("click", () => document.querySelectorAll("#produtosCardapioGestao input").forEach(campo => { campo.checked = true; }));
-$("salvarCardapioGestao").addEventListener("click", async () => { const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value); if ($("publicarCardapioGestao").checked && !produtoIds.length) return toast("Escolha pelo menos um produto ou desative a publicação.", "error"); try { await salvarCardapioDia({ dataISO: $("dataCardapioGestao").value, produtoIds, publicado: $("publicarCardapioGestao").checked, observacao: $("observacaoCardapioGestao").value }); toast("Cardápio atualizado no site.", "success"); } catch (erro) { toast(erro.message, "error"); } });
+$("salvarCardapioGestao").addEventListener("click", async () => { const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value); if ($("publicarCardapioGestao").checked && !produtoIds.length) return toast("Escolha pelo menos um produto ou desative a publicação.", "error"); try { await salvarCardapioDia({ dataISO: $("dataCardapioGestao").value, produtoIds, publicado: $("publicarCardapioGestao").checked, titulo: $("tituloCardapioGestao").value, itens: $("itensTextoCardapioGestao").value.split("\n"), observacao: $("observacaoCardapioGestao").value }); toast("Cardápio atualizado no site.", "success"); } catch (erro) { toast(erro.message, "error"); } });
 const periodo = periodoPadrao();
 [["financeiroInicio", periodo.inicio], ["financeiroFim", periodo.fim], ["relatorioInicio", periodo.inicio], ["relatorioFim", periodo.fim]].forEach(([id, valor]) => { $(id).value = valor; });
 $("aplicarPeriodoFinanceiro").addEventListener("click", renderFinanceiro);
 $("gerarRelatorioGestao").addEventListener("click", renderRelatorios);
+$("exportarRelatorioGestao").addEventListener("click", exportarRelatorioCsv);
+$("fecharMesGestao").addEventListener("click", fecharMesRelatorio);
+$("exportarBackupGestao").addEventListener("click", exportarBackupGestao);
+$("arquivoBackupGestao").addEventListener("change", selecionarBackupGestao);
+$("restaurarBackupGestao").addEventListener("click", restaurarBackupGestao);
 $("formConfiguracaoOperacao").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarConfiguracaoOperacao({ metaDiaria: numeroSeguro($("configMetaDiaria").value), tempoPreparo: numeroSeguro($("configTempoPreparo").value), limitePedidos: numeroSeguro($("configLimitePedidos").value), responsavel: $("configResponsavel").value, somPedidos: $("configSomPedidos").checked, baixaEstoque: $("configBaixaEstoque").checked }); toast("Preferências salvas.", "success"); } catch (erro) { toast(erro.message, "error"); } });
 window.addEventListener("online", () => { $("conexaoGestao").classList.remove("offline"); $("conexaoGestao").lastChild.textContent = " Sincronizado"; renderTudo(); });
 window.addEventListener("offline", () => { $("conexaoGestao").classList.add("offline"); $("conexaoGestao").lastChild.textContent = " Sem conexão"; });

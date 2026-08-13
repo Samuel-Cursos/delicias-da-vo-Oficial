@@ -9,7 +9,7 @@ import { createProductCard } from "../core/templates.js";
 import { gerarPedidoSite } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta, calcularPrecoFesta, textoPrecoFesta, normalizarPrecoFesta } from "../services/partyProductService.js";
 import { registrarEncomendaFesta } from "../services/partyOrderService.js";
-import { observarCardapioDiario, produtoLiberadoNoCardapio } from "../services/dailyMenuService.js";
+import { cardapioDiarioAtual, observarCardapioDiario, produtoLiberadoNoCardapio } from "../services/dailyMenuService.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
@@ -37,6 +37,7 @@ observarCardapioDiario(() => {
   renderCategoriasSite();
   renderizarProdutos(categoriaAtual);
   renderPromocoesSite();
+  renderCardapioDiaSite();
   atualizarCarrinho();
 });
 
@@ -725,10 +726,12 @@ function renderCardapioDiaSite() {
   const section = document.getElementById("cardapioDiaSite");
   if (!section) return;
 
-  const cardapio = lojaConfig.cardapioDia || {};
+  const cardapioAtualTemItens = Array.isArray(cardapioDiarioAtual?.itens) && cardapioDiarioAtual.itens.some(Boolean);
+  const cardapio = cardapioAtualTemItens ? cardapioDiarioAtual : (lojaConfig.cardapioDia || {});
   const itens = Array.isArray(cardapio.itens) ? cardapio.itens.filter(Boolean) : [];
 
-  if (!cardapio.ativo || !itens.length) {
+  const publicado = cardapioAtualTemItens ? cardapio.publicado === true : cardapio.ativo === true;
+  if (!publicado || !itens.length) {
     section.style.display = "none";
     return;
   }

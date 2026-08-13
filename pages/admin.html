@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Delícias da Vó | Painel ADM</title>
+  <title>Delícias da Vó | Configurações do Site</title>
 
   <meta name="theme-color" content="#47190f" />
   <link rel="icon" href="../assets/icon-192.png" />
   <link rel="stylesheet" href="../css/admin.css" />
+  <link rel="stylesheet" href="../css/site-admin.css" />
 </head>
 <body>
   <section class="login-screen" id="loginScreen">
@@ -17,8 +18,8 @@
         <span class="logo-glow" aria-hidden="true"></span>
         <img class="logo-admin-img" src="../assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="Delícias da Vó" />
       </div>
-      <h1>Painel Delícias da Vó</h1>
-      <p>Entre com sua conta para administrar a loja com segurança.</p>
+      <h1>Configurações do site</h1>
+      <p>Entre com sua conta para alterar com segurança o que os clientes veem.</p>
       <div id="adminUsuario"></div>
     </div>
   </section>
@@ -29,30 +30,23 @@
         <img class="logo-admin-img small" src="../assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="" />
         <div>
           <strong>Delícias da Vó</strong>
-          <span>Painel de gestão</span>
+          <span>Editor do site</span>
         </div>
         <button class="sidebar-close" type="button" onclick="fecharMenuAdmin()" aria-label="Fechar menu">✕</button>
       </div>
 
-      <p class="sidebar-group">Visão geral</p>
-      <button class="tab-btn active" onclick="abrirAba('dashboard', this)">🏠 Dashboard</button>
-      <p class="sidebar-group">Operação</p>
+      <p class="sidebar-group">Site público</p>
+      <button class="tab-btn active" onclick="abrirAba('dashboard', this)">🏠 Visão do site</button>
+      <p class="sidebar-group">Catálogo</p>
       <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
       <button class="tab-btn" onclick="abrirAba('festas', this)">🎉 Salgados para festas</button>
-      <button class="tab-btn tab-encomendas" onclick="abrirAba('encomendas', this)">📅 Agenda de encomendas <span id="badgeEncomendas" class="badge-encomendas" hidden>0</span></button>
-      <button class="tab-btn" onclick="abrirAba('central', this)">📋 Central de pedidos</button>
-      <button class="tab-btn" onclick="abrirAba('venda', this)">🧾 Venda rápida</button>
-      <button class="tab-btn" onclick="abrirAba('caixa', this)">💰 Caixa</button>
-      <button class="tab-btn" onclick="abrirAba('digitalizacao', this)">📸 Digitalizar registros</button>
-      <p class="sidebar-group">Gestão</p>
-      <button class="tab-btn" onclick="abrirAba('financeiro', this)">📊 Financeiro</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
       <button class="tab-btn" onclick="abrirAba('categorias', this)">🏷️ Categorias</button>
-      <button class="tab-btn" onclick="abrirAba('backup', this)">💾 Backup</button>
-      <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações</button>
+      <p class="sidebar-group">Aparência e contato</p>
+      <button class="tab-btn" onclick="abrirAba('config', this)">⚙️ Configurações do site</button>
 
       <a class="site-link" href="../index.html">🌐 Ver site</a>
-      <a class="site-link" href="../gestao/index.html">🧭 Abrir Gestão</a>
+      <a class="site-link gestao-link" href="../gestao/index.html">🧭 Abrir Gestão da loja</a>
       <button class="logout" onclick="sairConta()">Sair</button>
     </aside>
     <button class="sidebar-backdrop" type="button" onclick="fecharMenuAdmin()" aria-label="Fechar menu"></button>
@@ -61,53 +55,36 @@
       <header class="admin-top">
         <button class="sidebar-toggle" type="button" onclick="alternarMenuAdmin()" aria-label="Abrir menu" aria-controls="adminSidebar" aria-expanded="false">☰</button>
         <div>
-          <p class="eyebrow">Delícias da Vó OS</p>
-          <h1 id="tituloAba">Dashboard</h1>
-          <p id="descricaoAba">Resumo da loja, vendas, produtos e estoque em tempo real.</p>
+          <p class="eyebrow">Delícias da Vó • Site</p>
+          <h1 id="tituloAba">Configurações do site</h1>
+          <p id="descricaoAba">Altere catálogo, promoções, contatos e aparência sem mexer na operação.</p>
         </div>
       </header>
 
       <section class="aba active" id="aba-dashboard">
-        <div class="atalhos-grid">
-          <button onclick="abrirAbaPorNome('venda')">🧾 <strong>Venda rápida</strong><span>Registrar venda da loja física</span></button>
-          <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Novo produto</strong><span>Cadastrar ou editar produtos</span></button>
-          <button onclick="abrirAbaPorNome('caixa')">💰 <strong>Caixa</strong><span>Ver vendas e pagamentos</span></button>
-          <button onclick="abrirAbaPorNome('financeiro')">📊 <strong>Financeiro</strong><span>Entradas, despesas e relatórios</span></button>
-          <button onclick="abrirAbaPorNome('central')">📋 <strong>Central de pedidos</strong><span>Localizar qualquer pedido ou venda</span></button>
-          <button onclick="abrirAbaPorNome('backup')">💾 <strong>Backup</strong><span>Proteger os dados da loja</span></button>
-          <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas e descontos</span></button>
+        <div class="site-admin-hero">
+          <div>
+            <p class="eyebrow">Tudo que o cliente vê</p>
+            <h2>Edite o site. Opere a loja na Gestão.</h2>
+            <p>Este painel ficou reservado ao catálogo, promoções, identidade, contatos, entrega e horários do site.</p>
+          </div>
+          <a class="primary-btn site-admin-gestao" href="../gestao/index.html">Abrir Gestão da loja →</a>
         </div>
 
-        <div class="stats-grid">
-          <div class="stat destaque"><span>💰 Vendas hoje</span><strong id="statVendasHoje">R$ 0,00</strong><small id="statQtdVendas">0 vendas registradas</small></div>
-          <div class="stat destaque-site"><span>📲 Pedidos pelo site</span><strong id="statPedidosSiteHoje">0</strong><small id="statUltimoPedidoSite">Nenhum pedido enviado hoje</small></div>
-          <div class="stat destaque-encomendas"><span>🔔 Novas encomendas</span><strong id="statNovasEncomendas">0</strong><small id="statProximaFesta">Nenhuma nova encomenda</small></div>
-          <div class="stat"><span>📦 Produtos</span><strong id="statProdutos">0</strong><small id="statAtivosTexto">0 ativos</small></div>
-          <div class="stat"><span>⚠ Estoque baixo</span><strong id="statBaixo">0</strong><small>Produtos em atenção</small></div>
-          <div class="stat"><span>🔥 Mais vendido</span><strong id="statMaisVendido">—</strong><small id="statMaisVendidoQtd">Hoje</small></div>
-          <div class="stat financeiro-resultado"><span>📈 Lucro estimado do mês</span><strong id="statResultadoMes">R$ 0,00</strong><small id="statFinanceiroMes">Entradas menos despesas</small></div>
+        <div class="stats-grid site-stats-grid">
+          <div class="stat"><span>📦 Produtos</span><strong id="siteStatProdutos">0</strong><small id="siteStatProdutosAtivos">0 ativos no site</small></div>
+          <div class="stat"><span>🎉 Festa</span><strong id="siteStatFestas">0</strong><small id="siteStatFestasAtivas">0 ativos no site</small></div>
+          <div class="stat"><span>🎁 Promoções</span><strong id="siteStatPromocoes">0</strong><small id="siteStatPromocoesAtivas">0 ativas</small></div>
+          <div class="stat"><span>🏷️ Categorias</span><strong id="siteStatCategorias">0</strong><small id="siteStatCategoriasAtivas">0 ativas</small></div>
+          <div class="stat site-status-card"><span>🌐 Situação da loja</span><strong id="siteStatStatus">—</strong><small>Configuração exibida aos clientes</small></div>
         </div>
 
-        <div class="dashboard-grid">
-          <div class="panel">
-            <div class="panel-title">
-              <div>
-                <h2>⚠ Produtos em atenção</h2>
-                <p>Produtos com estoque baixo ou esgotado.</p>
-              </div>
-            </div>
-            <div id="avisosDashboard" class="lista-simples"></div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-title">
-              <div>
-                <h2>🧾 Últimas vendas</h2>
-                <p>Vendas físicas registradas hoje.</p>
-              </div>
-            </div>
-            <div id="ultimasVendasDashboard" class="lista-simples"></div>
-          </div>
+        <div class="atalhos-grid site-admin-shortcuts">
+          <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Produtos</strong><span>Cadastrar, editar e organizar o cardápio</span></button>
+          <button onclick="abrirAbaPorNome('festas')">🎉 <strong>Salgados para festas</strong><span>Editar sabores, preços e disponibilidade</span></button>
+          <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas que aparecem no site</span></button>
+          <button onclick="abrirAbaPorNome('categorias')">🏷️ <strong>Categorias</strong><span>Organizar as seções do cardápio</span></button>
+          <button onclick="abrirAbaPorNome('config')">⚙️ <strong>Informações do site</strong><span>Contatos, Maps, Instagram, entrega e horários</span></button>
         </div>
       </section>
 
@@ -631,28 +608,6 @@
           </div>
 
           <div class="panel full-config">
-            <h3>🍛 Cardápio do Dia</h3>
-            <p>Mostre no site o cardápio das marmitas do dia, sem precisar criar produto novo.</p>
-
-            <label class="check">
-              <input id="cardapioDiaAtivo" type="checkbox" />
-              Mostrar cardápio do dia no site
-            </label>
-
-            <label>Título
-              <input id="cardapioDiaTituloInput" placeholder="Cardápio de hoje">
-            </label>
-
-            <label class="full">Itens do cardápio <small>um item por linha</small>
-              <textarea id="cardapioDiaItensInput" rows="7" placeholder="Arroz\nFeijão\nFeijoada\nFarofa\nSalada"></textarea>
-            </label>
-
-            <label class="full">Observação
-              <input id="cardapioDiaObsInput" placeholder="Ex: Disponível enquanto durar">
-            </label>
-          </div>
-
-          <div class="panel full-config">
   <h3>🕒 Horário de Atendimento</h3>
   <p>Configure os horários em que a loja aparece como aberta no site.</p>
 <button type="button" class="secondary-btn" onclick="copiarSegundaParaTodos()">
@@ -892,6 +847,5 @@
 
 
   <script type="module" src="../js/admin/admin.js"></script>
-  <script type="module" src="../js/admin/documentScanner.js"></script>
 </body>
 </html>

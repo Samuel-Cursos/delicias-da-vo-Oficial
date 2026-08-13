@@ -55,13 +55,14 @@
         <button class="nav-item" data-page="financeiro" data-permission="financeiro"><span>⌁</span> Financeiro</button>
         <button class="nav-item" data-page="clientes" data-permission="clientes"><span>♙</span> Clientes</button>
         <button class="nav-item" data-page="relatorios" data-permission="relatorios"><span>▥</span> Relatórios</button>
+        <button class="nav-item" data-page="backup" data-admin-only="true"><span>⇩</span> Backup</button>
         <button class="nav-item" data-page="equipe" data-admin-only="true"><span>♟</span> Equipe <b id="badgeEquipe" class="nav-badge" hidden>0</b></button>
         <button class="nav-item" data-page="configuracoes" data-permission="configuracoes"><span>⚙</span> Configurações</button>
       </nav>
 
       <div class="sidebar-bottom">
         <a href="../index.html"><span>↗</span> Abrir loja</a>
-        <a href="../pages/admin.html"><span>↗</span> Painel antigo</a>
+        <a href="../pages/admin.html"><span>↗</span> Editar site</a>
         <button id="sairGestao" type="button"><span>⇥</span> Sair</button>
       </div>
     </aside>
@@ -148,10 +149,12 @@
       <section id="page-cardapio" class="page" data-page="cardapio">
         <div class="page-toolbar cardapio-toolbar">
           <label>Data do cardápio<input id="dataCardapioGestao" type="date"></label>
+          <label class="grow">Título exibido no site<input id="tituloCardapioGestao" placeholder="Cardápio de hoje"></label>
           <label class="grow">Recado do dia<input id="observacaoCardapioGestao" placeholder="Ex.: pedidos até 12h"></label>
           <label class="switch-label"><input id="publicarCardapioGestao" type="checkbox" checked><span></span> Publicado</label>
           <button id="salvarCardapioGestao" class="primary-btn" type="button">Salvar no site</button>
         </div>
+        <article class="surface daily-menu-text"><div class="surface-head"><div><p class="kicker">Composição da marmita</p><h3>Itens do cardápio de hoje</h3><p>Escreva um item por linha, por exemplo: arroz, feijão, carne e salada.</p></div></div><textarea id="itensTextoCardapioGestao" rows="4" placeholder="Arroz&#10;Feijão&#10;Carne assada&#10;Salada"></textarea></article>
         <article class="surface">
           <div class="surface-head"><div><p class="kicker">Ligado ao site</p><h3>Escolha o que aparece hoje</h3><p>Produtos desmarcados somem do cardápio público apenas nesta data.</p></div><button id="selecionarTodosCardapio" class="secondary-btn" type="button">Selecionar todos</button></div>
           <div id="produtosCardapioGestao" class="menu-product-grid"></div>
@@ -159,6 +162,7 @@
       </section>
 
       <section id="page-balcao" class="page" data-page="balcao">
+        <div class="page-toolbar"><button id="digitalizarVendaGestao" class="secondary-btn" data-action="digitalizar-venda" type="button" hidden>📷 Ler venda manuscrita</button></div>
         <div class="pos-layout">
           <article class="surface pos-catalog">
             <div class="surface-head"><div><p class="kicker">Venda rápida</p><h3>Produtos disponíveis</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaBalcao" type="search" placeholder="Buscar produto"></div></div>
@@ -224,9 +228,18 @@
       </section>
 
       <section id="page-relatorios" class="page" data-page="relatorios">
-        <div class="page-toolbar"><label>De<input id="relatorioInicio" type="date"></label><label>Até<input id="relatorioFim" type="date"></label><button id="gerarRelatorioGestao" class="primary-btn">Gerar relatório</button></div>
+        <div class="page-toolbar"><label>De<input id="relatorioInicio" type="date"></label><label>Até<input id="relatorioFim" type="date"></label><button id="gerarRelatorioGestao" class="primary-btn">Gerar relatório</button><button id="exportarRelatorioGestao" class="secondary-btn">Exportar CSV</button><button id="fecharMesGestao" class="secondary-btn">Fechar mês</button></div>
         <div class="finance-kpis"><article class="positive"><span>Receita</span><strong id="relatorioReceita">R$ 0,00</strong></article><article class="negative"><span>Despesas</span><strong id="relatorioDespesas">R$ 0,00</strong></article><article><span>Resultado</span><strong id="relatorioResultado">R$ 0,00</strong></article><article><span>Pedidos e vendas</span><strong id="relatorioPedidos">0</strong></article></div>
         <div class="report-grid"><article class="surface span-2"><div class="surface-head"><div><p class="kicker">Evolução</p><h3>Vendas por dia</h3></div></div><div id="graficoVendasDias" class="bar-chart"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Ranking</p><h3>Mais vendidos</h3></div></div><div id="rankingProdutos" class="ranking-list"></div></article><article class="surface"><div class="surface-head"><div><p class="kicker">Recebimentos</p><h3>Pagamentos</h3></div></div><div id="rankingPagamentos" class="ranking-list"></div></article></div>
+        <article class="surface report-closures"><div class="surface-head"><div><p class="kicker">Histórico protegido</p><h3>Fechamentos mensais</h3><p>Os resultados fechados permanecem registrados mesmo quando os custos mudam.</p></div></div><div id="listaFechamentosGestao" class="data-list"></div></article>
+      </section>
+
+      <section id="page-backup" class="page" data-page="backup">
+        <div class="backup-intro surface"><div><p class="kicker">Segurança dos dados</p><h3>Backup completo da loja</h3><p>O GitHub protege o código. Aqui você protege os dados do Firestore: pedidos, vendas, estoque, produtos, compras, equipe e configurações.</p></div><span class="backup-shield" aria-hidden="true">✓</span></div>
+        <div class="two-columns">
+          <article class="surface backup-operation"><span class="backup-icon">⇩</span><h3>Baixar backup</h3><p>Gera um arquivo JSON com os dados atuais. Faça isso antes de atualizações grandes e pelo menos uma vez por mês.</p><button id="exportarBackupGestao" class="primary-btn" type="button">Baixar backup agora</button></article>
+          <article class="surface backup-operation"><span class="backup-icon">↥</span><h3>Restaurar backup</h3><p>Escolha um arquivo criado por este sistema. A restauração acrescenta e atualiza documentos, sem apagar dados que não estão no arquivo.</p><label class="scan-upload">Escolher arquivo JSON<input id="arquivoBackupGestao" type="file" accept=".json,application/json"></label><small id="arquivoBackupGestaoStatus">Nenhum arquivo selecionado.</small><button id="restaurarBackupGestao" class="secondary-btn" type="button" disabled>Restaurar dados</button></article>
+        </div>
       </section>
 
       <section id="page-equipe" class="page" data-page="equipe">

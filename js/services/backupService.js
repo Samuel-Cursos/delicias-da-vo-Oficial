@@ -10,13 +10,25 @@ const COLECOES_RAIZ = [
   "configuracoes",
   "salgadosFesta",
   "encomendasFesta",
+  "pedidosManuais",
   "contadores",
   "contadoresPedidos",
   "vendas",
   "usuarios",
   "movimentosFinanceiros",
   "custosProdutos",
-  "fechamentosFinanceiros"
+  "fechamentosFinanceiros",
+  "cardapiosDiarios",
+  "estoqueInsumos",
+  "movimentacoesEstoque",
+  "fichasTecnicas",
+  "fornecedores",
+  "compras",
+  "sessoesCaixa",
+  "movimentosCaixa",
+  "perdasEstoque",
+  "equipe",
+  "solicitacoesAcesso"
 ];
 
 function serializar(valor) {
@@ -73,7 +85,7 @@ export async function gerarBackupCompleto() {
 
   return {
     aplicativo:"Delícias da Vó",
-    formato:2,
+    formato:3,
     criadoEm:new Date().toISOString(),
     totalDocumentos:documentos.length,
     documentos
