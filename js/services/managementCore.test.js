@@ -6,6 +6,10 @@ import {
   calcularAlertasEstoque,
   calcularResumoOperacao,
   calcularRelatorioGestao,
+  avaliarPrazoPedido,
+  avaliarJanelaEncomenda,
+  filtrarPedidosOperacionais,
+  consolidarClientesGestao,
   infoStatus,
   normalizarStatusGestao
 } from "./managementCore.js";
@@ -81,4 +85,60 @@ test("normaliza os status usados pelo painel antigo", () => {
   assert.equal(normalizarStatusGestao("preparando"), "producao");
   assert.equal(normalizarStatusGestao("concluida"), "entregue");
   assert.equal(normalizarStatusGestao("cancelada"), "cancelado");
+});
+
+test("marca pedido que ultrapassou o tempo de preparo", () => {
+  const prazo = avaliarPrazoPedido({ status: "producao", criadoEmMs: 1_000 }, 40, 46 * 60_000 + 1_000);
+  assert.equal(prazo.atrasado, true);
+  assert.equal(prazo.minutos, 46);
+  assert.match(prazo.texto, /6 min atrasado/);
+});
+
+test("não marca encomenda futura como atrasada", () => {
+  const agora = Date.parse("2026-08-13T12:00:00-03:00");
+  const prazo = avaliarPrazoPedido({ status: "confirmado", dataOperacao: "2026-08-20", criadoEmMs: agora - 86_400_000 }, 40, agora);
+  assert.equal(prazo.atrasado, false);
+  assert.equal(prazo.texto, "Agendado");
+});
+
+test("mantém encomenda distante somente na agenda", () => {
+  const pedido = { origemTipo: "festa", status: "confirmado", dataOperacao: "2026-09-27" };
+  const janela = avaliarJanelaEncomenda(pedido, 7, "2026-08-13");
+  assert.equal(janela.preparoLiberado, false);
+  assert.equal(janela.dataLiberacao, "2026-09-20");
+  assert.match(janela.texto, /Preparo libera/);
+  assert.equal(filtrarPedidosOperacionais([pedido], 7, "2026-08-13").length, 0);
+});
+
+test("libera encomenda na operação sete dias antes", () => {
+  const pedido = { origemTipo: "festa", status: "confirmado", dataOperacao: "2026-09-27" };
+  const janela = avaliarJanelaEncomenda(pedido, 7, "2026-09-20");
+  assert.equal(janela.preparoLiberado, true);
+  assert.equal(janela.diasParaEvento, 7);
+  assert.equal(filtrarPedidosOperacionais([pedido], 7, "2026-09-20").length, 1);
+});
+
+test("aceita configurar a entrada da encomenda somente no próprio dia", () => {
+  const pedido = { origemTipo: "festa", status: "confirmado", dataOperacao: "2026-09-27" };
+  assert.equal(avaliarJanelaEncomenda(pedido, 0, "2026-09-26").preparoLiberado, false);
+  assert.equal(avaliarJanelaEncomenda(pedido, 0, "2026-09-27").preparoLiberado, true);
+});
+
+test("não conta encomenda distante na capacidade operacional", () => {
+  const pedidos = [{ origemTipo: "festa", status: "confirmado", dataOperacao: "2026-09-27", valor: 100, itens: [] }];
+  const resumo = calcularResumoOperacao({ pedidos, dataISO: "2026-08-13", diasAntecedenciaEncomendas: 7 });
+  assert.equal(resumo.pedidosAbertos, 0);
+  assert.equal(resumo.encomendasAgendadas, 1);
+});
+
+test("junta clientes Google e clientes recebidos pelo WhatsApp", () => {
+  const pedidos = consolidarPedidosGestao({
+    site: [{ id: "s1", usuarioId: "u1", total: 25, status: "entregue", cliente: { nome: "Ana", telefone: "17999990000" }, itens: [] }],
+    manuais: [{ id: "m1", total: 30, status: "entregue", cliente: { nome: "Bruno", telefone: "17988880000" }, itens: [] }]
+  });
+  const clientes = consolidarClientesGestao({ usuarios: [{ uid: "u1", tipo: "cliente", nome: "Ana", telefone: "17999990000" }], pedidos });
+  assert.equal(clientes.length, 2);
+  assert.equal(clientes.find(item => item.nome === "Ana").origemPerfil, "google");
+  assert.equal(clientes.find(item => item.nome === "Bruno").origemPerfil, "atendimento");
+  assert.equal(clientes.reduce((soma, item) => soma + item.total, 0), 55);
 });

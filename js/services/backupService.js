@@ -28,6 +28,7 @@ const COLECOES_RAIZ = [
   "movimentosCaixa",
   "perdasEstoque",
   "equipe",
+  "convitesEquipe",
   "solicitacoesAcesso"
 ];
 

@@ -1,0 +1,93 @@
+/* Gestão V1.2 — indicadores operacionais, prazos e ações rápidas */
+.operation-health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 14px 0 20px;
+}
+
+.operation-health-card { min-height: 150px; }
+.operation-health-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.operation-health-head h3 { margin-top: 4px; font-size: 1.08rem; }
+.operation-health-head > strong { font-size: 1.45rem; color: var(--wine); }
+.operation-health-card > p {
+  min-height: 42px;
+  margin: 13px 0;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.45;
+}
+.progress-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eee2d4;
+}
+.progress-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--wine-soft), var(--gold));
+  transition: width .35s ease;
+}
+.progress-track.capacity i { background: linear-gradient(90deg, #3c835e, #72b878); }
+.operation-health-card.goal-complete { border-color: #a8d4ba; background: linear-gradient(145deg, #fffdf8, #edf8f1); }
+.operation-health-card.capacity-warning { border-color: #e8bc62; background: linear-gradient(145deg, #fffdf8, #fff7df); }
+.operation-health-card.capacity-warning .progress-track.capacity i { background: linear-gradient(90deg, #d9931d, #edb83f); }
+.operation-health-card.capacity-full { border-color: #d98e85; background: linear-gradient(145deg, #fffdf8, #fff0ed); }
+.operation-health-card.capacity-full .progress-track.capacity i { background: linear-gradient(90deg, #9d3329, #db6557); }
+.timer-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eee9e2;
+  color: #66574d;
+  font-size: .7rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.timer-pill.attention { background: #fff0c9; color: #865a08; }
+.timer-pill.late { background: #fbe0dc; color: #9b2f26; }
+.kitchen-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.kitchen-card-head h4 { min-width: 0; }
+.kitchen-card.late-order { border-color: #dda29a; box-shadow: 0 10px 26px rgba(161, 59, 50, .1); }
+.order-detail-actions { flex-wrap: wrap; }
+.order-detail-actions .link-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.editing-notice { padding: 10px 12px; border-radius: 12px; background: #fff2d7; color: #714a0b; font-size: .85rem; }
+.payable-row { grid-template-columns: minmax(180px, 1fr) auto auto auto; }
+.payable-row.overdue { border-left: 4px solid var(--red); background: #fff8f6; }
+.profile-origin { display: inline-block; margin-top: 3px; color: var(--muted); font-size: .69rem; }
+.customer-card .status-action.link-button { text-align: center; text-decoration: none; }
+.link-button { box-sizing: border-box; }
+
+@media (max-width: 760px) {
+  .operation-health-grid { grid-template-columns: 1fr; }
+  .operation-health-card { min-height: 0; }
+  .payable-row { grid-template-columns: 1fr auto; }
+  .payable-row .row-main { grid-column: 1 / -1; }
+  .order-code { flex-wrap: wrap; }
+  .order-detail-actions > * { width: 100%; }
+}
+
+@media print {
+  body.printing-report { background: #fff; }
+  .printing-report .sidebar,
+  .printing-report .topbar,
+  .printing-report #alertaPermissao,
+  .printing-report .page:not(#page-relatorios),
+  .printing-report #page-relatorios > .page-toolbar,
+  .printing-report .toast { display: none !important; }
+  .printing-report .main-shell { margin: 0 !important; padding: 0 !important; }
+  .printing-report #page-relatorios { display: block !important; }
+  .printing-report .surface,
+  .printing-report .finance-kpis article { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .printing-report .bar-column i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

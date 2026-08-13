@@ -9,16 +9,20 @@ import { lerRegistroComIA } from "../../js/services/documentAiService.js";
 import { gerarBackupCompleto, baixarBackupJson, restaurarBackupCompleto } from "../../js/services/backupService.js";
 import {
   estadoGestao, limparEstadoGestao, iniciarObservadoresGestao, atualizarStatusPedidoGestao,
-  salvarPedidoManual, salvarCardapioDia, salvarInsumo, movimentarInsumo,
+  salvarPedidoManual, atualizarPedidoManualGestao, salvarCardapioDia, salvarInsumo, movimentarInsumo,
   registrarPerda, salvarFichaTecnica, salvarFornecedor, registrarCompra,
+  marcarCompraComoPaga,
   abrirSessaoCaixa, registrarMovimentoCaixa, fecharSessaoCaixa,
   salvarObservacaoCliente, salvarConfiguracaoOperacao, solicitarAcessoGestao,
-  aprovarAcessoGestao, atualizarMembroEquipe
+  aprovarAcessoGestao, atualizarMembroEquipe, criarConviteEquipe,
+  cancelarConviteEquipe, buscarConviteEquipe, ativarConviteEquipe
 } from "../../js/services/managementService.js";
 import {
   dataLojaISO, horaLoja, numeroSeguro, formatarMoedaGestao, infoStatus, statusFinal,
   consolidarPedidosGestao, gerarNecessidadesProducao, calcularAlertasEstoque,
-  calcularResumoOperacao, resumirPagamentos, calcularRelatorioGestao
+  calcularResumoOperacao, resumirPagamentos, calcularRelatorioGestao,
+  avaliarPrazoPedido, consolidarClientesGestao, avaliarJanelaEncomenda,
+  filtrarPedidosOperacionais
 } from "../../js/services/managementCore.js";
 
 const $ = id => document.getElementById(id);
@@ -95,12 +99,44 @@ function textoData(dataISO = "") {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${dataISO}T12:00:00Z`));
 }
 
+function telefoneWhatsApp(valor = "") {
+  let numero = String(valor || "").replace(/\D/g, "");
+  if (numero.length >= 10 && numero.length <= 11) numero = `55${numero}`;
+  return numero.length >= 12 ? numero : "";
+}
+
+function enderecoPedido(pedido = {}) {
+  return pedido.endereco || [pedido.enderecoDetalhado?.rua, pedido.enderecoDetalhado?.numero, pedido.enderecoDetalhado?.bairro, pedido.enderecoDetalhado?.complemento].filter(Boolean).join(", ");
+}
+
+function classePrazo(prazo = {}) {
+  return prazo.atrasado ? "late" : prazo.proximoDoLimite ? "attention" : "";
+}
+
+function imprimirPedido(pedido) {
+  const janela = window.open("", "_blank", "width=520,height=760");
+  if (!janela) return toast("O navegador bloqueou a impressão. Libere pop-ups e tente novamente.", "error");
+  const endereco = enderecoPedido(pedido);
+  const itens = (pedido.itens || []).map(item => `<li><b>${numeroSeguro(item.quantidade)}× ${escapar(item.nome)}</b>${item.sabor ? ` — ${escapar(item.sabor)}` : ""}${item.observacao ? `<small>Obs.: ${escapar(item.observacao)}</small>` : ""}</li>`).join("");
+  janela.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escapar(pedido.numeroExibicao)}</title><style>body{font:16px/1.35 Arial,sans-serif;color:#111;margin:24px}h1{font-size:22px;margin:0 0 4px}h2{font-size:18px;border-block:2px dashed #111;padding:12px 0}p{margin:5px 0}ul{padding-left:22px}li{margin:10px 0}small{display:block;font-size:13px}.total{font-size:22px;font-weight:800;text-align:right;border-top:2px solid;padding-top:10px}.obs{border:2px solid;padding:10px;margin-top:12px}@media print{body{margin:0}.no-print{display:none}}</style></head><body><h1>Delícias da Vó</h1><p>${escapar(pedido.numeroExibicao)} • ${escapar(pedido.origemNome)}</p><h2>${escapar(pedido.clienteNome)}</h2><p><b>Atendimento:</b> ${escapar(pedido.tipoAtendimento)}</p><p><b>Horário:</b> ${escapar(pedido.horaOperacao || "Não informado")}</p>${endereco ? `<p><b>Endereço:</b> ${escapar(endereco)}</p>` : ""}<ul>${itens || "<li>Itens não informados</li>"}</ul>${pedido.observacao || pedido.observacoes ? `<div class="obs"><b>OBSERVAÇÃO</b><br>${escapar(pedido.observacao || pedido.observacoes)}</div>` : ""}<p class="total">${formatarMoedaGestao(pedido.valor)}</p><script>window.onload=()=>{window.print();setTimeout(()=>window.close(),400)}<\/script></body></html>`);
+  janela.document.close();
+}
+
 function pedidosConsolidados() {
   return consolidarPedidosGestao({
     site: estadoGestao.pedidosSite.filter(item => String(item.caminho || "").startsWith("pedidosSite/")),
     manuais: estadoGestao.pedidosManuais,
     encomendas: estadoGestao.encomendas
   });
+}
+
+function diasAntecedenciaEncomendas() {
+  const configurado = numeroSeguro(estadoGestao.configuracaoOperacao.diasAntecedenciaEncomendas);
+  return configurado >= 0 && estadoGestao.configuracaoOperacao.diasAntecedenciaEncomendas !== undefined ? Math.min(90, Math.round(configurado)) : 7;
+}
+
+function pedidosOperacionais() {
+  return filtrarPedidosOperacionais(pedidosConsolidados(), diasAntecedenciaEncomendas(), dataLojaISO());
 }
 
 function permissoesAtuais() {
@@ -162,6 +198,7 @@ function atualizarNavegacaoPermitida() {
     const permitido = botao.dataset.adminOnly === "true" ? isAdmin : pode(botao.dataset.permission || "dashboard");
     botao.hidden = !permitido;
   });
+  if ($("editarSiteGestaoLink")) $("editarSiteGestaoLink").hidden = !(isAdmin || pode("site"));
 }
 
 function liberarSistema(user) {
@@ -210,6 +247,17 @@ async function processarUsuario(user) {
     const membro = await getDoc(doc(db, "equipe", user.uid)).catch(() => null);
     membroAtual = membro?.exists() ? { id: membro.id, ...membro.data() } : null;
     if (!membroAtual?.ativo) {
+      const convite = await buscarConviteEquipe(user).catch(() => null);
+      if (convite?.ativo === true && convite.status === "pendente") {
+        try {
+          membroAtual = await ativarConviteEquipe(user);
+          toast("Convite aceito. Seu acesso à equipe foi liberado.", "success");
+        } catch (erro) {
+          console.error("Não foi possível ativar o convite da equipe:", erro);
+        }
+      }
+    }
+    if (!membroAtual?.ativo) {
       carregarTelaLogin();
       await mostrarUsuarioNaoAutorizado(user);
       return;
@@ -243,6 +291,8 @@ function navegar(pagina) {
 
 function proximoStatus(pedido) {
   if (["registrado", "aguardando_confirmacao"].includes(pedido.status)) return ["confirmado", "Confirmar pedido"];
+  const janela = avaliarJanelaEncomenda(pedido, diasAntecedenciaEncomendas(), dataLojaISO());
+  if (pedido.origemTipo === "festa" && !janela.preparoLiberado) return ["", ""];
   if (pedido.status === "confirmado") return ["producao", "Iniciar preparo"];
   if (pedido.status === "producao") return ["pronto", "Marcar pronto"];
   if (pedido.status === "pronto" && pedido.tipoAtendimento === "Entrega") return ["saiu_entrega", "Saiu para entrega"];
@@ -260,8 +310,9 @@ function htmlItens(pedido, limite = 4) {
 function htmlPedidoCard(pedido) {
   const status = infoStatus(pedido.status);
   const [proximo, acao] = proximoStatus(pedido);
+  const prazo = avaliarPrazoPedido(pedido, estadoGestao.configuracaoOperacao.tempoPreparo);
   return `<article class="order-card ${["registrado", "aguardando_confirmacao"].includes(pedido.status) ? "new-order" : ""}" data-order="${escapar(pedido.chave)}">
-    <div class="order-identification"><div class="order-code"><span class="origin-pill">${escapar(pedido.origemNome)}</span><span class="status-pill ${status.classe}">${status.nome}</span></div><h3>${escapar(pedido.numeroExibicao)}</h3><p><b>${escapar(pedido.clienteNome)}</b>${pedido.clienteTelefone ? ` • ${escapar(pedido.clienteTelefone)}` : ""}</p><div class="order-meta"><span class="soft-pill">${escapar(pedido.tipoAtendimento)}</span><span class="soft-pill">${escapar(pedido.horaOperacao || "Sem horário")}</span><span class="soft-pill">${formatarMoedaGestao(pedido.valor)}</span></div></div>
+    <div class="order-identification"><div class="order-code"><span class="origin-pill">${escapar(pedido.origemNome)}</span><span class="status-pill ${status.classe}">${status.nome}</span><span class="timer-pill ${classePrazo(prazo)}">${escapar(prazo.texto)}</span></div><h3>${escapar(pedido.numeroExibicao)}</h3><p><b>${escapar(pedido.clienteNome)}</b>${pedido.clienteTelefone ? ` • ${escapar(pedido.clienteTelefone)}` : ""}</p><div class="order-meta"><span class="soft-pill">${escapar(pedido.tipoAtendimento)}</span><span class="soft-pill">${escapar(pedido.horaOperacao || "Sem horário")}</span><span class="soft-pill">${formatarMoedaGestao(pedido.valor)}</span></div></div>
     <div class="order-items">${htmlItens(pedido)}${pedido.observacao || pedido.observacoes ? `<p class="note">${escapar(pedido.observacao || pedido.observacoes)}</p>` : ""}</div>
     <div class="order-actions"><select data-order-status>${["registrado", "confirmado", "producao", "pronto", "saiu_entrega", "entregue", "cancelado"].map(valor => `<option value="${valor}" ${pedido.status === valor ? "selected" : ""}>${infoStatus(valor).nome}</option>`).join("")}</select>${proximo ? `<button class="main-action" data-next="${proximo}">${acao}</button>` : ""}<button class="cancel-action" data-detail>Ver detalhes</button></div>
   </article>`;
@@ -269,7 +320,9 @@ function htmlPedidoCard(pedido) {
 
 function renderDashboard() {
   const pedidos = pedidosConsolidados();
-  const resumo = calcularResumoOperacao({ pedidos, vendas: estadoGestao.vendas, movimentos: estadoGestao.movimentosFinanceiros, produtos: estadoGestao.produtos, insumos: estadoGestao.insumos });
+  const operacionais = pedidosOperacionais();
+  const antecedencia = diasAntecedenciaEncomendas();
+  const resumo = calcularResumoOperacao({ pedidos, vendas: estadoGestao.vendas, movimentos: estadoGestao.movimentosFinanceiros, produtos: estadoGestao.produtos, insumos: estadoGestao.insumos, diasAntecedenciaEncomendas: antecedencia });
   $("kpiPedidosHoje").textContent = resumo.pedidosHoje;
   $("kpiPedidosAbertos").textContent = `${resumo.pedidosAbertos} em aberto`;
   $("kpiProducao").textContent = resumo.emProducao;
@@ -278,13 +331,34 @@ function renderDashboard() {
   $("kpiReceita").textContent = formatarMoedaGestao(resumo.receita);
   $("kpiSaldo").textContent = `Saldo ${formatarMoedaGestao(resumo.saldo)}`;
   $("kpiEstoque").textContent = resumo.alertasEstoque;
-  $("resumoDiaTexto").textContent = resumo.pedidosAbertos ? `${resumo.pedidosAbertos} pedido(s) ainda precisam avançar na operação.` : "Nenhuma pendência crítica por enquanto.";
+  $("resumoDiaTexto").textContent = resumo.pedidosAbertos
+    ? `${resumo.pedidosAbertos} pedido(s) ainda precisam avançar na operação.`
+    : resumo.encomendasAgendadas
+      ? `Operação livre agora. ${resumo.encomendasAgendadas} encomenda(s) futura(s) estão guardadas na agenda.`
+      : "Nenhuma pendência crítica por enquanto.";
 
-  const abertos = pedidos.filter(pedido => !statusFinal(pedido.status)).slice(0, 5);
+  const meta = numeroSeguro(estadoGestao.configuracaoOperacao.metaDiaria);
+  const progressoMeta = meta > 0 ? Math.max(0, Math.min(100, (resumo.receita / meta) * 100)) : 0;
+  $("metaDiariaTitulo").textContent = meta > 0 ? `${formatarMoedaGestao(resumo.receita)} de ${formatarMoedaGestao(meta)}` : "Configure uma meta";
+  $("metaDiariaPercentual").textContent = meta > 0 ? `${Math.round(progressoMeta)}%` : "—";
+  $("metaDiariaTexto").textContent = meta > 0 ? (resumo.receita >= meta ? "Meta alcançada. Excelente resultado hoje." : `Faltam ${formatarMoedaGestao(meta - resumo.receita)} para alcançar a meta.`) : "Defina a meta diária em Configurações para acompanhar o progresso.";
+  $("metaDiariaBarra").style.width = `${progressoMeta}%`;
+  $("metaDiariaCard").classList.toggle("goal-complete", meta > 0 && resumo.receita >= meta);
+
+  const limite = Math.max(1, numeroSeguro(estadoGestao.configuracaoOperacao.limitePedidos) || 25);
+  const progressoCapacidade = Math.max(0, Math.min(100, (resumo.pedidosAbertos / limite) * 100));
+  $("capacidadePedidosPercentual").textContent = `${Math.round(progressoCapacidade)}%`;
+  $("capacidadePedidosTitulo").textContent = `${resumo.pedidosAbertos} de ${limite} pedidos em aberto`;
+  $("capacidadePedidosTexto").textContent = resumo.pedidosAbertos >= limite ? "Limite configurado atingido. Priorize a fila antes de aceitar novos pedidos." : resumo.pedidosAbertos >= limite * .75 ? "A operação está próxima do limite configurado." : "A operação está dentro da capacidade configurada.";
+  $("capacidadePedidosBarra").style.width = `${progressoCapacidade}%`;
+  $("capacidadePedidosCard").classList.toggle("capacity-warning", resumo.pedidosAbertos >= limite * .75);
+  $("capacidadePedidosCard").classList.toggle("capacity-full", resumo.pedidosAbertos >= limite);
+
+  const abertos = operacionais.filter(pedido => !statusFinal(pedido.status)).slice(0, 5);
   $("dashboardPedidos").className = `compact-list ${abertos.length ? "" : "empty-state"}`;
   $("dashboardPedidos").innerHTML = abertos.length ? abertos.map(pedido => `<div class="compact-row"><span class="status-pill ${infoStatus(pedido.status).classe}">${infoStatus(pedido.status).nome}</span><div class="row-main"><strong>${escapar(pedido.numeroExibicao)} — ${escapar(pedido.clienteNome)}</strong><small>${pedido.itens.map(item => `${item.quantidade}× ${item.nome}`).join(" • ")}</small></div><span class="row-value">${formatarMoedaGestao(pedido.valor)}</span></div>`).join("") : "Nenhum pedido aguardando.";
 
-  const necessidades = gerarNecessidadesProducao(pedidos).slice(0, 8);
+  const necessidades = gerarNecessidadesProducao(operacionais).slice(0, 8);
   $("dashboardProducao").className = `production-summary ${necessidades.length ? "" : "empty-state"}`;
   $("dashboardProducao").innerHTML = necessidades.length ? necessidades.map(item => `<div class="need-chip"><strong>${item.quantidade}</strong><span>${escapar(item.nome)}${item.detalhe ? ` — ${escapar(item.detalhe)}` : ""}</span></div>`).join("") : "Nada na fila.";
 
@@ -295,14 +369,14 @@ function renderDashboard() {
   const hoje = dataLojaISO();
   const encomendas = pedidos.filter(item => item.origemTipo === "festa" && item.dataOperacao >= hoje && !statusFinal(item.status)).sort((a, b) => a.dataOperacao.localeCompare(b.dataOperacao)).slice(0, 5);
   $("dashboardEncomendas").className = `compact-list ${encomendas.length ? "" : "empty-state"}`;
-  $("dashboardEncomendas").innerHTML = encomendas.length ? encomendas.map(item => `<div class="compact-row"><span class="appointment-date">${textoData(item.dataOperacao)}</span><div class="row-main"><strong>${escapar(item.clienteNome)} — ${escapar(item.numeroExibicao)}</strong><small>${item.itens.map(produto => `${produto.quantidade}× ${produto.nome}`).join(" • ")}</small></div><span class="row-value">${formatarMoedaGestao(item.valor)}</span></div>`).join("") : "Nenhuma encomenda próxima.";
+  $("dashboardEncomendas").innerHTML = encomendas.length ? encomendas.map(item => { const janela = avaliarJanelaEncomenda(item, antecedencia, hoje); return `<div class="compact-row"><span class="appointment-date">${textoData(item.dataOperacao)}</span><div class="row-main"><strong>${escapar(item.clienteNome)} — ${escapar(item.numeroExibicao)}</strong><small>${item.itens.map(produto => `${produto.quantidade}× ${produto.nome}`).join(" • ")}</small><span class="schedule-window ${janela.preparoLiberado ? "available" : ""}">${escapar(janela.texto)}</span></div><span class="row-value">${formatarMoedaGestao(item.valor)}</span></div>`; }).join("") : "Nenhuma encomenda próxima.";
 }
 
 function renderPedidos() {
   const termo = String($("buscaPedidos")?.value || "").toLowerCase();
   const origem = $("filtroOrigemPedidos")?.value || "todos";
   const statusFiltro = $("filtroStatusPedidos")?.value || "abertos";
-  const todos = pedidosConsolidados();
+  const todos = pedidosOperacionais();
   const lista = todos.filter(pedido => {
     const texto = `${pedido.numeroExibicao} ${pedido.clienteNome} ${pedido.clienteTelefone}`.toLowerCase();
     const origemOk = origem === "todos" || pedido.origemTipo === origem;
@@ -323,6 +397,13 @@ function bindCardPedido(card, pedido) {
 }
 
 async function alterarStatusComFeedback(pedido, status) {
+  const janela = avaliarJanelaEncomenda(pedido, diasAntecedenciaEncomendas(), dataLojaISO());
+  if (pedido.origemTipo === "festa" && status === "producao" && !janela.preparoLiberado) {
+    return toast(`O preparo desta encomenda será liberado em ${textoData(janela.dataLiberacao)}.`, "error");
+  }
+  if (["cancelado", "cancelada"].includes(status) && !["cancelado", "cancelada"].includes(pedido.status)) {
+    if (!confirm(`Cancelar ${pedido.numeroExibicao}? O histórico será mantido e o estoque já baixado será devolvido.`)) return;
+  }
   try {
     await atualizarStatusPedidoGestao(pedido, status);
     toast(`Pedido ${pedido.numeroExibicao} atualizado para ${infoStatus(status).nome}.`, "success");
@@ -330,18 +411,22 @@ async function alterarStatusComFeedback(pedido, status) {
 }
 
 function abrirDetalhesPedido(pedido) {
-  const endereco = pedido.endereco || [pedido.enderecoDetalhado?.rua, pedido.enderecoDetalhado?.numero, pedido.enderecoDetalhado?.bairro].filter(Boolean).join(", ");
-  abrirModal(`Pedido ${pedido.numeroExibicao}`, `<div class="modal-form"><div class="form-grid"><label>Cliente<input readonly value="${escapar(pedido.clienteNome)}"></label><label>Telefone<input readonly value="${escapar(pedido.clienteTelefone)}"></label><label>Origem<input readonly value="${escapar(pedido.origemNome)}"></label><label>Pagamento<input readonly value="${escapar(pedido.pagamento || "Não informado")}"></label><label class="full">Endereço<textarea readonly rows="2">${escapar(endereco || "Retirada na loja")}</textarea></label></div><fieldset><legend>Itens</legend>${htmlItens(pedido, 100)}</fieldset><div class="form-grid"><label>Subtotal<input readonly value="${formatarMoedaGestao(pedido.subtotalProdutos || pedido.valor - numeroSeguro(pedido.taxaEntrega))}"></label><label>Taxa de entrega<input readonly value="${pedido.taxaEntrega == null ? "A confirmar" : formatarMoedaGestao(pedido.taxaEntrega)}"></label><label>Distância<input readonly value="${pedido.distanciaEntregaKm == null ? "Não calculada" : `${pedido.distanciaEntregaKm} km`}"></label><label>Total<input readonly value="${formatarMoedaGestao(pedido.valor)}"></label><label class="full">Observações<textarea readonly rows="3">${escapar(pedido.observacao || pedido.observacoes || "")}</textarea></label></div></div>`, pedido.origemNome);
+  const endereco = enderecoPedido(pedido);
+  const whatsapp = telefoneWhatsApp(pedido.clienteTelefone);
+  const podeEditar = pedido.origemTipo === "manual" && ["registrado", "aguardando_confirmacao"].includes(pedido.status) && !pedido.estoqueBaixado;
+  abrirModal(`Pedido ${pedido.numeroExibicao}`, `<div class="modal-form"><div class="form-grid"><label>Cliente<input readonly value="${escapar(pedido.clienteNome)}"></label><label>Telefone<input readonly value="${escapar(pedido.clienteTelefone)}"></label><label>Origem<input readonly value="${escapar(pedido.origemNome)}"></label><label>Pagamento<input readonly value="${escapar(pedido.pagamento || "Não informado")}"></label><label class="full">Endereço<textarea readonly rows="2">${escapar(endereco || "Retirada na loja")}</textarea></label></div><fieldset><legend>Itens</legend>${htmlItens(pedido, 100)}</fieldset><div class="form-grid"><label>Subtotal<input readonly value="${formatarMoedaGestao(pedido.subtotalProdutos || pedido.valor - numeroSeguro(pedido.taxaEntrega))}"></label><label>Taxa de entrega<input readonly value="${pedido.taxaEntrega == null ? "A confirmar" : formatarMoedaGestao(pedido.taxaEntrega)}"></label><label>Distância<input readonly value="${pedido.distanciaEntregaKm == null ? "Não calculada" : `${pedido.distanciaEntregaKm} km`}"></label><label>Total<input readonly value="${formatarMoedaGestao(pedido.valor)}"></label><label class="full">Observações<textarea readonly rows="3">${escapar(pedido.observacao || pedido.observacoes || "")}</textarea></label></div><div class="modal-actions order-detail-actions">${podeEditar ? '<button id="editarPedidoManualGestao" class="cancel" type="button">Editar pedido</button>' : ""}<button id="imprimirPedidoGestao" class="cancel" type="button">Imprimir cozinha</button>${endereco && pedido.tipoAtendimento === "Entrega" ? `<a class="secondary-btn link-button" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank" rel="noopener">Abrir Maps</a>` : ""}${whatsapp ? `<a class="primary-btn link-button" href="https://wa.me/${whatsapp}?text=${encodeURIComponent(`Olá! Estamos falando sobre o pedido ${pedido.numeroExibicao} da Delícias da Vó.`)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div></div>`, pedido.origemNome);
+  $("imprimirPedidoGestao")?.addEventListener("click", () => imprimirPedido(pedido));
+  $("editarPedidoManualGestao")?.addEventListener("click", () => abrirEdicaoPedidoManual(pedido));
 }
 
 function renderCozinha() {
-  const pedidos = pedidosConsolidados();
+  const pedidos = pedidosOperacionais();
   const necessidades = gerarNecessidadesProducao(pedidos);
   $("necessidadesCozinha").innerHTML = necessidades.length ? necessidades.map(item => `<div class="need-chip"><strong>${item.quantidade}</strong><span>${escapar(item.nome)}${item.detalhe ? ` — ${escapar(item.detalhe)}` : ""}</span></div>`).join("") : '<div class="empty-state">Nada para preparar agora.</div>';
   const grupos = { confirmado: pedidos.filter(item => item.status === "confirmado"), producao: pedidos.filter(item => item.status === "producao"), pronto: pedidos.filter(item => item.status === "pronto") };
   [["cozinhaConfirmados", "confirmado"], ["cozinhaProducao", "producao"], ["cozinhaProntos", "pronto"]].forEach(([id, status]) => {
     const container = $(id);
-    container.innerHTML = grupos[status].length ? grupos[status].map(pedido => `<article class="kitchen-card" data-kitchen="${escapar(pedido.chave)}"><h4>${escapar(pedido.numeroExibicao)} — ${escapar(pedido.clienteNome)}</h4><p>${escapar(pedido.horaOperacao || "Sem horário")} • ${escapar(pedido.tipoAtendimento)}</p>${htmlItens(pedido, 100)}${pedido.observacao || pedido.observacoes ? `<div class="note">${escapar(pedido.observacao || pedido.observacoes)}</div>` : ""}<button data-kitchen-next="${proximoStatus(pedido)[0]}">${proximoStatus(pedido)[1]}</button></article>`).join("") : '<div class="empty-state">Nenhum pedido.</div>';
+    container.innerHTML = grupos[status].length ? grupos[status].map(pedido => { const prazo = avaliarPrazoPedido(pedido, estadoGestao.configuracaoOperacao.tempoPreparo); return `<article class="kitchen-card ${prazo.atrasado ? "late-order" : ""}" data-kitchen="${escapar(pedido.chave)}"><div class="kitchen-card-head"><h4>${escapar(pedido.numeroExibicao)} — ${escapar(pedido.clienteNome)}</h4><span class="timer-pill ${classePrazo(prazo)}">${escapar(prazo.texto)}</span></div><p>${escapar(pedido.horaOperacao || "Sem horário")} • ${escapar(pedido.tipoAtendimento)}</p>${htmlItens(pedido, 100)}${pedido.observacao || pedido.observacoes ? `<div class="note">${escapar(pedido.observacao || pedido.observacoes)}</div>` : ""}<button data-kitchen-next="${proximoStatus(pedido)[0]}">${proximoStatus(pedido)[1]}</button></article>`; }).join("") : '<div class="empty-state">Nenhum pedido.</div>';
     container.querySelectorAll("[data-kitchen]").forEach(card => {
       const pedido = grupos[status].find(item => item.chave === card.dataset.kitchen);
       card.querySelector("button")?.addEventListener("click", evento => alterarStatusComFeedback(pedido, evento.currentTarget.dataset.kitchenNext));
@@ -484,7 +569,7 @@ function abrirDigitalizacaoVenda() {
 }
 
 function renderEntregas() {
-  const pedidos = pedidosConsolidados().filter(item => item.tipoAtendimento === "Entrega");
+  const pedidos = pedidosOperacionais().filter(item => item.tipoAtendimento === "Entrega");
   const lista = pedidos.filter(item => filtroEntregaAtual === "pendentes" ? ["confirmado", "producao", "pronto"].includes(item.status) : filtroEntregaAtual === "rota" ? item.status === "saiu_entrega" : item.status === "entregue");
   $("listaEntregasGestao").innerHTML = lista.length ? lista.map(pedido => {
     const endereco = pedido.endereco || [pedido.enderecoDetalhado?.rua, pedido.enderecoDetalhado?.numero, pedido.enderecoDetalhado?.bairro].filter(Boolean).join(", ");
@@ -499,8 +584,26 @@ function renderEncomendas() {
   const termo = String($("buscaEncomendas")?.value || "").toLowerCase();
   const filtro = $("filtroEncomendas")?.value || "abertas";
   const hoje = dataLojaISO();
-  const lista = pedidosConsolidados().filter(item => item.origemTipo === "festa").filter(item => `${item.numeroExibicao} ${item.clienteNome}`.toLowerCase().includes(termo)).filter(item => filtro === "todas" || (filtro === "abertas" ? item.dataOperacao >= hoje && !statusFinal(item.status) : item.status === filtro || (filtro === "cancelado" && item.status === "cancelada")));
-  $("listaEncomendasGestao").innerHTML = lista.length ? lista.map(pedido => `<article class="appointment-card" data-appointment="${pedido.id}"><span class="appointment-date">${textoData(pedido.dataOperacao)}</span><span class="status-pill ${infoStatus(pedido.status).classe}">${infoStatus(pedido.status).nome}</span><h3>${escapar(pedido.clienteNome)} — ${escapar(pedido.numeroExibicao)}</h3><p>${pedido.itens.map(item => `${item.quantidade}× ${item.nome}`).join(" • ")}</p><p><b>${formatarMoedaGestao(pedido.valor)}</b> • ${escapar(pedido.tipoAtendimento)}</p><div class="card-actions"><button class="map-action" data-detail>Detalhes</button>${proximoStatus(pedido)[0] ? `<button class="status-action" data-next="${proximoStatus(pedido)[0]}">${proximoStatus(pedido)[1]}</button>` : ""}</div></article>`).join("") : '<div class="surface empty-state">Nenhuma encomenda encontrada.</div>';
+  const antecedencia = diasAntecedenciaEncomendas();
+  const lista = pedidosConsolidados()
+    .filter(item => item.origemTipo === "festa")
+    .filter(item => `${item.numeroExibicao} ${item.clienteNome}`.toLowerCase().includes(termo))
+    .filter(item => {
+      const janela = avaliarJanelaEncomenda(item, antecedencia, hoje);
+      if (filtro === "todas") return true;
+      if (filtro === "abertas") return item.dataOperacao >= hoje && !statusFinal(item.status);
+      if (filtro === "preparo") return !statusFinal(item.status) && janela.preparoLiberado;
+      if (filtro === "agendadas") return item.dataOperacao >= hoje && !statusFinal(item.status) && !janela.preparoLiberado;
+      return item.status === filtro || (filtro === "cancelado" && item.status === "cancelada");
+    })
+    .sort((a, b) => String(a.dataOperacao || "9999-12-31").localeCompare(String(b.dataOperacao || "9999-12-31")));
+  $("listaEncomendasGestao").innerHTML = lista.length ? lista.map(pedido => {
+    const janela = avaliarJanelaEncomenda(pedido, antecedencia, hoje);
+    const [proximo, acao] = proximoStatus(pedido);
+    const classeJanela = janela.preparoJaIniciado && pedido.dataOperacao > hoje ? "early" : janela.preparoLiberado ? "available" : "";
+    const detalheLiberacao = !janela.preparoLiberado && janela.dataLiberacao ? ` • entra na operação em ${textoData(janela.dataLiberacao)}` : "";
+    return `<article class="appointment-card ${janela.preparoLiberado ? "" : "future-appointment"}" data-appointment="${pedido.id}"><span class="appointment-date">${textoData(pedido.dataOperacao)}</span><span class="status-pill ${infoStatus(pedido.status).classe}">${infoStatus(pedido.status).nome}</span><h3>${escapar(pedido.clienteNome)} — ${escapar(pedido.numeroExibicao)}</h3><p>${pedido.itens.map(item => `${numeroSeguro(item.quantidade)}× ${escapar(item.nome)}`).join(" • ")}</p><p><b>${formatarMoedaGestao(pedido.valor)}</b> • ${escapar(pedido.tipoAtendimento)}</p><span class="schedule-window ${classeJanela}">${escapar(janela.texto)}${detalheLiberacao}</span><div class="card-actions"><button class="map-action" type="button" data-detail>Detalhes</button>${proximo ? `<button class="status-action" type="button" data-next="${proximo}">${acao}</button>` : ""}</div></article>`;
+  }).join("") : '<div class="surface empty-state">Nenhuma encomenda encontrada.</div>';
   $("listaEncomendasGestao").querySelectorAll("[data-appointment]").forEach(card => { const pedido = lista.find(item => item.id === card.dataset.appointment); card.querySelector("[data-detail]").addEventListener("click", () => abrirDetalhesPedido(pedido)); card.querySelector("[data-next]")?.addEventListener("click", evento => alterarStatusComFeedback(pedido, evento.currentTarget.dataset.next)); });
 }
 
@@ -556,7 +659,14 @@ function renderCompras() {
   $("comprasMesQtd").textContent = comprasMes.length;
   $("fornecedoresQtd").textContent = estadoGestao.fornecedores.filter(item => item.ativo !== false).length;
   $("comprasPendentes").textContent = estadoGestao.compras.filter(item => item.statusPagamento === "pendente").length;
-  $("listaComprasGestao").innerHTML = estadoGestao.compras.length ? estadoGestao.compras.map(item => `<div class="data-row"><div class="row-main"><strong>${escapar(item.fornecedorNome)}</strong><small>${textoData(item.dataISO)} • ${(item.itens || []).length} item(ns) • ${escapar(item.pagamento)}</small></div><span class="status-pill ${item.statusPagamento === "pendente" ? "novo" : "concluido"}">${item.statusPagamento === "pendente" ? "Pendente" : "Pago"}</span><span class="row-value">${formatarMoedaGestao(item.totalFinal)}</span></div>`).join("") : '<div class="empty-state">Nenhuma compra registrada.</div>';
+  $("listaComprasGestao").innerHTML = estadoGestao.compras.length ? estadoGestao.compras.map(item => { const vencida = item.statusPagamento === "pendente" && item.vencimento && item.vencimento < dataLojaISO(); return `<div class="data-row payable-row ${vencida ? "overdue" : ""}"><div class="row-main"><strong>${escapar(item.fornecedorNome)}</strong><small>${textoData(item.dataISO)} • ${(item.itens || []).length} item(ns) • ${escapar(item.pagamento)}${item.statusPagamento === "pendente" && item.vencimento ? ` • vence ${textoData(item.vencimento)}` : ""}</small></div><span class="status-pill ${item.statusPagamento === "pendente" ? "novo" : "concluido"}">${vencida ? "Vencida" : item.statusPagamento === "pendente" ? "Pendente" : "Pago"}</span><span class="row-value">${formatarMoedaGestao(item.totalFinal)}</span>${item.statusPagamento === "pendente" ? `<button class="text-btn" data-pay-purchase="${item.id}">Marcar paga</button>` : ""}</div>`; }).join("") : '<div class="empty-state">Nenhuma compra registrada.</div>';
+  $("listaComprasGestao").querySelectorAll("[data-pay-purchase]").forEach(botao => botao.addEventListener("click", async () => {
+    const compra = estadoGestao.compras.find(item => item.id === botao.dataset.payPurchase);
+    if (!compra || !confirm(`Confirmar o pagamento de ${formatarMoedaGestao(compra.totalFinal)} para ${compra.fornecedorNome}?`)) return;
+    botao.disabled = true;
+    try { await marcarCompraComoPaga(compra); toast("Compra marcada como paga.", "success"); }
+    catch (erro) { botao.disabled = false; toast(erro.message || "Não foi possível confirmar o pagamento.", "error"); }
+  }));
   $("listaFornecedoresGestao").innerHTML = estadoGestao.fornecedores.length ? estadoGestao.fornecedores.map(item => `<div class="compact-row"><div class="row-main"><strong>${escapar(item.nome)}</strong><small>${escapar(item.contato || item.telefone || "Sem contato")}</small></div><button class="text-btn" data-supplier="${item.id}">Editar</button></div>`).join("") : '<div class="empty-state">Nenhum fornecedor cadastrado.</div>';
   $("listaFornecedoresGestao").querySelectorAll("[data-supplier]").forEach(botao => botao.addEventListener("click", () => abrirFornecedor(estadoGestao.fornecedores.find(item => item.id === botao.dataset.supplier))));
 }
@@ -580,12 +690,7 @@ function renderFinanceiro() {
 }
 
 function dadosClientes() {
-  const pedidos = pedidosConsolidados();
-  return estadoGestao.usuarios.filter(item => item.tipo !== "admin").map(cliente => {
-    const relacionados = pedidos.filter(pedido => pedido.usuarioId === cliente.uid || pedido.cliente?.uid === cliente.uid || (cliente.telefone && pedido.clienteTelefone === cliente.telefone));
-    const total = relacionados.filter(pedido => !["cancelado", "cancelada"].includes(pedido.status)).reduce((soma, pedido) => soma + pedido.valor, 0);
-    return { ...cliente, pedidos: relacionados, total, ultimo: relacionados[0] || null };
-  });
+  return consolidarClientesGestao({ usuarios: estadoGestao.usuarios, pedidos: pedidosConsolidados() });
 }
 
 function renderClientes() {
@@ -593,14 +698,14 @@ function renderClientes() {
   const clientes = dadosClientes();
   const lista = clientes.filter(item => `${item.nome} ${item.email} ${item.telefone}`.toLowerCase().includes(termo));
   const mes = dataLojaISO().slice(0, 7);
-  const pedidosIdentificados = clientes.reduce((soma, item) => soma + item.pedidos.length, 0);
+  const pedidosIdentificados = clientes.reduce((soma, item) => soma + item.pedidos.filter(pedido => !["cancelado", "cancelada"].includes(pedido.status)).length, 0);
   const total = clientes.reduce((soma, item) => soma + item.total, 0);
   $("clientesTotal").textContent = clientes.length;
   $("clientesAtivosMes").textContent = clientes.filter(item => item.pedidos.some(pedido => String(pedido.dataOperacao).startsWith(mes))).length;
   $("clientesPedidos").textContent = pedidosIdentificados;
   $("clientesTicket").textContent = formatarMoedaGestao(pedidosIdentificados ? total / pedidosIdentificados : 0);
-  $("listaClientesGestao").innerHTML = lista.length ? lista.map(cliente => `<article class="customer-card" data-customer="${cliente.uid}"><div class="customer-head"><span class="customer-avatar">${iniciais(cliente.nome)}</span><div><h3>${escapar(cliente.nome || "Cliente")}</h3><p>${escapar(cliente.telefone || cliente.email || "Sem contato")}</p></div></div><p>${escapar([cliente.endereco?.rua, cliente.endereco?.numero, cliente.endereco?.bairro].filter(Boolean).join(", ") || "Endereço não informado")}</p><div class="customer-metrics"><span>Pedidos<b>${cliente.pedidos.length}</b></span><span>Total comprado<b>${formatarMoedaGestao(cliente.total)}</b></span></div><div class="card-actions"><button class="map-action" data-customer-detail>Histórico</button><button class="status-action" data-customer-note>Observação</button></div></article>`).join("") : '<div class="surface empty-state">Nenhum cliente encontrado.</div>';
-  $("listaClientesGestao").querySelectorAll("[data-customer]").forEach(card => { const cliente = clientes.find(item => item.uid === card.dataset.customer); card.querySelector("[data-customer-detail]").addEventListener("click", () => abrirCliente(cliente)); card.querySelector("[data-customer-note]").addEventListener("click", () => abrirObservacaoCliente(cliente)); });
+  $("listaClientesGestao").innerHTML = lista.length ? lista.map((cliente, indice) => { const whatsapp = telefoneWhatsApp(cliente.telefone); return `<article class="customer-card" data-customer-index="${indice}"><div class="customer-head"><span class="customer-avatar">${iniciais(cliente.nome)}</span><div><h3>${escapar(cliente.nome || "Cliente")}</h3><p>${escapar(cliente.telefone || cliente.email || "Sem contato")}</p><small class="profile-origin">${cliente.origemPerfil === "google" ? "Perfil Google" : "Cliente do atendimento"}</small></div></div><p>${escapar(cliente.enderecoTexto || "Endereço não informado")}</p><div class="customer-metrics"><span>Pedidos<b>${cliente.pedidos.length}</b></span><span>Total comprado<b>${formatarMoedaGestao(cliente.total)}</b></span></div><div class="card-actions"><button class="map-action" data-customer-detail>Histórico</button>${cliente.uid ? '<button class="status-action" data-customer-note>Observação</button>' : whatsapp ? `<a class="status-action link-button" href="https://wa.me/${whatsapp}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</div></article>`; }).join("") : '<div class="surface empty-state">Nenhum cliente encontrado.</div>';
+  $("listaClientesGestao").querySelectorAll("[data-customer-index]").forEach(card => { const cliente = lista[Number(card.dataset.customerIndex)]; card.querySelector("[data-customer-detail]").addEventListener("click", () => abrirCliente(cliente)); card.querySelector("[data-customer-note]")?.addEventListener("click", () => abrirObservacaoCliente(cliente)); });
 }
 
 function renderRelatorios() {
@@ -660,6 +765,15 @@ function exportarRelatorioCsv() {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1500);
   toast("Relatório exportado para abrir no Excel.", "success");
+}
+
+function imprimirRelatorioGestao() {
+  renderRelatorios();
+  document.body.classList.add("printing-report");
+  const limpar = () => document.body.classList.remove("printing-report");
+  window.addEventListener("afterprint", limpar, { once: true });
+  window.print();
+  window.setTimeout(limpar, 1500);
 }
 
 async function fecharMesRelatorio() {
@@ -722,16 +836,25 @@ async function restaurarBackupGestao() {
 function renderEquipe() {
   if (!isAdmin) return;
   const solicitacoes = estadoGestao.solicitacoesAcesso.filter(item => item.status === "pendente");
-  $("solicitacoesEquipe").innerHTML = solicitacoes.length ? solicitacoes.map(item => `<div class="compact-row"><div class="customer-avatar">${iniciais(item.nome)}</div><div class="row-main"><strong>${escapar(item.nome || "Pessoa")}</strong><small>${escapar(item.email)}</small></div><button class="primary-btn" data-approve="${item.uid}">Analisar</button></div>`).join("") : '<div class="empty-state">Nenhuma solicitação aguardando.</div>';
-  $("membrosEquipe").innerHTML = estadoGestao.equipe.length ? estadoGestao.equipe.map(item => `<div class="team-row"><div class="customer-avatar">${iniciais(item.nome)}</div><div class="row-main"><strong>${escapar(item.nome)}</strong><small>${escapar(item.cargo)} • ${item.ativo ? "Ativo" : "Bloqueado"}</small></div><button class="text-btn" data-member="${item.uid}">Editar</button></div>`).join("") : '<div class="empty-state">Nenhum colaborador cadastrado.</div>';
+  const emailsAtivos = new Set(estadoGestao.equipe.map(item => String(item.email || "").toLowerCase()));
+  const convites = estadoGestao.convitesEquipe.filter(item => item.ativo !== false && item.status === "pendente" && !emailsAtivos.has(String(item.email || "").toLowerCase()));
+  $("convitesEquipe").innerHTML = convites.length ? convites.map(item => `<div class="compact-row invite-row"><div class="customer-avatar">${iniciais(item.nome || item.email)}</div><div class="row-main"><strong>${escapar(item.nome || "Convite por e-mail")}</strong><small>${escapar(item.email)} • ${escapar(item.cargo || "Colaborador")}</small><div class="permission-summary">${resumoPermissoesEquipe(item.permissoes)}</div></div><div class="invite-actions"><span class="invite-state">Aguardando login</span><button class="text-btn danger" type="button" data-cancel-invite="${escapar(item.email)}">Cancelar</button></div></div>`).join("") : '<div class="empty-state">Nenhum convite por e-mail aguardando.</div>';
+  $("solicitacoesEquipe").innerHTML = solicitacoes.length ? `<p class="kicker">Pedidos de acesso recebidos</p>${solicitacoes.map(item => `<div class="compact-row"><div class="customer-avatar">${iniciais(item.nome)}</div><div class="row-main"><strong>${escapar(item.nome || "Pessoa")}</strong><small>${escapar(item.email)}</small></div><button class="primary-btn" type="button" data-approve="${item.uid}">Analisar</button></div>`).join("")}` : "";
+  $("membrosEquipe").innerHTML = estadoGestao.equipe.length ? estadoGestao.equipe.map(item => `<div class="team-row"><div class="customer-avatar">${iniciais(item.nome)}</div><div class="row-main"><strong>${escapar(item.nome)}</strong><small>${escapar(item.email || "Sem e-mail")} • ${escapar(item.cargo)} • ${item.ativo ? "Ativo" : "Bloqueado"}</small><div class="permission-summary">${resumoPermissoesEquipe(item.permissoes)}</div></div><button class="text-btn" type="button" data-member="${item.uid}">Editar</button></div>`).join("") : '<div class="empty-state">Nenhum colaborador cadastrado.</div>';
   $("solicitacoesEquipe").querySelectorAll("[data-approve]").forEach(botao => botao.addEventListener("click", () => abrirAprovacaoEquipe(solicitacoes.find(item => item.uid === botao.dataset.approve))));
   $("membrosEquipe").querySelectorAll("[data-member]").forEach(botao => botao.addEventListener("click", () => abrirEdicaoEquipe(estadoGestao.equipe.find(item => item.uid === botao.dataset.member))));
+  $("convitesEquipe").querySelectorAll("[data-cancel-invite]").forEach(botao => botao.addEventListener("click", async () => {
+    if (!confirm(`Cancelar o convite de ${botao.dataset.cancelInvite}?`)) return;
+    try { await cancelarConviteEquipe(botao.dataset.cancelInvite); toast("Convite cancelado.", "success"); }
+    catch (erro) { toast(erro.message || "Não foi possível cancelar o convite.", "error"); }
+  }));
 }
 
 function renderConfiguracoes() {
   const config = estadoGestao.configuracaoOperacao || {};
   $("configMetaDiaria").value = numeroSeguro(config.metaDiaria) || "";
   $("configTempoPreparo").value = numeroSeguro(config.tempoPreparo) || 40;
+  $("configDiasEncomendas").value = config.diasAntecedenciaEncomendas === undefined ? 7 : Math.max(0, Math.min(90, numeroSeguro(config.diasAntecedenciaEncomendas)));
   $("configLimitePedidos").value = numeroSeguro(config.limitePedidos) || 25;
   $("configResponsavel").value = config.responsavel || usuarioAtual?.displayName || "";
   $("configSomPedidos").checked = config.somPedidos !== false;
@@ -744,14 +867,16 @@ function renderPagina(pagina = paginaAtual) {
 }
 
 function renderTudo() {
-  const pedidos = pedidosConsolidados();
+  const todosPedidos = pedidosConsolidados();
+  const pedidos = pedidosOperacionais();
   const abertos = pedidos.filter(item => !statusFinal(item.status));
   const cozinha = pedidos.filter(item => ["confirmado", "producao", "pronto"].includes(item.status));
   const entregas = pedidos.filter(item => item.tipoAtendimento === "Entrega" && ["confirmado", "producao", "pronto", "saiu_entrega"].includes(item.status));
   const estoque = calcularAlertasEstoque(estadoGestao.produtos, estadoGestao.insumos);
-  [["badgePedidos", abertos.length], ["badgeCozinha", cozinha.length], ["badgeEntregas", entregas.length], ["badgeEstoque", estoque.length], ["badgeEquipe", estadoGestao.solicitacoesAcesso.filter(item => item.status === "pendente").length]].forEach(([id, valor]) => { if (!$(id)) return; $(id).textContent = valor; $(id).hidden = !valor; });
-  if (ultimoTotalPedidos && pedidos.length > ultimoTotalPedidos && estadoGestao.configuracaoOperacao.somPedidos !== false) tocarAviso();
-  ultimoTotalPedidos = pedidos.length;
+  const convitesPendentes = estadoGestao.convitesEquipe.filter(item => item.ativo !== false && item.status === "pendente" && !estadoGestao.equipe.some(membro => String(membro.email || "").toLowerCase() === String(item.email || "").toLowerCase())).length;
+  [["badgePedidos", abertos.length], ["badgeCozinha", cozinha.length], ["badgeEntregas", entregas.length], ["badgeEstoque", estoque.length], ["badgeEquipe", estadoGestao.solicitacoesAcesso.filter(item => item.status === "pendente").length + convitesPendentes]].forEach(([id, valor]) => { if (!$(id)) return; $(id).textContent = valor; $(id).hidden = !valor; });
+  if (ultimoTotalPedidos && todosPedidos.length > ultimoTotalPedidos && estadoGestao.configuracaoOperacao.somPedidos !== false) tocarAviso();
+  ultimoTotalPedidos = todosPedidos.length;
   renderDashboard();
   if (paginaAtual !== "dashboard") renderPagina();
 }
@@ -803,6 +928,39 @@ async function salvarNovoPedidoModal(evento) {
     await salvarPedidoManual({ origem: $("pedidoOrigem").value, cliente: { nome: $("pedidoClienteNome").value, telefone: $("pedidoClienteTelefone").value }, tipo: $("pedidoTipo").value, endereco: $("pedidoEndereco").value, pagamento: $("pedidoPagamento").value, taxaEntrega: $("pedidoTaxa").value, itens: itensPedidoModal, observacao: $("pedidoObservacao").value });
     fecharModal(); toast("Pedido criado e enviado para a central.", "success"); navegar("pedidos");
   } catch (erro) { toast(erro.message || "Não foi possível criar o pedido.", "error"); }
+}
+
+function opcoesPagamentoPedido(selecionado = "Não informado") {
+  return ["Pix", "Dinheiro", "Cartão débito", "Cartão crédito", "Não informado"].map(valor => `<option ${valor === selecionado ? "selected" : ""}>${valor}</option>`).join("");
+}
+
+function abrirEdicaoPedidoManual(pedido) {
+  itensPedidoModal = (pedido.itens || []).map(item => ({
+    id: item.id || "", variacaoId: item.variacaoId || "", nome: item.nome || "Item",
+    preco: numeroSeguro(item.preco), quantidade: numeroSeguro(item.quantidade), sabor: item.sabor || "", observacao: item.observacao || ""
+  }));
+  abrirModal(`Editar ${pedido.numeroExibicao}`, `<form id="formEditarPedidoManual" class="modal-form"><p class="editing-notice">A edição fica disponível somente antes de confirmar o pedido.</p><div class="form-grid"><label>Nome do cliente<input id="editarPedidoClienteNome" value="${escapar(pedido.clienteNome)}" required maxlength="120"></label><label>WhatsApp<input id="editarPedidoClienteTelefone" value="${escapar(pedido.clienteTelefone)}" maxlength="30"></label><label>Atendimento<select id="editarPedidoTipo"><option ${pedido.tipoAtendimento !== "Entrega" ? "selected" : ""}>Retirada na loja</option><option ${pedido.tipoAtendimento === "Entrega" ? "selected" : ""}>Entrega</option></select></label><label>Pagamento<select id="editarPedidoPagamento">${opcoesPagamentoPedido(pedido.pagamento)}</select></label><label class="full">Endereço<input id="editarPedidoEndereco" value="${escapar(enderecoPedido(pedido))}" maxlength="500"></label><label>Taxa de entrega (R$)<input id="editarPedidoTaxa" type="number" min="0" step="0.01" value="${numeroSeguro(pedido.taxaEntrega)}"></label></div><fieldset><legend>Itens do pedido</legend><div class="modal-item-row"><select id="pedidoProdutoSelect">${selectProdutosHtml()}</select><input id="pedidoQuantidade" type="number" min="1" value="1"><input id="pedidoPreco" type="number" min="0" step="0.01"><button id="adicionarItemPedido" type="button">＋</button></div><div id="pedidoItensModal" class="modal-items"></div></fieldset><label>Observações<textarea id="editarPedidoObservacao" rows="3">${escapar(pedido.observacao || "")}</textarea></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar correções</button></div></form>`, "Correção antes do preparo");
+  const preencherPreco = () => { const [id, variacaoId] = $("pedidoProdutoSelect").value.split("|"); const item = todasOpcoesProdutos().find(opcao => opcao.id === id && opcao.variacaoId === variacaoId); $("pedidoPreco").value = item?.preco || 0; };
+  preencherPreco();
+  $("pedidoProdutoSelect").addEventListener("change", preencherPreco);
+  $("adicionarItemPedido").addEventListener("click", adicionarItemPedidoModal);
+  renderItensPedidoModal();
+  $("formEditarPedidoManual").addEventListener("submit", async evento => {
+    evento.preventDefault();
+    try {
+      await atualizarPedidoManualGestao(pedido.id, {
+        cliente: { nome: $("editarPedidoClienteNome").value, telefone: $("editarPedidoClienteTelefone").value },
+        tipo: $("editarPedidoTipo").value,
+        endereco: $("editarPedidoEndereco").value,
+        pagamento: $("editarPedidoPagamento").value,
+        taxaEntrega: $("editarPedidoTaxa").value,
+        itens: itensPedidoModal,
+        observacao: $("editarPedidoObservacao").value
+      });
+      fecharModal();
+      toast("Pedido corrigido antes do preparo.", "success");
+    } catch (erro) { toast(erro.message || "Não foi possível editar o pedido.", "error"); }
+  });
 }
 
 function abrirInsumo(item = {}) {
@@ -885,17 +1043,58 @@ function abrirMovimentoCaixa() { const sessao = sessaoAberta(); abrirModal("Movi
 
 function abrirFechamentoCaixa() { const dados = dadosCaixa(); abrirModal("Fechar caixa", `<form id="formFecharCaixa" class="modal-form"><p>Dinheiro esperado: <b>${formatarMoedaGestao(dados.esperado)}</b></p><label>Dinheiro contado na gaveta (R$)<input id="caixaValorContado" type="number" min="0" step="0.01" required></label><label>Observação<textarea id="caixaFechamentoObs"></textarea></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Confirmar fechamento</button></div></form>`, "Conferência"); $("formFecharCaixa").addEventListener("submit", async evento => { evento.preventDefault(); try { await fecharSessaoCaixa(dados.sessao.id, { valorEsperado: dados.esperado, valorContado: $("caixaValorContado").value, observacao: $("caixaFechamentoObs").value }); fecharModal(); toast("Caixa fechado e diferença calculada.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
 
-function abrirCliente(cliente) { abrirModal(cliente.nome || "Cliente", `<div class="modal-form"><div class="form-grid"><label>Telefone<input readonly value="${escapar(cliente.telefone || "")}"></label><label>E-mail<input readonly value="${escapar(cliente.email || "")}"></label><label class="full">Endereço<input readonly value="${escapar([cliente.endereco?.rua, cliente.endereco?.numero, cliente.endereco?.bairro, cliente.endereco?.complemento].filter(Boolean).join(", "))}"></label><label>Pedidos<input readonly value="${cliente.pedidos.length}"></label><label>Total comprado<input readonly value="${formatarMoedaGestao(cliente.total)}"></label><label class="full">Observação interna<textarea readonly>${escapar(cliente.observacaoGestao || "")}</textarea></label></div><fieldset><legend>Histórico</legend><div class="compact-list">${cliente.pedidos.map(pedido => `<div class="compact-row"><div class="row-main"><strong>${escapar(pedido.numeroExibicao)}</strong><small>${textoData(pedido.dataOperacao)} • ${infoStatus(pedido.status).nome}</small></div><span>${formatarMoedaGestao(pedido.valor)}</span></div>`).join("") || '<div class="empty-state">Nenhum pedido identificado.</div>'}</div></fieldset></div>`, "Cliente"); }
+function abrirCliente(cliente) { abrirModal(cliente.nome || "Cliente", `<div class="modal-form"><div class="form-grid"><label>Telefone<input readonly value="${escapar(cliente.telefone || "")}"></label><label>E-mail<input readonly value="${escapar(cliente.email || "Não cadastrado")}"></label><label class="full">Endereço<input readonly value="${escapar(cliente.enderecoTexto || "Não informado")}"></label><label>Origem do cadastro<input readonly value="${cliente.origemPerfil === "google" ? "Perfil Google" : "WhatsApp/atendimento"}"></label><label>Pedidos<input readonly value="${cliente.pedidos.length}"></label><label>Total comprado<input readonly value="${formatarMoedaGestao(cliente.total)}"></label>${cliente.uid ? `<label class="full">Observação interna<textarea readonly>${escapar(cliente.observacaoGestao || "")}</textarea></label>` : ""}</div><fieldset><legend>Histórico</legend><div class="compact-list">${cliente.pedidos.map(pedido => `<div class="compact-row"><div class="row-main"><strong>${escapar(pedido.numeroExibicao)}</strong><small>${textoData(pedido.dataOperacao)} • ${infoStatus(pedido.status).nome}</small></div><span>${formatarMoedaGestao(pedido.valor)}</span></div>`).join("") || '<div class="empty-state">Nenhum pedido identificado.</div>'}</div></fieldset></div>`, "Cliente"); }
 
-function abrirObservacaoCliente(cliente) { abrirModal("Observação do cliente", `<form id="formObservacaoCliente" class="modal-form"><p>${escapar(cliente.nome)}</p><label>Observação interna<textarea id="clienteObservacao" rows="5" placeholder="Preferências, cuidados ou informações úteis">${escapar(cliente.observacaoGestao || "")}</textarea></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar</button></div></form>`, "Clientes"); $("formObservacaoCliente").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarObservacaoCliente(cliente.uid, $("clienteObservacao").value); fecharModal(); toast("Observação salva.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
+function abrirObservacaoCliente(cliente) { if (!cliente.uid) return toast("Este cliente ainda não possui perfil Google para salvar uma observação.", "error"); abrirModal("Observação do cliente", `<form id="formObservacaoCliente" class="modal-form"><p>${escapar(cliente.nome)}</p><label>Observação interna<textarea id="clienteObservacao" rows="5" placeholder="Preferências, cuidados ou informações úteis">${escapar(cliente.observacaoGestao || "")}</textarea></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar</button></div></form>`, "Clientes"); $("formObservacaoCliente").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarObservacaoCliente(cliente.uid, $("clienteObservacao").value); fecharModal(); toast("Observação salva.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
 
-const permissoesLista = ["pedidos", "cozinha", "entregas", "caixa", "estoque", "compras", "financeiro", "clientes", "relatorios", "configuracoes"];
-function htmlPermissoes(atuais = {}) { return `<div class="permission-grid">${permissoesLista.map(nome => `<label><input type="checkbox" data-permission-input="${nome}" ${atuais[nome] ? "checked" : ""}> ${nome[0].toUpperCase()}${nome.slice(1)}</label>`).join("")}</div>`; }
+const permissoesLista = ["pedidos", "cozinha", "entregas", "caixa", "estoque", "compras", "financeiro", "clientes", "relatorios", "configuracoes", "site"];
+const permissoesDetalhes = {
+  pedidos: ["Pedidos", "Pedidos do site, WhatsApp e atendimento"],
+  cozinha: ["Cozinha", "Fila e andamento do preparo"],
+  entregas: ["Entregas", "Endereços, rotas e conclusão"],
+  caixa: ["Caixa e balcão", "Vendas rápidas e conferência diária"],
+  estoque: ["Estoque", "Insumos, fichas e perdas"],
+  compras: ["Compras", "Fornecedores e entrada de mercadorias"],
+  financeiro: ["Financeiro", "Entradas, despesas e fechamento"],
+  clientes: ["Clientes", "Dados, histórico e observações"],
+  relatorios: ["Relatórios", "Resultados, rankings e exportações"],
+  configuracoes: ["Configuração da gestão", "Meta, capacidade e funcionamento interno"],
+  site: ["Editor do site", "Produtos, promoções, contatos e aparência pública"]
+};
+const cargosEquipe = ["Atendimento", "Operação", "Cozinha", "Caixa", "Entregador", "Estoque e compras", "Gerente", "Editor do site"];
+const presetsEquipe = {
+  Atendimento: { pedidos: true, clientes: true },
+  Operação: { pedidos: true, cozinha: true, entregas: true, clientes: true },
+  Cozinha: { cozinha: true },
+  Caixa: { pedidos: true, caixa: true, clientes: true },
+  Entregador: { entregas: true },
+  "Estoque e compras": { estoque: true, compras: true },
+  Gerente: { pedidos: true, cozinha: true, entregas: true, caixa: true, estoque: true, compras: true, financeiro: true, clientes: true, relatorios: true, configuracoes: true },
+  "Editor do site": { site: true }
+};
+function permissoesDoCargo(cargo = "Atendimento") { const preset = presetsEquipe[cargo] || {}; return Object.fromEntries(permissoesLista.map(nome => [nome, Boolean(preset[nome])])); }
+function resumoPermissoesEquipe(atuais = {}) { const ativas = permissoesLista.filter(nome => atuais?.[nome]); return ativas.length ? ativas.map(nome => `<span>${escapar(permissoesDetalhes[nome][0])}</span>`).join("") : "<span>Sem áreas liberadas</span>"; }
+function htmlCargosEquipe(id, selecionado = "Atendimento") { return `<select id="${id}">${cargosEquipe.map(cargo => `<option ${cargo === selecionado ? "selected" : ""}>${cargo}</option>`).join("")}</select>`; }
+function htmlPermissoes(atuais = {}) { return `<div class="permission-grid">${permissoesLista.map(nome => `<label><input type="checkbox" data-permission-input="${nome}" ${atuais[nome] ? "checked" : ""}><span><b>${permissoesDetalhes[nome][0]}</b><small>${permissoesDetalhes[nome][1]}</small></span></label>`).join("")}</div>`; }
 function lerPermissoesModal() { return Object.fromEntries(permissoesLista.map(nome => [nome, Boolean(document.querySelector(`[data-permission-input="${nome}"]`)?.checked)])); }
-function abrirAprovacaoEquipe(item) { abrirModal(`Liberar ${item.nome || "acesso"}`, `<form id="formAprovarEquipe" class="modal-form"><label>Cargo<select id="equipeCargo"><option>Atendimento</option><option>Cozinha</option><option>Caixa</option><option>Entregador</option><option>Gerente</option></select></label><fieldset><legend>Áreas permitidas</legend>${htmlPermissoes({ pedidos: true, cozinha: true, entregas: true })}</fieldset><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Liberar acesso</button></div></form>`, "Equipe"); $("formAprovarEquipe").addEventListener("submit", async evento => { evento.preventDefault(); try { await aprovarAcessoGestao(item, { cargo: $("equipeCargo").value, permissoes: lerPermissoesModal() }); fecharModal(); toast("Acesso liberado.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
+function aplicarPresetEquipe(cargo) { const permissoes = permissoesDoCargo(cargo); permissoesLista.forEach(nome => { const campo = document.querySelector(`[data-permission-input="${nome}"]`); if (campo) campo.checked = permissoes[nome]; }); }
+function abrirConviteEquipe() {
+  const cargoInicial = "Atendimento";
+  abrirModal("Adicionar à equipe", `<form id="formConviteEquipe" class="modal-form"><div class="form-grid"><label>Nome da pessoa<input id="conviteEquipeNome" maxlength="120" placeholder="Como ela aparecerá na equipe"></label><label>E-mail da conta Google<input id="conviteEquipeEmail" type="email" maxlength="200" required placeholder="pessoa@gmail.com"></label><label class="full">Função sugerida${htmlCargosEquipe("conviteEquipeCargo", cargoInicial)}</label></div><p class="permission-preset">A função marca um conjunto inicial. Você ainda pode ligar ou desligar qualquer área abaixo.</p><fieldset><legend>O que esta pessoa poderá acessar</legend>${htmlPermissoes(permissoesDoCargo(cargoInicial))}</fieldset><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Criar convite</button></div></form>`, "Acesso seguro");
+  $("conviteEquipeCargo").addEventListener("change", evento => aplicarPresetEquipe(evento.target.value));
+  $("formConviteEquipe").addEventListener("submit", async evento => {
+    evento.preventDefault();
+    try {
+      await criarConviteEquipe({ nome: $("conviteEquipeNome").value, email: $("conviteEquipeEmail").value, cargo: $("conviteEquipeCargo").value, permissoes: lerPermissoesModal() });
+      fecharModal(); toast("Convite criado. A pessoa deve entrar na Gestão com esse mesmo e-mail Google.", "success");
+    } catch (erro) { toast(erro.message || "Não foi possível criar o convite.", "error"); }
+  });
+}
+function abrirAprovacaoEquipe(item) { const cargoInicial = "Operação"; abrirModal(`Liberar ${item.nome || "acesso"}`, `<form id="formAprovarEquipe" class="modal-form"><label>Cargo${htmlCargosEquipe("equipeCargo", cargoInicial)}</label><p class="permission-preset">Confira cada área antes de liberar.</p><fieldset><legend>Áreas permitidas</legend>${htmlPermissoes(permissoesDoCargo(cargoInicial))}</fieldset><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Liberar acesso</button></div></form>`, "Equipe"); $("equipeCargo").addEventListener("change", evento => aplicarPresetEquipe(evento.target.value)); $("formAprovarEquipe").addEventListener("submit", async evento => { evento.preventDefault(); try { await aprovarAcessoGestao(item, { cargo: $("equipeCargo").value, permissoes: lerPermissoesModal() }); fecharModal(); toast("Acesso liberado.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
 function abrirEdicaoEquipe(item) { abrirModal(`Editar ${item.nome}`, `<form id="formEditarEquipe" class="modal-form"><label>Cargo<input id="equipeCargoEdit" value="${escapar(item.cargo || "Colaborador")}"></label><label class="toggle-row"><input id="equipeAtivoEdit" type="checkbox" ${item.ativo !== false ? "checked" : ""}><span><b>Acesso ativo</b></span></label><fieldset><legend>Áreas permitidas</legend>${htmlPermissoes(item.permissoes || {})}</fieldset><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar acesso</button></div></form>`, "Equipe"); $("formEditarEquipe").addEventListener("submit", async evento => { evento.preventDefault(); try { await atualizarMembroEquipe(item.uid, { cargo: $("equipeCargoEdit").value, ativo: $("equipeAtivoEdit").checked, permissoes: lerPermissoesModal() }); fecharModal(); toast("Acesso atualizado.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
 
 function lidarAcao(acao) {
+  if (acao === "convidar-equipe" && !isAdmin) return toast("Somente o administrador principal pode convidar pessoas.", "error");
   const permissaoAcao = {
     "novo-pedido": "pedidos",
     "novo-insumo": "estoque",
@@ -910,7 +1109,7 @@ function lidarAcao(acao) {
     "fechar-caixa": "caixa"
   };
   if (permissaoAcao[acao] && !pode(permissaoAcao[acao])) return toast("Seu acesso não permite esta ação.", "error");
-  const mapa = { "novo-pedido": abrirNovoPedido, "novo-insumo": () => abrirInsumo(), "nova-ficha": abrirFicha, "nova-perda": abrirPerda, "novo-fornecedor": () => abrirFornecedor(), "nova-compra": abrirCompra, "novo-movimento": abrirMovimentoFinanceiro, "digitalizar-venda": abrirDigitalizacaoVenda, "abrir-caixa": abrirCaixa, "movimento-caixa": abrirMovimentoCaixa, "fechar-caixa": abrirFechamentoCaixa };
+  const mapa = { "novo-pedido": abrirNovoPedido, "novo-insumo": () => abrirInsumo(), "nova-ficha": abrirFicha, "nova-perda": abrirPerda, "novo-fornecedor": () => abrirFornecedor(), "nova-compra": abrirCompra, "novo-movimento": abrirMovimentoFinanceiro, "digitalizar-venda": abrirDigitalizacaoVenda, "abrir-caixa": abrirCaixa, "movimento-caixa": abrirMovimentoCaixa, "fechar-caixa": abrirFechamentoCaixa, "convidar-equipe": abrirConviteEquipe };
   mapa[acao]?.();
 }
 
@@ -950,14 +1149,21 @@ const periodo = periodoPadrao();
 $("aplicarPeriodoFinanceiro").addEventListener("click", renderFinanceiro);
 $("gerarRelatorioGestao").addEventListener("click", renderRelatorios);
 $("exportarRelatorioGestao").addEventListener("click", exportarRelatorioCsv);
+$("imprimirRelatorioGestao").addEventListener("click", imprimirRelatorioGestao);
 $("fecharMesGestao").addEventListener("click", fecharMesRelatorio);
 $("exportarBackupGestao").addEventListener("click", exportarBackupGestao);
 $("arquivoBackupGestao").addEventListener("change", selecionarBackupGestao);
 $("restaurarBackupGestao").addEventListener("click", restaurarBackupGestao);
-$("formConfiguracaoOperacao").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarConfiguracaoOperacao({ metaDiaria: numeroSeguro($("configMetaDiaria").value), tempoPreparo: numeroSeguro($("configTempoPreparo").value), limitePedidos: numeroSeguro($("configLimitePedidos").value), responsavel: $("configResponsavel").value, somPedidos: $("configSomPedidos").checked, baixaEstoque: $("configBaixaEstoque").checked }); toast("Preferências salvas.", "success"); } catch (erro) { toast(erro.message, "error"); } });
+$("formConfiguracaoOperacao").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarConfiguracaoOperacao({ metaDiaria: numeroSeguro($("configMetaDiaria").value), tempoPreparo: numeroSeguro($("configTempoPreparo").value), diasAntecedenciaEncomendas: Math.max(0, Math.min(90, numeroSeguro($("configDiasEncomendas").value))), limitePedidos: numeroSeguro($("configLimitePedidos").value), responsavel: $("configResponsavel").value, somPedidos: $("configSomPedidos").checked, baixaEstoque: $("configBaixaEstoque").checked }); toast("Preferências salvas. A agenda e a produção já foram atualizadas.", "success"); } catch (erro) { toast(erro.message, "error"); } });
 window.addEventListener("online", () => { $("conexaoGestao").classList.remove("offline"); $("conexaoGestao").lastChild.textContent = " Sincronizado"; renderTudo(); });
 window.addEventListener("offline", () => { $("conexaoGestao").classList.add("offline"); $("conexaoGestao").lastChild.textContent = " Sem conexão"; });
 window.addEventListener("keydown", evento => { if (evento.key === "Escape" && !$("gestaoModal").hidden) fecharModal(); });
 window.setInterval(() => { $("relogioGestao").textContent = horaLoja(); $("dataGestao").textContent = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "long" }).format(new Date()); }, 1000);
+window.setInterval(() => {
+  if ($("gestaoApp").hidden) return;
+  renderDashboard();
+  if (paginaAtual === "pedidos") renderPedidos();
+  if (paginaAtual === "cozinha") renderCozinha();
+}, 60000);
 onAuthStateChanged(auth, processarUsuario);
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("../service-worker.js", { scope: "/" }).catch(() => {});

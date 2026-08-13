@@ -1,0 +1,80 @@
+/* Gestão V1.3 — agenda inteligente e acessos da equipe */
+.schedule-explainer {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-color: #dfc89f;
+  background: linear-gradient(135deg, #fffdf8, #fff5dc);
+}
+.schedule-explainer > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: #f3c765;
+  color: #542016;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+.schedule-explainer strong { color: var(--wine); }
+.schedule-explainer p { margin-top: 3px; color: var(--muted); font-size: .79rem; line-height: 1.45; }
+.schedule-window {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 9px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #fff0c9;
+  color: #7a5106;
+  font-size: .71rem;
+  font-weight: 850;
+}
+.schedule-window.available { background: #ddf2e5; color: #256643; }
+.schedule-window.early { background: #fbe0dc; color: #8e3027; }
+.appointment-card.future-appointment { border-color: #e2c78f; background: linear-gradient(145deg, #fffdf8, #fff9e9); }
+
+.team-invite-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
+  padding: 22px;
+  border-color: #d9b36b;
+  background: radial-gradient(circle at 92% 20%, rgba(239,169,40,.18), transparent 13rem), linear-gradient(135deg, #fffdf8, #fff5df);
+}
+.team-invite-hero h3 { margin: 4px 0 7px; color: var(--wine); font-size: 1.2rem; }
+.team-invite-hero p:not(.kicker) { max-width: 700px; color: var(--muted); line-height: 1.5; }
+.team-invite-hero .primary-btn { flex: 0 0 auto; }
+.team-requests { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.permission-summary { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.permission-summary span {
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #f1e8dc;
+  color: #6d5548;
+  font-size: .62rem;
+  font-weight: 800;
+}
+.invite-row { align-items: center; }
+.invite-actions { display: flex; align-items: center; gap: 6px; }
+.invite-state { color: #95630b; font-size: .66rem; font-weight: 850; }
+.permission-preset { padding: 11px 12px; border: 1px solid #e3d1be; border-radius: 13px; background: #fffaf1; color: var(--muted); font-size: .77rem; line-height: 1.45; }
+.permission-grid label { align-items: flex-start; }
+.permission-grid label span { display: block; }
+.permission-grid label small { display: block; margin-top: 2px; color: var(--muted); font-size: .64rem; line-height: 1.35; }
+.settings-form label > small { margin-top: 4px; color: var(--muted); font-size: .67rem; line-height: 1.35; }
+
+@media (max-width: 760px) {
+  .team-invite-hero { align-items: stretch; flex-direction: column; padding: 18px; }
+  .team-invite-hero .primary-btn { width: 100%; }
+  .schedule-explainer { align-items: flex-start; }
+  .invite-row { grid-template-columns: auto minmax(0, 1fr); }
+  .invite-actions { grid-column: 1 / -1; width: 100%; }
+  .invite-actions button { flex: 1; }
+}

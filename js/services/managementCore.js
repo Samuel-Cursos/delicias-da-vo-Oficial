@@ -79,6 +79,143 @@ function instante(registro = {}) {
     || 0;
 }
 
+export function minutosDesdePedido(pedido = {}, agoraMs = Date.now()) {
+  const inicio = numeroSeguro(pedido._instante) || instante(pedido);
+  if (!inicio) return 0;
+  return Math.max(0, Math.floor((numeroSeguro(agoraMs) - inicio) / 60000));
+}
+
+export function avaliarPrazoPedido(pedido = {}, tempoPreparo = 40, agoraMs = Date.now()) {
+  if (statusFinal(pedido.status)) return { minutos: 0, atrasado: false, proximoDoLimite: false, texto: "Finalizado" };
+  if (pedido.dataOperacao && pedido.dataOperacao > dataLojaISO(new Date(agoraMs))) {
+    return { minutos: 0, atrasado: false, proximoDoLimite: false, agendado: true, texto: "Agendado" };
+  }
+  const minutos = minutosDesdePedido(pedido, agoraMs);
+  const limite = Math.max(1, numeroSeguro(tempoPreparo) || 40);
+  const atrasado = minutos > limite;
+  const proximoDoLimite = !atrasado && minutos >= Math.max(1, limite - 10);
+  return {
+    minutos,
+    limite,
+    atrasado,
+    proximoDoLimite,
+    texto: atrasado ? `${minutos - limite} min atrasado` : `${minutos} min na fila`
+  };
+}
+
+function dataIsoEmMs(dataISO = "") {
+  const instante = Date.parse(`${String(dataISO || "").slice(0, 10)}T12:00:00Z`);
+  return Number.isFinite(instante) ? instante : 0;
+}
+
+export function avaliarJanelaEncomenda(pedido = {}, diasAntecedencia = 7, hojeISO = dataLojaISO()) {
+  const ehEncomenda = pedido.origemTipo === "festa";
+  const dataEvento = pedido.dataOperacao || pedido.dataFesta || pedido.dataEntregaISO || "";
+  if (!ehEncomenda) return { ehEncomenda: false, preparoLiberado: true, dataEvento, texto: "Pedido atual" };
+  if (!dataEvento || !dataIsoEmMs(dataEvento)) {
+    return { ehEncomenda: true, preparoLiberado: true, dataEvento: "", texto: "Data não informada" };
+  }
+
+  const antecedenciaInformada = diasAntecedencia === undefined || diasAntecedencia === null || diasAntecedencia === "" ? 7 : numeroSeguro(diasAntecedencia);
+  const antecedencia = Math.max(0, Math.min(90, Math.round(antecedenciaInformada)));
+  const eventoMs = dataIsoEmMs(dataEvento);
+  const hojeMs = dataIsoEmMs(hojeISO) || dataIsoEmMs(dataLojaISO());
+  const umDia = 86_400_000;
+  const liberarMs = eventoMs - antecedencia * umDia;
+  const dataLiberacao = new Date(liberarMs).toISOString().slice(0, 10);
+  const diasParaEvento = Math.ceil((eventoMs - hojeMs) / umDia);
+  const diasParaLiberar = Math.max(0, Math.ceil((liberarMs - hojeMs) / umDia));
+  const preparoJaIniciado = ["producao", "pronto", "saiu_entrega"].includes(pedido.status);
+  const preparoLiberado = preparoJaIniciado || hojeMs >= liberarMs;
+
+  let texto;
+  if (preparoJaIniciado && hojeMs < liberarMs) texto = "Preparo iniciado antecipadamente";
+  else if (!preparoLiberado) texto = `Preparo libera em ${diasParaLiberar} dia${diasParaLiberar === 1 ? "" : "s"}`;
+  else if (diasParaEvento > 1) texto = `${diasParaEvento} dias para a entrega`;
+  else if (diasParaEvento === 1) texto = "Entrega amanhã";
+  else if (diasParaEvento === 0) texto = "Entrega hoje";
+  else texto = `${Math.abs(diasParaEvento)} dia${Math.abs(diasParaEvento) === 1 ? "" : "s"} em atraso`;
+
+  return {
+    ehEncomenda: true,
+    preparoLiberado,
+    preparoJaIniciado,
+    dataEvento,
+    dataLiberacao,
+    diasParaEvento,
+    diasParaLiberar,
+    antecedencia,
+    texto
+  };
+}
+
+export function filtrarPedidosOperacionais(pedidos = [], diasAntecedencia = 7, hojeISO = dataLojaISO()) {
+  return pedidos.filter(pedido => avaliarJanelaEncomenda(pedido, diasAntecedencia, hojeISO).preparoLiberado);
+}
+
+function telefoneNormalizado(valor = "") {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function chaveNome(valor = "") {
+  return String(valor || "cliente").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+export function consolidarClientesGestao({ usuarios = [], pedidos = [] } = {}) {
+  const clientes = [];
+  const porUid = new Map();
+  const porTelefone = new Map();
+
+  usuarios.filter(usuario => usuario.tipo !== "admin").forEach(usuario => {
+    const telefoneChave = telefoneNormalizado(usuario.telefone);
+    const cliente = {
+      ...usuario,
+      chave: `usuario:${usuario.uid || usuario.id}`,
+      uid: usuario.uid || usuario.id || "",
+      nome: usuario.nome || "Cliente",
+      telefone: usuario.telefone || "",
+      enderecoTexto: [usuario.endereco?.rua, usuario.endereco?.numero, usuario.endereco?.bairro, usuario.endereco?.complemento].filter(Boolean).join(", "),
+      pedidos: []
+    };
+    clientes.push(cliente);
+    if (cliente.uid) porUid.set(cliente.uid, cliente);
+    if (telefoneChave.length >= 8) porTelefone.set(telefoneChave, cliente);
+  });
+
+  const convidados = new Map();
+  pedidos.forEach(pedido => {
+    const uid = pedido.usuarioId || pedido.cliente?.uid || "";
+    const telefone = pedido.clienteTelefone || pedido.cliente?.telefone || "";
+    const telefoneChave = telefoneNormalizado(telefone);
+    let cliente = (uid && porUid.get(uid)) || (telefoneChave.length >= 8 && porTelefone.get(telefoneChave));
+
+    if (!cliente) {
+      const nome = pedido.clienteNome || pedido.cliente?.nome || "Cliente";
+      const chave = telefoneChave.length >= 8 ? `telefone:${telefoneChave}` : `nome:${chaveNome(nome)}`;
+      cliente = convidados.get(chave);
+      if (!cliente) {
+        const enderecoTexto = pedido.endereco || [pedido.enderecoDetalhado?.rua, pedido.enderecoDetalhado?.numero, pedido.enderecoDetalhado?.bairro, pedido.enderecoDetalhado?.complemento].filter(Boolean).join(", ");
+        cliente = { chave, uid: "", nome, telefone, email: "", enderecoTexto, endereco: pedido.enderecoDetalhado || {}, observacaoGestao: "", pedidos: [] };
+        convidados.set(chave, cliente);
+        clientes.push(cliente);
+      }
+    }
+    cliente.pedidos.push(pedido);
+  });
+
+  return clientes.map(cliente => {
+    const pedidosOrdenados = [...cliente.pedidos].sort((a, b) => numeroSeguro(b._instante) - numeroSeguro(a._instante));
+    const validos = pedidosOrdenados.filter(pedido => !["cancelado", "cancelada"].includes(pedido.status));
+    return {
+      ...cliente,
+      pedidos: pedidosOrdenados,
+      total: validos.reduce((soma, pedido) => soma + numeroSeguro(pedido.valor), 0),
+      ultimo: pedidosOrdenados[0] || null,
+      origemPerfil: cliente.uid ? "google" : "atendimento"
+    };
+  }).sort((a, b) => numeroSeguro(b.ultimo?._instante) - numeroSeguro(a.ultimo?._instante) || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
 export function consolidarPedidosGestao({ site = [], manuais = [], encomendas = [] } = {}) {
   const normais = site.map(pedido => ({
     ...pedido,
@@ -134,13 +271,14 @@ export function consolidarPedidosGestao({ site = [], manuais = [], encomendas = 
   return [...normais, ...locais, ...festas].sort((a, b) => b._instante - a._instante);
 }
 
-export function pedidosDaCozinha(pedidos = []) {
-  return pedidos.filter(pedido => !["registrado", "aguardando_confirmacao", "saiu_entrega", "entregue", "concluida", "concluido", "cancelado", "cancelada"].includes(pedido.status));
+export function pedidosDaCozinha(pedidos = [], { diasAntecedencia = 7, hojeISO = dataLojaISO() } = {}) {
+  return filtrarPedidosOperacionais(pedidos, diasAntecedencia, hojeISO)
+    .filter(pedido => !["registrado", "aguardando_confirmacao", "saiu_entrega", "entregue", "concluida", "concluido", "cancelado", "cancelada"].includes(pedido.status));
 }
 
-export function gerarNecessidadesProducao(pedidos = []) {
+export function gerarNecessidadesProducao(pedidos = [], opcoes = {}) {
   const mapa = new Map();
-  pedidosDaCozinha(pedidos).forEach(pedido => {
+  pedidosDaCozinha(pedidos, opcoes).forEach(pedido => {
     pedido.itens.forEach(item => {
       const nome = String(item.nome || "Item").trim();
       const detalhe = String(item.sabor || item.variacaoNome || item.variacao || "").trim();
@@ -185,7 +323,8 @@ function vendaNaData(registro, dataISO) {
   return (registro.dataISO || registro.dataFesta || "") === dataISO;
 }
 
-export function calcularResumoOperacao({ pedidos = [], vendas = [], movimentos = [], produtos = [], insumos = [], dataISO = dataLojaISO() } = {}) {
+export function calcularResumoOperacao({ pedidos = [], vendas = [], movimentos = [], produtos = [], insumos = [], dataISO = dataLojaISO(), diasAntecedenciaEncomendas = 7 } = {}) {
+  const pedidosOperacionais = filtrarPedidosOperacionais(pedidos, diasAntecedenciaEncomendas, dataISO);
   const pedidosHoje = pedidos.filter(pedido => pedido.dataOperacao === dataISO || (!pedido.dataOperacao && vendaNaData(pedido, dataISO)));
   const vendasHoje = vendas.filter(venda => vendaNaData(venda, dataISO) && !["cancelada", "cancelado"].includes(venda.status));
   const movimentosHoje = movimentos.filter(item => item.dataISO === dataISO);
@@ -193,14 +332,15 @@ export function calcularResumoOperacao({ pedidos = [], vendas = [], movimentos =
   const receitaBalcao = vendasHoje.reduce((soma, venda) => soma + numeroSeguro(venda.total), 0);
   const entradasManuais = movimentosHoje.filter(item => item.tipo === "entrada" && !String(item.origem || "").startsWith("pedido-")).reduce((soma, item) => soma + numeroSeguro(item.valor), 0);
   const saidas = movimentosHoje.filter(item => item.tipo === "saida").reduce((soma, item) => soma + numeroSeguro(item.valor), 0);
-  const abertos = pedidos.filter(pedido => !statusFinal(pedido.status));
+  const abertos = pedidosOperacionais.filter(pedido => !statusFinal(pedido.status));
 
   return {
     pedidosHoje: pedidosHoje.length,
     pedidosAbertos: abertos.length,
-    emProducao: pedidos.filter(pedido => pedido.status === "producao").length,
-    prontos: pedidos.filter(pedido => pedido.status === "pronto").length,
-    entregasPendentes: pedidos.filter(pedido => pedido.tipoAtendimento === "Entrega" && ["confirmado", "producao", "pronto", "saiu_entrega"].includes(pedido.status)).length,
+    emProducao: pedidosOperacionais.filter(pedido => pedido.status === "producao").length,
+    prontos: pedidosOperacionais.filter(pedido => pedido.status === "pronto").length,
+    entregasPendentes: pedidosOperacionais.filter(pedido => pedido.tipoAtendimento === "Entrega" && ["confirmado", "producao", "pronto", "saiu_entrega"].includes(pedido.status)).length,
+    encomendasAgendadas: pedidos.filter(pedido => pedido.origemTipo === "festa" && !statusFinal(pedido.status) && !avaliarJanelaEncomenda(pedido, diasAntecedenciaEncomendas, dataISO).preparoLiberado).length,
     receita: receitaPedidos + receitaBalcao + entradasManuais,
     despesas: saidas,
     saldo: receitaPedidos + receitaBalcao + entradasManuais - saidas,
