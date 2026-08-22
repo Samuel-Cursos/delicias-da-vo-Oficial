@@ -1,4 +1,4 @@
-const CACHE_NAME = "delicias-da-vo-gestao-v1-3";
+const CACHE_NAME = "delicias-da-vo-marmitas-empresariais-v2";
 
 const ARQUIVOS_CACHE = [
   "/",
@@ -27,6 +27,8 @@ const ARQUIVOS_CACHE = [
   "/js/services/documentAiService.js",
   "/js/services/centralOrderService.js",
   "/js/services/dailyMenuService.js",
+  "/js/services/businessProposal.js",
+  "/js/services/businessRequestService.js",
   "/js/services/managementCore.js",
   "/js/services/managementService.js",
   "/js/services/backupService.js",

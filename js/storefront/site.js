@@ -10,6 +10,12 @@ import { gerarPedidoSite } from "../services/orderService.js";
 import { salgadosFesta, observarSalgadosFesta, calcularPrecoFesta, textoPrecoFesta, normalizarPrecoFesta } from "../services/partyProductService.js";
 import { registrarEncomendaFesta } from "../services/partyOrderService.js";
 import { cardapioDiarioAtual, observarCardapioDiario, produtoLiberadoNoCardapio } from "../services/dailyMenuService.js";
+import {
+  descreverFrequenciaEmpresa, montarMensagemPropostaEmpresa, validarPropostaEmpresa
+} from "../services/businessProposal.js";
+import {
+  configuracaoEmpresas, observarConfiguracaoEmpresas, registrarSolicitacaoEmpresa
+} from "../services/businessRequestService.js";
 
 let categoriaAtual = "todos";
 let carrinho = carregarLocal(APP_CONFIG.storageCarrinho, []);
@@ -18,6 +24,7 @@ let ultimoFocoAntesCarrinho = null;
 let taxaEntregaAtual = null;
 let timerCalculoEntrega = null;
 let solicitacaoEntregaAtual = 0;
+let timerCepEmpresa = null;
 
 window.addEventListener("perfil-cliente-atualizado", event => {
   const perfil = event.detail?.perfil || null;
@@ -40,6 +47,8 @@ observarCardapioDiario(() => {
   renderCardapioDiaSite();
   atualizarCarrinho();
 });
+
+observarConfiguracaoEmpresas(configuracao => aplicarConfiguracaoEmpresas(configuracao));
 
 observarProdutos((_, erro, usandoCache) => {
   sincronizarCarrinhoDisponibilidade(true);
@@ -124,6 +133,13 @@ function preencherDadosCliente(perfil, sobrescrever = false) {
   preencherCampo("bairroFesta", endereco.bairro, sobrescrever);
   preencherCampo("complementoFesta", endereco.complemento, sobrescrever);
 
+  preencherCampo("empresaResponsavel", perfil.nome, sobrescrever);
+  preencherCampo("empresaWhatsapp", perfil.telefone, sobrescrever);
+  preencherCampo("empresaRua", endereco.rua, sobrescrever);
+  preencherCampo("empresaNumero", endereco.numero, sobrescrever);
+  preencherCampo("empresaBairro", endereco.bairro, sobrescrever);
+  preencherCampo("empresaComplemento", endereco.complemento, sobrescrever);
+
   if (aviso) {
     const perfilCompleto = Boolean(perfil.telefone && endereco.rua && endereco.numero && endereco.bairro);
     aviso.textContent = perfilCompleto
@@ -188,6 +204,16 @@ const camposCepPorOrigem = {
     rua: "ruaPerfilCliente",
     bairro: "bairroPerfilCliente",
     numero: "numeroPerfilCliente"
+  },
+  empresa: {
+    cep: "empresaCep",
+    botao: "btnCepEmpresa",
+    status: "statusCepEmpresa",
+    rua: "empresaRua",
+    bairro: "empresaBairro",
+    numero: "empresaNumero",
+    cidade: "empresaCidade",
+    uf: "empresaUf"
   }
 };
 
@@ -199,6 +225,7 @@ function formatarCep(valor = "") {
 async function buscarCepEndereco(origem = "normal") {
   const campos = camposCepPorOrigem[origem];
   if (!campos) return;
+  if (origem === "empresa") clearTimeout(timerCepEmpresa);
 
   const inputCep = document.getElementById(campos.cep);
   const botao = document.getElementById(campos.botao);
@@ -234,8 +261,12 @@ async function buscarCepEndereco(origem = "normal") {
 
     const rua = document.getElementById(campos.rua);
     const bairro = document.getElementById(campos.bairro);
+    const cidade = document.getElementById(campos.cidade);
+    const uf = document.getElementById(campos.uf);
     if (rua) rua.value = limparTexto(endereco.logradouro || "");
     if (bairro) bairro.value = limparTexto(endereco.bairro || "");
+    if (cidade) cidade.value = limparTexto(endereco.localidade || "");
+    if (uf) uf.value = limparTexto(endereco.uf || "");
 
     if (status) {
       const localidade = [endereco.localidade, endereco.uf].filter(Boolean).join(" - ");
@@ -260,14 +291,26 @@ async function buscarCepEndereco(origem = "normal") {
   }
 }
 
-document.querySelectorAll("#cepCliente, #cepFesta, #cepPerfilCliente").forEach(input => {
+document.querySelectorAll("#cepCliente, #cepFesta, #cepPerfilCliente, #empresaCep").forEach(input => {
   input.addEventListener("input", () => {
     input.value = formatarCep(input.value);
+    if (input.id === "empresaCep") {
+      clearTimeout(timerCepEmpresa);
+      if (input.value.replace(/\D/g, "").length === 8) {
+        timerCepEmpresa = setTimeout(() => buscarCepEndereco("empresa"), 450);
+      }
+    }
   });
   input.addEventListener("keydown", event => {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    const origem = input.id === "cepFesta" ? "festa" : input.id === "cepPerfilCliente" ? "perfil" : "normal";
+    const origem = input.id === "cepFesta"
+      ? "festa"
+      : input.id === "cepPerfilCliente"
+        ? "perfil"
+        : input.id === "empresaCep"
+          ? "empresa"
+          : "normal";
     buscarCepEndereco(origem);
   });
 });
@@ -1734,9 +1777,248 @@ window.alterarItem = alterarItemImpl;
 window.finalizarPedido = finalizarPedidoImpl;
 
 
+function configurarBotoesAreas(areaAtiva = "principal") {
+  const botaoEmpresas = document.getElementById("btnEmpresasTopo");
+  const botaoFestas = document.getElementById("btnFestasTopo");
+
+  if (botaoEmpresas) {
+    botaoEmpresas.innerHTML = areaAtiva === "empresas"
+      ? '🏠 <span class="desktop-label">Cardápio principal</span><span class="mobile-label">Início</span>'
+      : '🏢 <span class="desktop-label">Marmitas para Empresas</span><span class="mobile-label">Empresas</span>';
+    botaoEmpresas.onclick = areaAtiva === "empresas" ? voltarCardapioPrincipal : abrirAreaEmpresas;
+  }
+
+  if (botaoFestas) {
+    botaoFestas.innerHTML = areaAtiva === "festas"
+      ? '🏠 <span class="desktop-label">Cardápio principal</span><span class="mobile-label">Início</span>'
+      : '🎉 <span class="desktop-label">Salgados para Festas</span><span class="mobile-label">Festas</span>';
+    botaoFestas.onclick = areaAtiva === "festas" ? voltarCardapioPrincipal : abrirAreaFestas;
+  }
+}
+
+function alternarAreaPublica(areaAtiva) {
+  const areaPrincipal = document.getElementById("areaPrincipal");
+  const areaEmpresas = document.getElementById("areaEmpresas");
+  const areaFestas = document.getElementById("areaFestas");
+
+  if (areaPrincipal) areaPrincipal.hidden = areaAtiva !== "principal";
+  if (areaEmpresas) areaEmpresas.hidden = areaAtiva !== "empresas";
+  if (areaFestas) areaFestas.hidden = areaAtiva !== "festas";
+  configurarBotoesAreas(areaAtiva);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function abrirAreaFestas() {
+  alternarAreaPublica("festas");
+  renderSalgadosFesta();
+}
+
+function diasAtendimentoEmpresa() {
+  const dias = Array.isArray(configuracaoEmpresas.diasAtendimento)
+    ? configuracaoEmpresas.diasAtendimento
+    : [];
+  return dias.length ? dias : ["segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+}
+
+function diasSelecionadosEmpresa() {
+  const tipo = document.getElementById("empresaFrequencia")?.value || "";
+  if (tipo === "todos") return diasAtendimentoEmpresa();
+  if (tipo === "especifico") {
+    const dia = document.getElementById("empresaDiaEspecifico")?.value || "";
+    return dia ? [dia] : [];
+  }
+  if (tipo === "alguns") {
+    return [...document.querySelectorAll("#empresaDiasSemana input:checked")].map(campo => campo.value);
+  }
+  return [];
+}
+
+function atualizarFrequenciaEmpresa() {
+  const tipo = document.getElementById("empresaFrequencia")?.value || "";
+  const campoDias = document.getElementById("empresaDiasSemanaCampo");
+  const campoEspecifico = document.getElementById("empresaDiaEspecificoCampo");
+  if (campoDias) campoDias.hidden = tipo !== "alguns";
+  if (campoEspecifico) campoEspecifico.hidden = tipo !== "especifico";
+}
+
+function atualizarRecebimentoEmpresa() {
+  const entrega = document.getElementById("empresaRecebimento")?.value === "Entrega na empresa";
+  const endereco = document.getElementById("empresaEnderecoCampos");
+  if (endereco) endereco.hidden = !entrega;
+  ["empresaCep", "empresaRua", "empresaNumero", "empresaBairro"].forEach(id => {
+    const campo = document.getElementById(id);
+    if (campo) campo.required = entrega;
+  });
+}
+
+function aplicarConfiguracaoEmpresas(configuracao = configuracaoEmpresas) {
+  const ativo = configuracao.ativo !== false;
+  const minimo = Math.max(5, Number(configuracao.pedidoMinimo || 5));
+  document.querySelectorAll("#btnEmpresasTopo, [data-acao-empresas], .empresas-chamada").forEach(elemento => {
+    elemento.hidden = !ativo;
+  });
+  if (!ativo && !document.getElementById("areaEmpresas")?.hidden) voltarCardapioPrincipal();
+
+  const textos = {
+    empresaMinimoChamada: `✓ A partir de ${minimo} marmitas por dia`,
+    empresaMinimoSelo: `${minimo}+`,
+    empresaMinimoHero: `✓ Mínimo de ${minimo} por dia`,
+    empresaMinimoPainel: `${minimo}+`,
+    empresaMinimoRegra: `${minimo} marmitas por dia`,
+    empresaMinimoAjuda: `Mínimo de ${minimo} marmitas por dia.`,
+    empresaEntregaTexto: configuracao.entregaTexto || "Grátis até 3 km • após 3 km, há taxa.",
+    empresaObservacaoConfig: configuracao.observacao || "Valores, cardápio e condições são confirmados no atendimento."
+  };
+  Object.entries(textos).forEach(([id, texto]) => {
+    const elemento = document.getElementById(id);
+    if (elemento) elemento.textContent = texto;
+  });
+
+  const quantidade = document.getElementById("empresaQuantidade");
+  if (quantidade) {
+    quantidade.min = String(minimo);
+    if (Number(quantidade.value || 0) < minimo) quantidade.value = String(minimo);
+  }
+
+  const permitidos = new Set(diasAtendimentoEmpresa());
+  document.querySelectorAll("#empresaDiasSemana input").forEach(campo => {
+    const disponivel = permitidos.has(campo.value);
+    campo.disabled = !disponivel;
+    campo.closest("label").hidden = !disponivel;
+    if (!disponivel) campo.checked = false;
+  });
+  document.querySelectorAll("#empresaDiaEspecifico option[value]").forEach(opcao => {
+    if (!opcao.value) return;
+    opcao.hidden = !permitidos.has(opcao.value);
+    opcao.disabled = !permitidos.has(opcao.value);
+  });
+  const todos = document.querySelector("#empresaFrequencia option[value='todos']");
+  if (todos) todos.textContent = permitidos.size === 6
+    ? "Todos os dias (segunda a sábado)"
+    : "Todos os dias disponíveis";
+  atualizarFrequenciaEmpresa();
+  atualizarRecebimentoEmpresa();
+}
+
+function abrirAreaEmpresas() {
+  if (configuracaoEmpresas.ativo === false) {
+    alert("O atendimento empresarial está temporariamente indisponível.");
+    return;
+  }
+  alternarAreaPublica("empresas");
+  preencherDadosCliente(window.perfilClienteAtual);
+  aplicarConfiguracaoEmpresas();
+
+  const campoData = document.getElementById("empresaDataInicio");
+  if (campoData && !campoData.min) {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    campoData.min = `${ano}-${mes}-${dia}`;
+  }
+}
+
+function voltarCardapioPrincipal() {
+  alternarAreaPublica("principal");
+}
+
+function informarErroPropostaEmpresa(mensagem, campoId) {
+  const status = document.getElementById("statusPropostaEmpresa");
+  const campo = document.getElementById(campoId);
+  if (status) {
+    status.className = "empresas-form-status erro";
+    status.textContent = mensagem;
+  }
+  campo?.setAttribute("aria-invalid", "true");
+  const foco = campo?.matches?.("input,select,textarea,button") ? campo : campo?.querySelector?.("input,select,textarea,button");
+  foco?.focus();
+}
+
+async function enviarPropostaEmpresa(event) {
+  event?.preventDefault();
+
+  document.querySelectorAll("#formEmpresas [aria-invalid='true']").forEach(campo => {
+    campo.removeAttribute("aria-invalid");
+  });
+
+  const frequenciaTipo = limparTexto(document.getElementById("empresaFrequencia")?.value || "");
+  const diasSemana = diasSelecionadosEmpresa();
+  const recebimento = limparTexto(document.getElementById("empresaRecebimento")?.value || "");
+  const dados = {
+    empresa: limparTexto(document.getElementById("empresaNome")?.value || ""),
+    responsavel: limparTexto(document.getElementById("empresaResponsavel")?.value || ""),
+    telefone: limparTexto(document.getElementById("empresaWhatsapp")?.value || ""),
+    quantidade: Number(document.getElementById("empresaQuantidade")?.value || 0),
+    pedidoMinimo: Math.max(5, Number(configuracaoEmpresas.pedidoMinimo || 5)),
+    frequenciaTipo,
+    diasSemana,
+    frequencia: descreverFrequenciaEmpresa(frequenciaTipo, diasSemana),
+    recebimento,
+    endereco: {
+      cep: limparTexto(document.getElementById("empresaCep")?.value || ""),
+      rua: limparTexto(document.getElementById("empresaRua")?.value || ""),
+      numero: limparTexto(document.getElementById("empresaNumero")?.value || ""),
+      bairro: limparTexto(document.getElementById("empresaBairro")?.value || ""),
+      complemento: limparTexto(document.getElementById("empresaComplemento")?.value || ""),
+      cidade: limparTexto(document.getElementById("empresaCidade")?.value || ""),
+      uf: limparTexto(document.getElementById("empresaUf")?.value || "").toUpperCase()
+    },
+    horario: limparTexto(document.getElementById("empresaHorario")?.value || ""),
+    dataInicio: limparTexto(document.getElementById("empresaDataInicio")?.value || ""),
+    observacoes: limparTexto(document.getElementById("empresaObservacoes")?.value || "")
+  };
+  const validacao = validarPropostaEmpresa(dados);
+  if (!validacao.valido) return informarErroPropostaEmpresa(validacao.mensagem, validacao.campo);
+
+  const numero = String(lojaConfig.whatsapp || APP_CONFIG.whatsapp).replace(/\D/g, "");
+  const status = document.getElementById("statusPropostaEmpresa");
+  const botao = document.querySelector("#formEmpresas .empresas-enviar");
+  const janelaWhatsapp = window.open("about:blank", "_blank");
+  if (janelaWhatsapp) janelaWhatsapp.opener = null;
+  if (botao) {
+    botao.disabled = true;
+    botao.innerHTML = '<span aria-hidden="true">⏳</span> Registrando solicitação...';
+  }
+  if (status) {
+    status.className = "empresas-form-status";
+    status.textContent = "Salvando na Gestão antes de abrir o WhatsApp...";
+  }
+
+  try {
+    const solicitacao = await registrarSolicitacaoEmpresa(dados);
+    const mensagem = montarMensagemPropostaEmpresa({ ...dados, numero: solicitacao.numero });
+    const urlWhatsapp = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
+    if (status) {
+      status.className = "empresas-form-status sucesso";
+      status.textContent = `Solicitação ${solicitacao.numero} registrada. Confira e envie a mensagem no WhatsApp.`;
+      if (!janelaWhatsapp) {
+        const link = document.createElement("a");
+        link.href = urlWhatsapp;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "Abrir WhatsApp";
+        status.append(" ", link);
+      }
+    }
+    if (janelaWhatsapp) janelaWhatsapp.location.replace(urlWhatsapp);
+  } catch (erro) {
+    janelaWhatsapp?.close();
+    console.error("Não foi possível registrar a solicitação empresarial:", erro);
+    if (status) {
+      status.className = "empresas-form-status erro";
+      status.textContent = "Não foi possível registrar na Gestão. Tente novamente para não perder a solicitação.";
+    }
+  } finally {
+    if (botao) {
+      botao.disabled = false;
+      botao.innerHTML = '<span aria-hidden="true">💬</span> Pedir proposta pelo WhatsApp';
+    }
+  }
+}
+
+
 let encomendaFesta = carregarLocal("deliciasFestaPedido", []);
-function abrirAreaFestas(){ document.getElementById("areaPrincipal").hidden=true; document.getElementById("areaFestas").hidden=false; document.getElementById("btnFestasTopo").textContent="🏠 Cardápio principal"; document.getElementById("btnFestasTopo").onclick=voltarCardapioPrincipal; window.scrollTo({top:0,behavior:"smooth"}); renderSalgadosFesta(); }
-function voltarCardapioPrincipal(){ document.getElementById("areaFestas").hidden=true; document.getElementById("areaPrincipal").hidden=false; const b=document.getElementById("btnFestasTopo"); b.textContent="🎉 Salgados para Festas"; b.onclick=abrirAreaFestas; window.scrollTo({top:0,behavior:"smooth"}); }
 function opcoesQuantidadeFesta(produto) {
   const inicial = Math.max(50, Number(produto.quantidadeInicial || 50));
   const incremento = Math.max(50, Number(produto.incrementoQuantidade || 50));
@@ -1949,4 +2231,11 @@ function abrirWhatsAppComprovante(){
 window.fecharComprovanteFesta=fecharComprovanteFesta;
 window.copiarComprovanteFesta=copiarComprovanteFesta;
 window.abrirWhatsAppComprovante=abrirWhatsAppComprovante;
-window.abrirAreaFestas=abrirAreaFestas; window.voltarCardapioPrincipal=voltarCardapioPrincipal; window.alterarFesta=alterarFesta; window.enviarEncomendaFesta=enviarEncomendaFesta;
+window.abrirAreaFestas=abrirAreaFestas;
+window.abrirAreaEmpresas=abrirAreaEmpresas;
+window.voltarCardapioPrincipal=voltarCardapioPrincipal;
+window.atualizarFrequenciaEmpresa=atualizarFrequenciaEmpresa;
+window.atualizarRecebimentoEmpresa=atualizarRecebimentoEmpresa;
+window.enviarPropostaEmpresa=enviarPropostaEmpresa;
+window.alterarFesta=alterarFesta;
+window.enviarEncomendaFesta=enviarEncomendaFesta;

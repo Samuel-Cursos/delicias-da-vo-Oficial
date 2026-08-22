@@ -272,6 +272,77 @@ service cloud.firestore {
         && request.resource.data.atualizadoEm == request.time;
     }
 
+    function enderecoEmpresaValido(endereco) {
+      return endereco is map
+        && endereco.keys().hasOnly(["cep", "rua", "numero", "bairro", "complemento", "cidade", "uf"])
+        && endereco.cep is string && endereco.cep.size() <= 9
+        && endereco.rua is string && endereco.rua.size() <= 160
+        && endereco.numero is string && endereco.numero.size() <= 30
+        && endereco.bairro is string && endereco.bairro.size() <= 100
+        && endereco.complemento is string && endereco.complemento.size() <= 180
+        && endereco.cidade is string && endereco.cidade.size() <= 100
+        && endereco.uf is string && endereco.uf.size() <= 2;
+    }
+
+    function solicitacaoEmpresaValida() {
+      return request.resource.data.keys().hasOnly([
+          "empresa", "responsavel", "telefone", "quantidade", "frequenciaTipo",
+          "frequencia", "diasSemana", "recebimento", "endereco", "enderecoTexto",
+          "horario", "dataInicio", "observacoes", "numero", "status", "visualizado",
+          "criadoEmMs", "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.keys().hasAll([
+          "empresa", "responsavel", "telefone", "quantidade", "frequenciaTipo",
+          "frequencia", "diasSemana", "recebimento", "endereco", "enderecoTexto",
+          "horario", "dataInicio", "observacoes", "numero", "status", "visualizado",
+          "criadoEmMs", "criadoEm", "atualizadoEm"
+        ])
+        && request.resource.data.empresa is string
+        && request.resource.data.empresa.size() > 0
+        && request.resource.data.empresa.size() <= 160
+        && request.resource.data.responsavel is string
+        && request.resource.data.responsavel.size() > 0
+        && request.resource.data.responsavel.size() <= 120
+        && request.resource.data.telefone is string
+        && request.resource.data.telefone.size() >= 10
+        && request.resource.data.telefone.size() <= 30
+        && request.resource.data.quantidade is int
+        && request.resource.data.quantidade >= 5
+        && request.resource.data.quantidade <= 10000
+        && request.resource.data.frequenciaTipo in ["todos", "alguns", "especifico", "combinar"]
+        && request.resource.data.frequencia is string
+        && request.resource.data.frequencia.size() > 0
+        && request.resource.data.frequencia.size() <= 220
+        && request.resource.data.diasSemana is list
+        && request.resource.data.diasSemana.size() <= 6
+        && request.resource.data.recebimento in ["Entrega na empresa", "Retirada na loja", "A combinar"]
+        && enderecoEmpresaValido(request.resource.data.endereco)
+        && request.resource.data.enderecoTexto is string
+        && request.resource.data.enderecoTexto.size() <= 600
+        && request.resource.data.horario is string
+        && request.resource.data.horario.size() <= 100
+        && request.resource.data.dataInicio is string
+        && request.resource.data.dataInicio.size() <= 10
+        && request.resource.data.observacoes is string
+        && request.resource.data.observacoes.size() <= 1200
+        && request.resource.data.numero is string
+        && request.resource.data.numero.size() <= 40
+        && request.resource.data.status == "nova"
+        && request.resource.data.visualizado == false
+        && request.resource.data.criadoEmMs is int
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time
+        && (
+          request.resource.data.recebimento != "Entrega na empresa"
+          || (
+            request.resource.data.endereco.cep.size() >= 8
+            && request.resource.data.endereco.rua.size() > 0
+            && request.resource.data.endereco.numero.size() > 0
+            && request.resource.data.endereco.bairro.size() > 0
+          )
+        );
+    }
+
     match /usuarios/{uid} {
       allow create: if isAdmin() || (logado() && request.auth.uid == uid && perfilNovoValido(uid));
       allow read: if logado() && (request.auth.uid == uid || isAdmin() || podeClientes());
@@ -350,6 +421,13 @@ service cloud.firestore {
       allow create: if isAdmin() || encomendaFestaValida();
       allow read: if podeConsultarPedidos();
       allow update: if podeOperacao();
+      allow delete: if isAdmin();
+    }
+
+    match /solicitacoesEmpresas/{solicitacaoId} {
+      allow create: if isAdmin() || solicitacaoEmpresaValida();
+      allow read: if podeConsultarPedidos();
+      allow update: if podePedidos();
       allow delete: if isAdmin();
     }
 

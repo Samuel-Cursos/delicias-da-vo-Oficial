@@ -49,6 +49,7 @@
         <button class="nav-item" type="button" data-page="balcao" data-permission="caixa"><span>▣</span> Balcão</button>
         <button class="nav-item" type="button" data-page="entregas" data-permission="entregas"><span>➜</span> Entregas <b id="badgeEntregas" class="nav-badge" hidden>0</b></button>
         <button class="nav-item" type="button" data-page="encomendas" data-permission="pedidos"><span>◇</span> Encomendas</button>
+        <button class="nav-item" type="button" data-page="empresas" data-permission="pedidos"><span>▧</span> Empresas <b id="badgeEmpresas" class="nav-badge" hidden>0</b></button>
 
         <p class="nav-label">Gestão</p>
         <button class="nav-item" type="button" data-page="caixa" data-permission="caixa"><span>▱</span> Caixa</button>
@@ -204,6 +205,29 @@
         <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaEncomendas" type="search" placeholder="Buscar encomenda ou cliente"></div><select id="filtroEncomendas"><option value="abertas">Próximas e abertas</option><option value="preparo">Na janela de preparo</option><option value="agendadas">Agendadas para depois</option><option value="todas">Todas</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div>
         <div class="schedule-explainer surface"><span aria-hidden="true">◷</span><div><strong>Agenda inteligente</strong><p>Encomendas distantes ficam guardadas aqui. Elas só entram em Pedidos e Cozinha quando chegar a antecedência configurada.</p></div></div>
         <div id="listaEncomendasGestao" class="appointment-list"></div>
+      </section>
+
+      <section id="page-empresas" class="page" data-page="empresas">
+        <div class="page-toolbar">
+          <div class="search-field"><span>⌕</span><input id="buscaEmpresas" type="search" placeholder="Buscar empresa, responsável ou telefone"></div>
+          <select id="filtroEmpresas" aria-label="Filtrar atendimentos empresariais">
+            <option value="abertas">Abertas</option>
+            <option value="todas">Todas</option>
+            <option value="nova">Novas</option>
+            <option value="em_contato">Em contato</option>
+            <option value="aprovada">Aprovadas</option>
+            <option value="recusada">Recusadas</option>
+          </select>
+        </div>
+        <div class="company-summary-row">
+          <article><span>Novas</span><strong id="empresasNovas">0</strong></article>
+          <article><span>Em contato</span><strong id="empresasContato">0</strong></article>
+          <article><span>Aprovadas</span><strong id="empresasAprovadas">0</strong></article>
+          <article><span>Recusadas</span><strong id="empresasRecusadas">0</strong></article>
+        </div>
+        <div class="schedule-explainer surface company-explainer"><span aria-hidden="true">🏢</span><div><strong>Atendimento empresarial</strong><p>O formulário registra a solicitação antes de abrir o WhatsApp. Aqui você confere os dados, acompanha a conversa e confirma quando o acordo estiver fechado.</p></div></div>
+        <div id="statusEmpresasGestao" class="surface company-sync-status" hidden></div>
+        <div id="listaEmpresasGestao" class="company-list"></div>
       </section>
 
       <section id="page-caixa" class="page" data-page="caixa">

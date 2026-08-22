@@ -10,6 +10,7 @@ const COLECOES_RAIZ = [
   "configuracoes",
   "salgadosFesta",
   "encomendasFesta",
+  "solicitacoesEmpresas",
   "pedidosManuais",
   "contadores",
   "contadoresPedidos",

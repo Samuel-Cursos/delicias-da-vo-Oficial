@@ -2479,6 +2479,45 @@ button {
 .config-grid .config-legado[hidden] {
   display:none!important;
 }
+
+.empresas-admin-head{align-items:center}
+.empresas-admin-actions{display:flex;flex-wrap:wrap;gap:9px}
+.empresas-admin-actions a{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.empresas-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.empresas-admin-card{display:grid;align-content:start;gap:12px;min-height:180px}
+.empresas-admin-card.full{grid-column:1/-1;min-height:auto}
+.empresas-admin-card.destaque{grid-template-columns:1fr auto;align-items:center;background:linear-gradient(145deg,#fff8e8,#fffdf9)}
+.empresas-admin-icon{display:grid;width:52px;height:52px;place-items:center;margin-bottom:13px;border-radius:16px;background:#fff0c8;font-size:1.55rem}
+.empresas-admin-card h3{color:#57241a}
+.empresas-admin-card p{color:#80695d;font-size:.8rem;line-height:1.5}
+.empresas-admin-card>label,.empresas-admin-form-grid label{display:grid;gap:6px;color:#623c30;font-size:.76rem;font-weight:850}
+.empresas-admin-card input,.empresas-admin-card textarea{width:100%;min-height:45px;padding:10px 12px;border:1px solid #dfcbb9;border-radius:12px;background:#fff;color:#35231d;font:inherit}
+.empresas-admin-card textarea{resize:vertical}
+.empresas-admin-card label>small{color:#8b7468;font-size:.67rem;font-weight:600}
+.empresas-admin-toggle{display:flex!important;align-items:center;gap:9px;cursor:pointer}
+.empresas-admin-toggle input{position:absolute;opacity:0;pointer-events:none}
+.empresas-admin-toggle span{position:relative;width:48px;height:27px;border-radius:999px;background:#c9b8aa;transition:.2s}
+.empresas-admin-toggle span:after{content:"";position:absolute;width:21px;height:21px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.16);transition:.2s}
+.empresas-admin-toggle input:checked+span{background:#2d8054}
+.empresas-admin-toggle input:checked+span:after{transform:translateX(21px)}
+.empresas-admin-toggle b{min-width:58px;color:#5a3024}
+.empresas-admin-dias{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.empresas-admin-dias label{position:relative;cursor:pointer}
+.empresas-admin-dias input{position:absolute;width:1px;height:1px;min-height:0;opacity:0}
+.empresas-admin-dias span{display:grid;min-height:46px;place-items:center;border:1px solid #dfcbbb;border-radius:12px;background:#fff;color:#765446;font-size:.73rem;font-weight:900}
+.empresas-admin-dias input:checked+span{border-color:#6b2a1e;background:#6b2a1e;color:#fff}
+.empresas-admin-dias input:focus-visible+span{outline:3px solid rgba(119,50,34,.2);outline-offset:2px}
+.empresas-admin-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+
+@media(max-width:760px){
+  .empresas-admin-head{align-items:stretch}
+  .empresas-admin-actions{display:grid;grid-template-columns:1fr}
+  .empresas-admin-grid{grid-template-columns:1fr}
+  .empresas-admin-card.full{grid-column:auto}
+  .empresas-admin-card.destaque{grid-template-columns:1fr}
+  .empresas-admin-dias{grid-template-columns:repeat(3,1fr)}
+  .empresas-admin-form-grid{grid-template-columns:1fr}
+}
 .config-taxas-entrega {
   margin-top:14px;
   padding:13px;
