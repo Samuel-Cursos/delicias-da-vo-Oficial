@@ -40,6 +40,7 @@
       <p class="sidebar-group">Catálogo</p>
       <button class="tab-btn" onclick="abrirAba('produtos', this)">📦 Produtos</button>
       <button class="tab-btn" onclick="abrirAba('festas', this)">🎉 Salgados para festas</button>
+      <button class="tab-btn" onclick="abrirAba('empresas', this)">🏢 Marmitas para empresas</button>
       <button class="tab-btn" onclick="abrirAba('promocoes', this)">🎁 Promoções</button>
       <button class="tab-btn" onclick="abrirAba('categorias', this)">🏷️ Categorias</button>
       <p class="sidebar-group">Aparência e contato</p>
@@ -74,6 +75,7 @@
         <div class="stats-grid site-stats-grid">
           <div class="stat"><span>📦 Produtos</span><strong id="siteStatProdutos">0</strong><small id="siteStatProdutosAtivos">0 ativos no site</small></div>
           <div class="stat"><span>🎉 Festa</span><strong id="siteStatFestas">0</strong><small id="siteStatFestasAtivas">0 ativos no site</small></div>
+          <div class="stat"><span>🏢 Empresas</span><strong id="siteStatEmpresas">Ativo</strong><small id="siteStatEmpresasMinimo">Mínimo de 5 por dia</small></div>
           <div class="stat"><span>🎁 Promoções</span><strong id="siteStatPromocoes">0</strong><small id="siteStatPromocoesAtivas">0 ativas</small></div>
           <div class="stat"><span>🏷️ Categorias</span><strong id="siteStatCategorias">0</strong><small id="siteStatCategoriasAtivas">0 ativas</small></div>
           <div class="stat site-status-card"><span>🌐 Situação da loja</span><strong id="siteStatStatus">—</strong><small>Configuração exibida aos clientes</small></div>
@@ -82,10 +84,74 @@
         <div class="atalhos-grid site-admin-shortcuts">
           <button onclick="abrirAbaPorNome('produtos')">➕ <strong>Produtos</strong><span>Cadastrar, editar e organizar o cardápio</span></button>
           <button onclick="abrirAbaPorNome('festas')">🎉 <strong>Salgados para festas</strong><span>Editar sabores, preços e disponibilidade</span></button>
+          <button onclick="abrirAbaPorNome('empresas')">🏢 <strong>Marmitas para empresas</strong><span>Editar mínimo, dias e informações da proposta</span></button>
           <button onclick="abrirAbaPorNome('promocoes')">🎁 <strong>Promoções</strong><span>Criar ofertas que aparecem no site</span></button>
           <button onclick="abrirAbaPorNome('categorias')">🏷️ <strong>Categorias</strong><span>Organizar as seções do cardápio</span></button>
           <button onclick="abrirAbaPorNome('config')">⚙️ <strong>Informações do site</strong><span>Contatos, Maps, Instagram, entrega e horários</span></button>
         </div>
+      </section>
+
+      <section class="aba" id="aba-empresas">
+        <div class="panel-head empresas-admin-head">
+          <div>
+            <p class="eyebrow">Atendimento empresarial</p>
+            <h2>🏢 Marmitas para empresas</h2>
+            <p>Configure o que aparece no site. As solicitações recebidas são acompanhadas na Gestão.</p>
+          </div>
+          <div class="empresas-admin-actions">
+            <a class="secondary-btn" href="../gestao/index.html#empresas">Abrir Empresas na Gestão</a>
+            <button id="salvarConfigEmpresas" class="primary-btn" type="button">Salvar no site</button>
+          </div>
+        </div>
+
+        <div class="empresas-admin-grid">
+          <article class="panel empresas-admin-card destaque">
+            <div>
+              <span class="empresas-admin-icon" aria-hidden="true">🏢</span>
+              <h3>Área empresarial no site</h3>
+              <p>Desative temporariamente sem apagar textos nem configurações.</p>
+            </div>
+            <label class="empresas-admin-toggle">
+              <input id="empresaConfigAtivo" type="checkbox" checked>
+              <span></span>
+              <b id="empresaConfigAtivoTexto">Ativa</b>
+            </label>
+          </article>
+
+          <article class="panel empresas-admin-card">
+            <h3>Regra principal</h3>
+            <label>Pedido mínimo por dia
+              <input id="empresaConfigMinimo" type="number" min="5" max="500" step="1" value="5">
+              <small>O mínimo nunca pode ser menor que 5 marmitas.</small>
+            </label>
+          </article>
+
+          <article class="panel empresas-admin-card full">
+            <h3>Dias disponíveis</h3>
+            <p>Esses dias aparecem nas opções do formulário da empresa.</p>
+            <div id="empresaConfigDias" class="empresas-admin-dias">
+              <label><input type="checkbox" value="segunda" checked><span>Segunda</span></label>
+              <label><input type="checkbox" value="terca" checked><span>Terça</span></label>
+              <label><input type="checkbox" value="quarta" checked><span>Quarta</span></label>
+              <label><input type="checkbox" value="quinta" checked><span>Quinta</span></label>
+              <label><input type="checkbox" value="sexta" checked><span>Sexta</span></label>
+              <label><input type="checkbox" value="sabado" checked><span>Sábado</span></label>
+            </div>
+          </article>
+
+          <article class="panel empresas-admin-card full">
+            <h3>Informações mostradas ao cliente</h3>
+            <div class="empresas-admin-form-grid">
+              <label>Texto da entrega
+                <input id="empresaConfigEntrega" maxlength="220" placeholder="Grátis até 3 km • após 3 km, há taxa.">
+              </label>
+              <label>Observação da proposta
+                <textarea id="empresaConfigObservacao" rows="3" maxlength="300" placeholder="Valores, cardápio e condições são confirmados no atendimento."></textarea>
+              </label>
+            </div>
+          </article>
+        </div>
+        <div id="statusConfigEmpresas" class="mensagem-venda" aria-live="polite"></div>
       </section>
 
       <section class="aba" id="aba-produtos">

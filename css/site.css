@@ -1564,3 +1564,223 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
+
+/* Marmitas empresariais — captação de propostas para empresas */
+.area-empresas[hidden]{display:none!important}
+.area-empresas{min-height:100vh;background:linear-gradient(180deg,#fff7ea 0%,#fffdf9 42%,#fff8ed 100%)}
+.empresas-eyebrow{
+  display:inline-block;
+  color:#a34c2e;
+  font-size:.72rem;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.empresas-chamada{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(190px,.34fr);
+  align-items:center;
+  gap:34px;
+  margin:0 0 48px;
+  padding:clamp(28px,5vw,48px);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:30px;
+  background:
+    radial-gradient(circle at 85% 20%,rgba(247,183,51,.3),transparent 15rem),
+    linear-gradient(130deg,#4b1711,#70281c 55%,#99462c);
+  color:#fff;
+  box-shadow:0 22px 55px rgba(74,27,17,.2);
+}
+.empresas-chamada::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  opacity:.2;
+  background-image:radial-gradient(rgba(255,255,255,.45) .7px,transparent .7px);
+  background-size:20px 20px;
+}
+.empresas-chamada .empresas-eyebrow{color:#ffd477}
+.empresas-chamada h2{max-width:760px;margin:8px 0 12px;font-size:clamp(1.75rem,3.5vw,2.8rem);line-height:1.05;letter-spacing:-.04em}
+.empresas-chamada p{max-width:720px;color:#f2d9cc;line-height:1.65}
+.empresas-chamada-pontos{display:flex;flex-wrap:wrap;gap:8px 18px;margin:20px 0;color:#fff4e8;font-size:.82rem;font-weight:800}
+.empresas-chamada-btn{min-height:48px;background:#f7b733;color:#3a2417;box-shadow:0 12px 26px rgba(29,8,4,.25)}
+.empresas-chamada-btn:hover{transform:translateY(-2px);box-shadow:0 16px 30px rgba(29,8,4,.3)}
+.empresas-chamada-selo{
+  width:min(220px,100%);
+  aspect-ratio:1;
+  justify-self:end;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px solid rgba(255,255,255,.3);
+  border-radius:50%;
+  background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.06));
+  box-shadow:inset 0 0 0 9px rgba(255,255,255,.06),0 18px 45px rgba(24,7,3,.18);
+  backdrop-filter:blur(10px);
+}
+.empresas-chamada-selo span,.empresas-chamada-selo small{color:#f7dfd2;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+.empresas-chamada-selo strong{margin:1px 0 -2px;color:#ffd477;font-size:4.7rem;line-height:1;font-weight:950;letter-spacing:-.09em}
+
+.hero-empresas{
+  grid-template-columns:minmax(0,1.15fr) minmax(300px,.62fr);
+  background:
+    radial-gradient(circle at 78% 42%,rgba(246,182,61,.3),transparent 22rem),
+    linear-gradient(122deg,#38100c 0%,#662118 50%,#914128 100%);
+}
+.hero-empresas .hero-content{max-width:790px}
+.hero-empresas .hero-content>p{max-width:720px;line-height:1.7}
+.empresas-hero-painel{
+  position:relative;
+  overflow:hidden;
+  width:min(390px,100%);
+  justify-self:center;
+  padding:30px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:32px;
+  background:linear-gradient(150deg,rgba(255,255,255,.2),rgba(255,255,255,.07));
+  box-shadow:0 26px 64px rgba(30,7,4,.28),inset 0 1px rgba(255,255,255,.24);
+  backdrop-filter:blur(16px);
+}
+.empresas-hero-painel::after{content:"";position:absolute;right:-65px;bottom:-75px;width:190px;height:190px;border-radius:50%;background:rgba(246,182,61,.16)}
+.empresas-hero-icone{display:grid;place-items:center;width:62px;height:62px;margin-bottom:16px;border-radius:20px;background:#fff4d2;font-size:1.8rem;box-shadow:0 12px 25px rgba(35,10,5,.18)}
+.empresas-hero-painel p{margin:0;color:#f4d8ca;font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.empresas-hero-painel>strong{margin:5px 0 -4px;color:#ffd477;font-size:6.3rem;line-height:1;font-weight:950;letter-spacing:-.1em}
+.empresas-hero-painel b{font-size:1.05rem;color:#fff}
+.empresas-hero-painel small{max-width:280px;margin-top:18px;color:#ead0c4;line-height:1.5}
+
+.empresas-container{padding-top:0}
+.empresas-info-grid{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin:-48px 0 80px;
+}
+.empresas-info-grid article{display:flex;align-items:center;gap:14px;min-height:112px;padding:20px;border:1px solid #efd8c4;border-radius:22px;background:#fff;box-shadow:0 16px 38px rgba(83,37,20,.11)}
+.empresas-info-grid article>span{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:15px;background:linear-gradient(145deg,#fff2ce,#ffe0a0);font-size:1.4rem}
+.empresas-info-grid strong{display:block;color:#56251a;font-size:.95rem}
+.empresas-info-grid p{margin:5px 0 0;color:#80675a;font-size:.79rem;line-height:1.45}
+
+.empresas-section-heading{max-width:780px;margin-bottom:28px}
+.empresas-section-heading h2{margin:7px 0 10px;color:#4d2118;font-size:clamp(1.85rem,4vw,3rem);line-height:1.08;letter-spacing:-.045em}
+.empresas-section-heading>p{max-width:690px;margin:0;color:#80685b;line-height:1.65}
+
+.empresas-beneficios{margin-bottom:88px}
+.empresas-beneficios-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.empresas-beneficios-grid article{position:relative;min-height:220px;padding:25px 22px;border:1px solid #ecd7c5;border-radius:24px;background:linear-gradient(180deg,#fff,#fffaf4);box-shadow:0 12px 30px rgba(83,37,20,.07)}
+.empresas-beneficios-grid article>span{display:inline-grid;place-items:center;width:42px;height:42px;margin-bottom:24px;border-radius:13px;background:#5a2117;color:#ffd477;font-size:.73rem;font-weight:900}
+.empresas-beneficios-grid h3{margin:0 0 9px;color:#57261b;font-size:1.08rem}
+.empresas-beneficios-grid p{margin:0;color:#806b60;font-size:.86rem;line-height:1.6}
+
+.empresas-como-funciona{margin-bottom:88px;padding:clamp(24px,4vw,42px);border:1px solid #ead2bb;border-radius:30px;background:#fff;box-shadow:0 18px 48px rgba(83,37,20,.08)}
+.empresas-como-funciona ol{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;list-style:none}
+.empresas-como-funciona li{display:flex;align-items:flex-start;gap:14px;padding-top:20px;border-top:2px solid #f0d3aa}
+.empresas-como-funciona li>span{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border-radius:50%;background:#f6b63d;color:#472116;font-weight:950}
+.empresas-como-funciona strong{display:block;margin-bottom:6px;color:#54251a}
+.empresas-como-funciona p{margin:0;color:#806b60;font-size:.82rem;line-height:1.55}
+
+.empresas-proposta{
+  scroll-margin-top:120px;
+  display:grid;
+  grid-template-columns:minmax(260px,.72fr) minmax(0,1.28fr);
+  gap:clamp(28px,5vw,62px);
+  align-items:start;
+  margin-bottom:88px;
+  padding:clamp(24px,5vw,52px);
+  border-radius:32px;
+  background:linear-gradient(135deg,#4a1711,#6e291d);
+  box-shadow:0 25px 65px rgba(73,24,16,.2);
+}
+.empresas-proposta-intro{position:sticky;top:120px;color:#fff}
+.empresas-proposta-intro .empresas-eyebrow{color:#ffd477}
+.empresas-proposta-intro h2{margin:8px 0 12px;font-size:clamp(1.8rem,3.5vw,2.7rem);line-height:1.08;letter-spacing:-.04em}
+.empresas-proposta-intro>p{color:#e9cec1;line-height:1.65}
+.empresas-regra-minima{margin:24px 0 12px;padding:16px 18px;border:1px solid rgba(255,255,255,.17);border-radius:17px;background:rgba(255,255,255,.09)}
+.empresas-regra-minima strong,.empresas-regra-minima span{display:block}.empresas-regra-minima strong{color:#f0d5c7;font-size:.72rem;text-transform:uppercase;letter-spacing:.1em}.empresas-regra-minima span{margin-top:5px;color:#ffd477;font-size:1.2rem;font-weight:900}
+.empresas-entrega-aviso{display:flex;align-items:flex-start;gap:12px;padding:15px 17px;border-radius:17px;background:rgba(255,255,255,.09);color:#f5ded3}
+.empresas-entrega-aviso>span{font-size:1.3rem}.empresas-entrega-aviso p{margin:0;font-size:.8rem;line-height:1.5}.empresas-entrega-aviso p span{color:#e5c6b8}
+.empresas-observacao-config{margin:12px 0 0;padding:13px 15px;border-left:3px solid #ffd477;border-radius:0 12px 12px 0;background:rgba(255,255,255,.07);color:#ead0c4;font-size:.75rem;line-height:1.5}
+
+.empresas-form{padding:clamp(20px,4vw,32px);border-radius:25px;background:#fffaf4;box-shadow:0 20px 52px rgba(27,7,4,.23)}
+.empresas-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.empresas-form label{display:block;color:#5a2e21;font-size:.78rem;font-weight:850}
+.empresas-form label>span{color:#b13f2d}
+.empresas-form .campo-inteiro{grid-column:1/-1}
+.empresas-form input,.empresas-form select,.empresas-form textarea{width:100%;min-width:0;margin-top:6px;padding:13px 14px;border:1.5px solid #dcc5b3;border-radius:13px;background:#fff;color:#3f2b23;font:inherit;font-weight:600;transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.empresas-form textarea{resize:vertical;line-height:1.5}
+.empresas-form input::placeholder,.empresas-form textarea::placeholder{color:#a18a7d;font-weight:500}
+.empresas-form input:focus,.empresas-form select:focus,.empresas-form textarea:focus{outline:0;border-color:#b86a3f;box-shadow:0 0 0 4px rgba(184,106,63,.12);background:#fff}
+.empresas-form [aria-invalid="true"]{border-color:#c73328;background:#fff7f6;box-shadow:0 0 0 4px rgba(199,51,40,.11)}
+.empresas-form label>small{display:block;margin-top:5px;color:#8e776b;font-size:.67rem;font-weight:600}
+.empresas-opcao-dinamica{padding:14px;border:1px solid #ead7c6;border-radius:16px;background:#fff}
+.empresas-campo-titulo{display:block;margin-bottom:10px;color:#5a2e21;font-size:.78rem;font-weight:850}
+.empresas-campo-titulo b{color:#b13f2d}
+.empresas-dias-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
+.empresas-dias-grid label{position:relative;cursor:pointer}
+.empresas-dias-grid input{position:absolute;width:1px!important;height:1px!important;min-height:0!important;margin:0!important;opacity:0}
+.empresas-dias-grid span{display:grid;min-height:42px;place-items:center;border:1.5px solid #ddc7b5;border-radius:11px;background:#fffaf4;color:#745344;font-size:.75rem;font-weight:900;transition:.18s ease}
+.empresas-dias-grid input:checked+span{border-color:#6b2b1f;background:#6b2b1f;color:#fff;box-shadow:0 6px 14px rgba(92,38,27,.16)}
+.empresas-dias-grid input:focus-visible+span{outline:3px solid rgba(184,106,63,.22);outline-offset:2px}
+.empresas-endereco-campos{padding:17px;border:1px solid #ead7c6;border-radius:18px;background:#fff}
+.empresas-endereco-titulo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}
+.empresas-endereco-titulo strong,.empresas-endereco-titulo span{display:block}
+.empresas-endereco-titulo strong{color:#56271c;font-size:.88rem}
+.empresas-endereco-titulo div>span{margin-top:3px;color:#8e776b;font-size:.67rem;line-height:1.4}
+.empresas-endereco-titulo>span{font-size:1.35rem}
+.empresas-endereco-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.empresas-cep-campo{grid-column:1/-1}
+.cep-input-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.cep-input-row input{margin-top:6px}
+.cep-input-row button{min-height:47px;padding:10px 14px;border-radius:12px;background:#f1dfca;color:#59291e;font-size:.72rem;font-weight:900;white-space:nowrap}
+.cep-input-row button:hover{background:#e8cda8}.cep-input-row button:disabled{opacity:.65;cursor:wait}
+.empresas-endereco-campos[hidden],.empresas-opcao-dinamica[hidden]{display:none!important}
+.empresas-form-status{min-height:22px;margin:16px 0 8px;border-radius:11px;font-size:.78rem;font-weight:800;line-height:1.4}
+.empresas-form-status.erro{padding:10px 12px;background:#fee9e7;color:#9d2f25}
+.empresas-form-status.sucesso{padding:10px 12px;background:#e7f7ec;color:#176537}
+.empresas-form-status a{color:inherit;font-weight:950;text-decoration:underline}
+.empresas-enviar{width:100%;min-height:54px;display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 18px;border-radius:15px;background:#20b95a;color:#fff;font-size:.94rem;font-weight:900;box-shadow:0 12px 25px rgba(23,135,67,.2)}
+.empresas-enviar:hover{transform:translateY(-2px);background:#199e4c;box-shadow:0 16px 30px rgba(23,135,67,.24)}
+.empresas-form-nota{display:block;margin-top:11px;color:#897267;font-size:.68rem;line-height:1.5;text-align:center}
+
+.empresas-faq{margin-bottom:80px}
+.empresas-faq-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.empresas-faq details{border:1px solid #ead5c2;border-radius:18px;background:#fff;box-shadow:0 9px 24px rgba(83,37,20,.06)}
+.empresas-faq summary{position:relative;padding:19px 48px 19px 20px;color:#56271c;font-weight:900;cursor:pointer;list-style:none}
+.empresas-faq summary::-webkit-details-marker{display:none}
+.empresas-faq summary::after{content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#fff0d3;color:#713520;font-size:1.1rem}
+.empresas-faq details[open] summary::after{content:"−"}
+.empresas-faq details p{margin:0;padding:0 20px 20px;color:#806b60;font-size:.84rem;line-height:1.6}
+
+@media(max-width:980px){
+  .empresas-beneficios-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .empresas-proposta{grid-template-columns:1fr}
+  .empresas-proposta-intro{position:static}
+}
+
+@media(max-width:800px){
+  .empresas-chamada{grid-template-columns:1fr;text-align:center}.empresas-chamada-conteudo{display:flex;flex-direction:column;align-items:center}.empresas-chamada-pontos{justify-content:center}.empresas-chamada-selo{width:180px;justify-self:center}.empresas-chamada-selo strong{font-size:4rem}
+  .hero-empresas{grid-template-columns:1fr}.empresas-hero-painel{margin:0 auto 15px}
+  .empresas-info-grid{grid-template-columns:1fr;margin-top:-35px;margin-bottom:64px}
+  .empresas-como-funciona ol{grid-template-columns:1fr}
+}
+
+@media(max-width:600px){
+  .empresas-chamada{margin-bottom:42px;padding:28px 19px;border-radius:24px}.empresas-chamada-pontos{display:grid;gap:9px;text-align:left}.empresas-chamada-btn{width:100%}.empresas-chamada-selo{width:156px}
+  .hero-empresas{padding-bottom:92px}.hero-empresas .pill{font-size:.7rem}.empresas-hero-painel{padding:24px 20px;border-radius:26px}.empresas-hero-painel>strong{font-size:5rem}
+  .empresas-info-grid article{min-height:98px}
+  .empresas-beneficios{margin-bottom:64px}.empresas-beneficios-grid{grid-template-columns:1fr}.empresas-beneficios-grid article{min-height:auto}.empresas-beneficios-grid article>span{margin-bottom:17px}
+  .empresas-como-funciona{margin-bottom:64px;padding:24px 18px;border-radius:24px}
+  .empresas-proposta{margin-left:-2px;margin-right:-2px;margin-bottom:64px;padding:23px 15px;border-radius:25px}.empresas-form{padding:20px 15px;border-radius:20px}.empresas-form-grid{grid-template-columns:1fr}.empresas-form .campo-inteiro{grid-column:auto}.empresas-form input,.empresas-form select,.empresas-form textarea{min-height:48px;font-size:16px}.empresas-form textarea{min-height:110px}.empresas-dias-grid{grid-template-columns:repeat(3,1fr)}.empresas-endereco-grid{grid-template-columns:1fr}.empresas-cep-campo{grid-column:auto}.cep-input-row{grid-template-columns:1fr}.cep-input-row button{width:100%}
+  .empresas-faq-lista{grid-template-columns:1fr}.empresas-faq{margin-bottom:60px}
+}

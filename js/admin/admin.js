@@ -25,6 +25,9 @@ import {
   consolidarCentralPedidos, atualizarStatusPedidoNormal, atualizarStatusVenda
 } from "../services/centralOrderService.js";
 import { gerarBackupCompleto, baixarBackupJson, restaurarBackupCompleto } from "../services/backupService.js";
+import {
+  configuracaoEmpresas, observarConfiguracaoEmpresas, salvarConfiguracaoEmpresas
+} from "../services/businessRequestService.js";
 
 // API pública será exposta no final do arquivo para reduzir poluição global
 
@@ -56,6 +59,12 @@ function iniciarAdminDepoisLogin() {
     renderDashboard();
   });
 
+  observarConfiguracaoEmpresas(() => {
+    const abaEmpresasAberta = document.getElementById("aba-empresas")?.classList.contains("active");
+    if (!abaEmpresasAberta) preencherConfiguracaoEmpresas();
+    renderDashboard();
+  });
+
   observarPromocoes(() => {
     renderPromocoesAdmin();
     renderDashboard();
@@ -77,6 +86,7 @@ function abrirAba(nome, botao) {
     promocoes: "Promoções",
     categorias: "Categorias",
     festas: "Salgados para festas",
+    empresas: "Marmitas para empresas",
     config: "Configurações do site"
   };
 
@@ -86,12 +96,14 @@ function abrirAba(nome, botao) {
     promocoes: "Crie ofertas para destacar no site.",
     categorias: "Organize os produtos por categoria.",
     festas: "Gerencie o catálogo de encomendas exibido no site.",
+    empresas: "Ajuste as regras e informações da proposta empresarial.",
     config: "Atualize identidade, contatos, entrega e horários do site."
   };
 
   document.getElementById("tituloAba").textContent = titulos[nome] || "Painel";
   const descricao = document.getElementById("descricaoAba");
   if (descricao) descricao.textContent = descricoes[nome] || "Gerencie a Delícias da Vó.";
+  if (nome === "empresas") preencherConfiguracaoEmpresas();
   fecharMenuAdmin();
 }
 
@@ -162,6 +174,10 @@ function renderDashboard() {
   document.getElementById("siteStatProdutosAtivos").textContent = `${produtosAtivos} ativos no site`;
   document.getElementById("siteStatFestas").textContent = salgadosFesta.length;
   document.getElementById("siteStatFestasAtivas").textContent = `${festasAtivas} ativos no site`;
+  const statEmpresas = document.getElementById("siteStatEmpresas");
+  const statEmpresasMinimo = document.getElementById("siteStatEmpresasMinimo");
+  if (statEmpresas) statEmpresas.textContent = configuracaoEmpresas.ativo === false ? "Pausado" : "Ativo";
+  if (statEmpresasMinimo) statEmpresasMinimo.textContent = `Mínimo de ${Math.max(5, Number(configuracaoEmpresas.pedidoMinimo || 5))} por dia`;
   document.getElementById("siteStatPromocoes").textContent = promocoes.length;
   document.getElementById("siteStatPromocoesAtivas").textContent = `${promocoesAtivas} ativas`;
   document.getElementById("siteStatCategorias").textContent = categorias.length;
@@ -1039,6 +1055,68 @@ function numeroConfiguracao(id, padrao, minimo = 0, maximo = 1000) {
   return Math.min(maximo, Math.max(minimo, valor));
 }
 
+function atualizarTextoAtivoEmpresas() {
+  const ativo = document.getElementById("empresaConfigAtivo")?.checked !== false;
+  const texto = document.getElementById("empresaConfigAtivoTexto");
+  if (texto) texto.textContent = ativo ? "Ativa" : "Pausada";
+}
+
+function preencherConfiguracaoEmpresas() {
+  const ativo = document.getElementById("empresaConfigAtivo");
+  const minimo = document.getElementById("empresaConfigMinimo");
+  const entrega = document.getElementById("empresaConfigEntrega");
+  const observacao = document.getElementById("empresaConfigObservacao");
+  if (ativo) ativo.checked = configuracaoEmpresas.ativo !== false;
+  if (minimo) minimo.value = Math.max(5, Number(configuracaoEmpresas.pedidoMinimo || 5));
+  if (entrega) entrega.value = configuracaoEmpresas.entregaTexto || "Grátis até 3 km • após 3 km, há taxa.";
+  if (observacao) observacao.value = configuracaoEmpresas.observacao || "Valores, cardápio e condições são confirmados no atendimento.";
+  const dias = new Set(Array.isArray(configuracaoEmpresas.diasAtendimento)
+    ? configuracaoEmpresas.diasAtendimento
+    : ["segunda", "terca", "quarta", "quinta", "sexta", "sabado"]);
+  document.querySelectorAll("#empresaConfigDias input").forEach(campo => {
+    campo.checked = dias.has(campo.value);
+  });
+  atualizarTextoAtivoEmpresas();
+}
+
+async function salvarEmpresasNoSite() {
+  const botao = document.getElementById("salvarConfigEmpresas");
+  const status = document.getElementById("statusConfigEmpresas");
+  const diasAtendimento = [...document.querySelectorAll("#empresaConfigDias input:checked")].map(campo => campo.value);
+  if (!diasAtendimento.length) {
+    alert("Escolha pelo menos um dia disponível para as empresas.");
+    document.querySelector("#empresaConfigDias input")?.focus();
+    return;
+  }
+  const pedidoMinimo = Math.max(5, Math.min(500, Math.round(Number(document.getElementById("empresaConfigMinimo")?.value || 5))));
+  if (botao) {
+    botao.disabled = true;
+    botao.textContent = "Salvando...";
+  }
+  try {
+    await salvarConfiguracaoEmpresas({
+      ativo: document.getElementById("empresaConfigAtivo")?.checked !== false,
+      pedidoMinimo,
+      diasAtendimento,
+      entregaTexto: limparTexto(document.getElementById("empresaConfigEntrega")?.value || ""),
+      observacao: limparTexto(document.getElementById("empresaConfigObservacao")?.value || "")
+    });
+    if (status) {
+      status.style.display = "block";
+      status.textContent = "Configurações empresariais salvas e atualizadas no site.";
+      setTimeout(() => { status.style.display = "none"; }, 4000);
+    }
+  } catch (erro) {
+    console.error("Não foi possível salvar as configurações empresariais:", erro);
+    alert("Não foi possível salvar agora. Confira a conexão e as permissões do Firestore.");
+  } finally {
+    if (botao) {
+      botao.disabled = false;
+      botao.textContent = "Salvar no site";
+    }
+  }
+}
+
 function preencherConfiguracoesLoja() {
   const campos = {
     configNomeLoja: lojaConfig.nomeLoja || "Delícias da Vó",
@@ -1115,6 +1193,9 @@ async function salvarConfiguracoesLoja() {
   status.appendChild(document.createTextNode('As alterações serão usadas no sistema.'));  
   setTimeout(() => status.style.display = 'none', 4000);
 }
+document.getElementById("salvarConfigEmpresas")?.addEventListener("click", salvarEmpresasNoSite);
+document.getElementById("empresaConfigAtivo")?.addEventListener("change", atualizarTextoAtivoEmpresas);
+
 window.criarProdutosBase = criarProdutosBase;
 window.iniciarAdminDepoisLogin = iniciarAdminDepoisLogin;
 window.renderDashboardSite = renderDashboard;

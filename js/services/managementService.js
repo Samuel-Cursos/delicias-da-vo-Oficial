@@ -8,6 +8,7 @@ export const estadoGestao = {
   pedidosSite: [],
   pedidosManuais: [],
   encomendas: [],
+  solicitacoesEmpresas: [],
   vendas: [],
   produtos: [],
   usuarios: [],
@@ -75,6 +76,7 @@ export function iniciarObservadoresGestao(aoMudar, acesso = {}) {
     }) : null);
     adicionar("pedidosManuais", collection(db, "pedidosManuais"), aoMudar);
     adicionar("encomendas", collection(db, "encomendasFesta"), aoMudar);
+    adicionar("solicitacoesEmpresas", collection(db, "solicitacoesEmpresas"), aoMudar);
   }
   if (permitido("caixa", "financeiro", "relatorios")) adicionar("vendas", collection(db, "vendas"), aoMudar);
   if (permitido("clientes")) adicionar("usuarios", collection(db, "usuarios"), aoMudar);
