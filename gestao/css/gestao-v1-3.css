@@ -124,6 +124,9 @@
 .menu-publication-alert { display: flex; min-height: 42px; align-items: center; margin-bottom: 12px; padding: 10px 13px; border: 1px solid #e4c98d; border-radius: 13px; background: #fff8e6; color: #72500f; font-size: .73rem; font-weight: 800; }
 .menu-publication-alert.published { border-color: #b9d9c2; background: #eef8f0; color: #286b47; }
 .menu-publication-alert.needs-attention { border-color: #e0b5aa; background: #fff1ed; color: #8e3027; }
+.switch-label { position: relative; cursor: pointer; }
+.switch-label input { position: absolute; width: 1px !important; height: 1px !important; min-height: 1px !important; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; opacity: 0; }
+.switch-label input:focus-visible + span { outline: 3px solid rgba(177, 107, 80, .28); outline-offset: 3px; }
 .menu-bulk-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .link-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .daily-menu-image { margin-top: 14px; }
