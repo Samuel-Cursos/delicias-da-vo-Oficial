@@ -68,6 +68,8 @@ let ingredientesFichaModal = [];
 let arquivoBackupPendente = null;
 let ultimoTotalPedidos = 0;
 let toastTimer = null;
+let imagemCardapioDataISO = "";
+let imagemCardapioPendente = null;
 
 function escapar(valor = "") {
   return String(valor).replace(/[&<>'"]/g, caractere => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[caractere]);
@@ -478,20 +480,69 @@ function renderCozinha() {
   $("cozinhaAtualizada").textContent = horaLoja();
 }
 
+function statusLeituraImagemCardapio(mensagem = "", tipo = "") {
+  const elemento = $("statusLeituraImagemCardapioGestao");
+  if (!elemento) return;
+  elemento.textContent = mensagem;
+  elemento.className = `menu-image-status ${tipo}`.trim();
+}
+
+function renderImagemCardapioGestao() {
+  const caixa = $("previewImagemCardapioBox");
+  const imagem = $("previewImagemCardapioGestao");
+  const etiqueta = $("statusImagemCardapioGestao");
+  if (!caixa || !imagem) return;
+
+  const url = imagemCardapioPendente?.dataUrl || "";
+  caixa.hidden = !url;
+  if (url) {
+    imagem.src = url;
+    imagem.alt = `Prévia do cardápio ${$("dataCardapioGestao")?.value || ""}`.trim();
+  } else {
+    imagem.removeAttribute("src");
+  }
+  if (etiqueta) {
+    etiqueta.textContent = imagemCardapioPendente ? "Imagem pronta" : "Nenhuma imagem";
+  }
+}
+
+function itensDaLeituraCardapio(dados = {}) {
+  const candidatos = Array.isArray(dados.itens)
+    ? dados.itens
+    : String(dados.textoReconhecido || "").split(/[\n•;]+/);
+  return deduplicarItensCardapio(candidatos.map(item => String(item || "").trim()).filter(Boolean)).slice(0, 40);
+}
+
+function cardapioPublicado(valor, padrao = true) {
+  if (valor === undefined || valor === null) return padrao;
+  return valor === true || valor === 1 || String(valor).toLowerCase() === "true";
+}
+
 function renderCardapio() {
   const data = $("dataCardapioGestao")?.value || dataLojaISO();
   const registro = estadoGestao.cardapios.find(item => item.id === data || item.dataISO === data);
+  if (imagemCardapioDataISO !== data) {
+    imagemCardapioDataISO = data;
+    imagemCardapioPendente = null;
+    statusLeituraImagemCardapio("Selecione a arte para visualizar. Depois confira os itens lidos antes de salvar.");
+  }
+  // A arte do Instagram é somente uma fonte temporária para a leitura. Ela
+  // nunca é carregada de um registro salvo nem aparece para o cliente.
   if ($("tituloCardapioGestao")) $("tituloCardapioGestao").value = registro?.titulo || "Cardápio de hoje";
   if ($("itensTextoCardapioGestao")) $("itensTextoCardapioGestao").value = deduplicarItensCardapio(registro?.itens || []).join("\n");
   if ($("observacaoCardapioGestao")) $("observacaoCardapioGestao").value = registro?.observacao || "";
-  if ($("publicarCardapioGestao")) $("publicarCardapioGestao").checked = registro?.publicado !== false;
+  if ($("publicarCardapioGestao")) $("publicarCardapioGestao").checked = cardapioPublicado(registro?.publicado);
   const selecionados = new Set(registro?.produtoIds || estadoGestao.produtos.filter(item => item.ativo !== false).map(item => item.id));
   $("produtosCardapioGestao").innerHTML = estadoGestao.produtos.filter(item => item.ativo !== false).map(produto => `<label class="menu-check"><input type="checkbox" value="${escapar(produto.id)}" ${selecionados.has(produto.id) ? "checked" : ""}><span class="emoji">${escapar(produto.emoji || "🍽️")}</span><span><strong>${escapar(produto.nome)}</strong><small>${formatarMoedaGestao(produto.preco)}</small></span></label>`).join("") || '<div class="empty-state">Cadastre produtos no painel.</div>';
+  renderImagemCardapioGestao();
   renderItensSalvosCardapio();
   const alerta = $("alertaCardapioGestao");
   if (alerta) {
-    alerta.textContent = registro?.publicado && selecionados.size ? `Publicado para ${textoData(data)} • ${selecionados.size} produto(s) liberado(s).` : `Este cardápio ainda não está publicado para ${textoData(data)}.`;
-    alerta.className = `menu-publication-alert ${registro?.publicado && selecionados.size ? "published" : "needs-attention"}`;
+    const itensPublicados = deduplicarItensCardapio(registro?.itens || []);
+    const publicado = cardapioPublicado(registro?.publicado, false) && itensPublicados.length > 0;
+    const detalheProdutos = selecionados.size ? ` • ${selecionados.size} produto(s) filtrado(s)` : " • catálogo completo mantido";
+    alerta.textContent = publicado ? `Publicado para ${textoData(data)} • ${itensPublicados.length} item(ns)${detalheProdutos}.` : `Este cardápio ainda não está publicado para ${textoData(data)}.`;
+    alerta.className = `menu-publication-alert ${publicado ? "published" : "needs-attention"}`;
   }
 }
 
@@ -1387,6 +1438,51 @@ document.querySelectorAll("[data-stock-tab]").forEach(botao => botao.addEventLis
 $("dataCardapioGestao").value = dataLojaISO();
 $("dataCardapioGestao").addEventListener("change", renderCardapio);
 $("itensTextoCardapioGestao").addEventListener("input", renderItensSalvosCardapio);
+$("imagemCardapioGestao").addEventListener("change", async evento => {
+  const arquivo = evento.target.files?.[0];
+  if (!arquivo) return;
+  try {
+    if (arquivo.size > 15 * 1024 * 1024) throw new Error("Escolha uma imagem de até 15 MB.");
+    const dataUrl = await prepararImagemParaIA(arquivo);
+    imagemCardapioDataISO = $("dataCardapioGestao").value || dataLojaISO();
+    imagemCardapioPendente = { dataUrl };
+    renderImagemCardapioGestao();
+    statusLeituraImagemCardapio("Imagem pronta. Confira a prévia e clique em “Ler itens da imagem” para preencher o texto.", "success");
+  } catch (erro) {
+    evento.target.value = "";
+    imagemCardapioPendente = null;
+    renderImagemCardapioGestao();
+    statusLeituraImagemCardapio(erro.message || "Não foi possível abrir esta imagem.", "error");
+  }
+});
+$("lerImagemCardapioGestao").addEventListener("click", async () => {
+  const dataUrl = imagemCardapioPendente?.dataUrl;
+  if (!dataUrl) return toast("Selecione uma imagem nova para a leitura.", "error");
+  const botao = $("lerImagemCardapioGestao");
+  botao.disabled = true;
+  statusLeituraImagemCardapio("Lendo a arte do Instagram… confira tudo antes de salvar.");
+  try {
+    const dados = await lerRegistroComIA(dataUrl, "cardapio");
+    const lidos = itensDaLeituraCardapio(dados);
+    if (!lidos.length) throw new Error("Não consegui identificar itens com segurança. Digite-os no campo abaixo e salve a imagem normalmente.");
+    const atuais = itensTextoCardapio($("itensTextoCardapioGestao").value || "");
+    $("itensTextoCardapioGestao").value = deduplicarItensCardapio([...atuais, ...lidos]).join("\n");
+    if (dados.titulo && ["", "Cardápio de hoje"].includes($("tituloCardapioGestao").value.trim())) $("tituloCardapioGestao").value = dados.titulo;
+    if (dados.observacao && !$("observacaoCardapioGestao").value.trim()) $("observacaoCardapioGestao").value = dados.observacao;
+    renderItensSalvosCardapio();
+    statusLeituraImagemCardapio(`${lidos.length} item(ns) sugerido(s) com ${Number(dados.confianca || 0)}% de confiança. Revise a escrita e salve.`, "success");
+  } catch (erro) {
+    statusLeituraImagemCardapio(erro.message || "Não foi possível ler esta arte.", "error");
+  } finally {
+    botao.disabled = false;
+  }
+});
+$("removerImagemCardapioGestao").addEventListener("click", () => {
+  imagemCardapioPendente = null;
+  $("imagemCardapioGestao").value = "";
+  renderImagemCardapioGestao();
+  statusLeituraImagemCardapio("Imagem retirada desta edição. O site continuará usando somente o texto salvo.", "success");
+});
 $("selecionarTodosCardapio").addEventListener("click", () => document.querySelectorAll("#produtosCardapioGestao input").forEach(campo => { campo.checked = true; }));
 $("limparCardapio").addEventListener("click", () => {
   $("produtosCardapioGestao").querySelectorAll("input").forEach(campo => { campo.checked = false; });
@@ -1396,6 +1492,14 @@ $("limparCardapio").addEventListener("click", () => {
     alerta.textContent = "Rascunho limpo. Salve quando quiser retirar o cardápio do site.";
     alerta.className = "menu-publication-alert needs-attention";
   }
+});
+$("publicarCardapioGestao").addEventListener("change", evento => {
+  const alerta = $("alertaCardapioGestao");
+  if (!alerta) return;
+  alerta.textContent = evento.target.checked
+    ? "O cardápio será publicado quando você clicar em “Salvar no site”."
+    : "O cardápio ficará oculto no site quando você clicar em “Salvar no site”.";
+  alerta.className = `menu-publication-alert ${evento.target.checked ? "published" : "needs-attention"}`;
 });
 $("copiarCardapioAnterior").addEventListener("click", () => {
   const dataAtual = $("dataCardapioGestao").value;
@@ -1407,13 +1511,40 @@ $("copiarCardapioAnterior").addEventListener("click", () => {
   $("tituloCardapioGestao").value = registro.titulo || "Cardápio de hoje";
   $("observacaoCardapioGestao").value = registro.observacao || "";
   $("itensTextoCardapioGestao").value = deduplicarItensCardapio(registro.itens || []).join("\n");
+  imagemCardapioPendente = null;
+  $("imagemCardapioGestao").value = "";
+  renderImagemCardapioGestao();
+  statusLeituraImagemCardapio("Dia anterior copiado sem a imagem, porque a arte pode conter a data antiga. Envie a arte de hoje.");
   renderItensSalvosCardapio();
-  $("publicarCardapioGestao").checked = registro.publicado !== false;
+  $("publicarCardapioGestao").checked = cardapioPublicado(registro.publicado);
   const ids = new Set(registro.produtoIds || []);
   $("produtosCardapioGestao").querySelectorAll("input").forEach(campo => { campo.checked = ids.has(campo.value); });
   toast(`Cardápio de ${textoData(dataAnterior)} copiado como rascunho.`, "success");
 });
-$("salvarCardapioGestao").addEventListener("click", async () => { const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value); if ($("publicarCardapioGestao").checked && !produtoIds.length) return toast("Escolha pelo menos um produto ou desative a publicação.", "error"); try { await salvarCardapioDia({ dataISO: $("dataCardapioGestao").value, produtoIds, publicado: $("publicarCardapioGestao").checked, titulo: $("tituloCardapioGestao").value, itens: itensTextoCardapio($("itensTextoCardapioGestao").value), observacao: $("observacaoCardapioGestao").value }); toast("Cardápio atualizado no site.", "success"); } catch (erro) { toast(erro.message, "error"); } });
+$("salvarCardapioGestao").addEventListener("click", async () => {
+  const botao = $("salvarCardapioGestao");
+  const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value);
+  const itens = itensTextoCardapio($("itensTextoCardapioGestao").value);
+  if ($("publicarCardapioGestao").checked && !itens.length) return toast("Digite ou leia pelo menos um item antes de publicar o cardápio.", "error");
+  const dataISO = $("dataCardapioGestao").value || dataLojaISO();
+  botao.disabled = true;
+  botao.textContent = "Salvando…";
+  try {
+    await salvarCardapioDia({ dataISO, produtoIds, publicado: $("publicarCardapioGestao").checked, titulo: $("tituloCardapioGestao").value, itens, observacao: $("observacaoCardapioGestao").value });
+    imagemCardapioDataISO = dataISO;
+    imagemCardapioPendente = null;
+    renderImagemCardapioGestao();
+    statusLeituraImagemCardapio("Itens salvos. A imagem foi usada somente para leitura e não foi publicada.", "success");
+    toast("Cardápio atualizado no site.", "success");
+  } catch (erro) {
+    const mensagem = erro.message || "Não foi possível salvar o cardápio.";
+    statusLeituraImagemCardapio(mensagem, "error");
+    toast(mensagem, "error");
+  } finally {
+    botao.disabled = false;
+    botao.textContent = "Salvar no site";
+  }
+});
 const periodo = periodoPadrao();
 [["financeiroInicio", periodo.inicio], ["financeiroFim", periodo.fim], ["relatorioInicio", periodo.inicio], ["relatorioFim", periodo.fim]].forEach(([id, valor]) => { $(id).value = valor; });
 $("aplicarPeriodoFinanceiro").addEventListener("click", renderFinanceiro);

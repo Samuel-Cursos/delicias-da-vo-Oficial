@@ -126,6 +126,19 @@
 .menu-publication-alert.needs-attention { border-color: #e0b5aa; background: #fff1ed; color: #8e3027; }
 .menu-bulk-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
 .link-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.daily-menu-image { margin-top: 14px; }
+.daily-menu-image .surface-head { align-items: flex-start; }
+.daily-menu-image .surface-head > .soft-pill { flex: 0 0 auto; }
+.menu-image-layout { display: grid; grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr); align-items: start; gap: 16px; }
+.menu-image-upload { width: fit-content !important; max-width: 100%; }
+.menu-image-help { max-width: 430px; margin: 9px 0 0; color: var(--muted); font-size: .7rem; line-height: 1.45; }
+.menu-image-preview-box { min-width: 0; }
+.menu-image-preview { display: block; width: min(100%, 620px); max-height: 360px; margin: 0; object-fit: contain; border: 1px solid #e8cdb8; border-radius: 16px; background: #fff; }
+.menu-image-preview-box[hidden] { display: none; }
+.menu-image-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
+.menu-image-status { margin: 11px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
+.menu-image-status.success { color: #286b47; }
+.menu-image-status.error { color: var(--red); }
 .daily-menu-library { margin-top: 14px; }
 .daily-menu-library .surface-head { align-items: center; }
 .menu-library-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
@@ -165,6 +178,7 @@
   .company-contact-actions { flex-direction: column; }
   .business-health-grid { grid-template-columns: 1fr 1fr; }
   .menu-bulk-actions { justify-content: flex-start; }
+  .menu-image-layout { grid-template-columns: 1fr; }
   .daily-menu-library .surface-head { align-items: stretch; flex-direction: column; }
   .menu-library-tools { justify-content: flex-start; }
   .menu-library-tools .search-field { min-width: 0; flex: 1; }

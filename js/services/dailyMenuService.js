@@ -14,7 +14,12 @@ export function observarCardapioDiario(callback, dataISO = dataLojaISO()) {
 }
 
 export function produtoLiberadoNoCardapio(produtoId) {
-  if (!cardapioDiarioAtual?.publicado) return true;
+  const publicado = cardapioDiarioAtual?.publicado === true
+    || cardapioDiarioAtual?.publicado === 1
+    || String(cardapioDiarioAtual?.publicado || "").toLowerCase() === "true";
+  if (!publicado) return true;
   const ids = Array.isArray(cardapioDiarioAtual.produtoIds) ? cardapioDiarioAtual.produtoIds : [];
-  return ids.length ? ids.includes(String(produtoId)) : false;
+  // Sem uma seleção explícita, a publicação do texto não deve esconder
+  // todo o catálogo. A filtragem só acontece quando há produtos marcados.
+  return ids.length ? ids.includes(String(produtoId)) : true;
 }

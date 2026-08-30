@@ -772,7 +772,9 @@ function renderCardapioDiaSite() {
 
   const cardapio = cardapioDiarioAtual;
   const itens = Array.isArray(cardapio?.itens) ? cardapio.itens.filter(Boolean) : [];
-  const publicado = cardapio?.publicado === true;
+  const publicado = cardapio?.publicado === true
+    || cardapio?.publicado === 1
+    || String(cardapio?.publicado || "").toLowerCase() === "true";
   if (!publicado || !itens.length) {
     section.style.display = "none";
     return;

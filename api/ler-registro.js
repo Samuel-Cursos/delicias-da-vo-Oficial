@@ -107,11 +107,48 @@ function normalizarResultado(resultado = {}) {
   };
 }
 
+function normalizarResultadoCardapio(resultado = {}) {
+  const candidatos = Array.isArray(resultado.itens) && resultado.itens.length
+    ? resultado.itens
+    : String(resultado.textoReconhecido || "").split(/[\n•;]+/);
+  const vistos = new Set();
+  const itens = candidatos.map(item => textoSeguro(item, 120)).filter(item => {
+    const chave = item.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (!chave || vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  }).slice(0, 40);
+  return {
+    itens,
+    titulo: textoSeguro(resultado.titulo || "", 120),
+    observacao: textoSeguro(resultado.observacao || "", 500),
+    confianca: Math.round(Math.max(0, Math.min(100, Number(resultado.confianca || 0)))),
+    textoReconhecido: textoSeguro(resultado.textoReconhecido || itens.join(" • "), 2500),
+    origem: "gemini"
+  };
+}
+
 async function chamarGemini(imagem, modo, apiKey) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25_000);
+  const ehCardapio = modo === "cardapio";
   const contexto = modo === "compra" ? "uma compra/despesa" : "uma venda recebida";
-  const prompt = `Analise esta foto de uma anotação brasileira de ${contexto}. A escrita pode ser cursiva.
+  const prompt = ehCardapio
+    ? `Analise esta imagem de um cardápio de comida brasileira criado para publicação no Instagram.
+
+Extraia SOMENTE:
+- cada prato ou item de comida legível, um por entrada, preservando o nome escrito na arte;
+- o título do cardápio, se existir;
+- uma observação do dia, se existir;
+- uma transcrição curta do texto relevante para conferência.
+
+Regras:
+- Não invente pratos, ingredientes, preços ou informações que não estejam visíveis.
+- Ignore logotipo, telefone, endereço, hashtags e chamadas que não sejam itens do cardápio.
+- Se um item não estiver legível, não tente adivinhar.
+- Itens repetidos devem aparecer somente uma vez.
+- A confiança deve ser um número inteiro de 0 a 100.`
+    : `Analise esta foto de uma anotação brasileira de ${contexto}. A escrita pode ser cursiva.
 
 Extraia SOMENTE:
 - o valor total final já com descontos;
@@ -127,6 +164,45 @@ Regras:
 - Se subtotal ou desconto não estiverem claros, retorne 0 nesses campos.
 - Converta vírgula decimal brasileira corretamente. Exemplo: 18,50 = 18.5.
 - A confiança deve ser um número inteiro de 0 a 100.`;
+  const responseSchema = ehCardapio
+    ? {
+      type: "OBJECT",
+      properties: {
+        itens: { type: "ARRAY", items: { type: "STRING" } },
+        titulo: { type: "STRING" },
+        observacao: { type: "STRING" },
+        confianca: { type: "INTEGER" },
+        textoReconhecido: { type: "STRING" }
+      },
+      required: ["itens", "titulo", "observacao", "confianca", "textoReconhecido"]
+    }
+    : {
+      type: "OBJECT",
+      properties: {
+        valor: { type: "NUMBER" },
+        subtotal: { type: "NUMBER" },
+        desconto: { type: "NUMBER" },
+        pagamento: {
+          type: "STRING",
+          enum: ["Pix", "Dinheiro", "Cartão débito", "Cartão crédito", "Pagamento misto", "Não informado"]
+        },
+        pagamentos: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              tipo: { type: "STRING" },
+              valor: { type: "NUMBER" }
+            },
+            required: ["tipo", "valor"]
+          }
+        },
+        confianca: { type: "INTEGER" },
+        textoReconhecido: { type: "STRING" },
+        observacao: { type: "STRING" }
+      },
+      required: ["valor", "subtotal", "desconto", "pagamento", "pagamentos", "confianca", "textoReconhecido", "observacao"]
+    };
 
   try {
     const resposta = await fetch(
@@ -146,33 +222,7 @@ Regras:
           generationConfig: {
             temperature: 0,
             responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
-                valor: { type: "NUMBER" },
-                subtotal: { type: "NUMBER" },
-                desconto: { type: "NUMBER" },
-                pagamento: {
-                  type: "STRING",
-                  enum: ["Pix", "Dinheiro", "Cartão débito", "Cartão crédito", "Pagamento misto", "Não informado"]
-                },
-                pagamentos: {
-                  type: "ARRAY",
-                  items: {
-                    type: "OBJECT",
-                    properties: {
-                      tipo: { type: "STRING" },
-                      valor: { type: "NUMBER" }
-                    },
-                    required: ["tipo", "valor"]
-                  }
-                },
-                confianca: { type: "INTEGER" },
-                textoReconhecido: { type: "STRING" },
-                observacao: { type: "STRING" }
-              },
-              required: ["valor", "subtotal", "desconto", "pagamento", "pagamentos", "confianca", "textoReconhecido", "observacao"]
-            }
+            responseSchema
           }
         })
       }
@@ -187,7 +237,8 @@ Regras:
     const dados = await resposta.json();
     const texto = dados?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!texto) throw new Error("Leitura vazia");
-    return normalizarResultado(extrairJson(texto));
+    const resultado = extrairJson(texto);
+    return ehCardapio ? normalizarResultadoCardapio(resultado) : normalizarResultado(resultado);
   } finally {
     clearTimeout(timer);
   }
@@ -218,7 +269,7 @@ export default async function handler(req, res) {
     if (!imagem) {
       return res.status(400).json({ erro: "A imagem é inválida ou ficou grande demais." });
     }
-    const modo = corpo.modo === "compra" ? "compra" : "venda";
+    const modo = ["compra", "cardapio"].includes(corpo.modo) ? corpo.modo : "venda";
     return res.status(200).json(await chamarGemini(imagem, modo, apiKey));
   } catch (erro) {
     console.error("Falha na leitura inteligente:", erro?.name || "Erro", erro?.statusExterno || "");

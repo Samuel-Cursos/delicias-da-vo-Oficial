@@ -176,11 +176,35 @@
           <label>Data do cardápio<input id="dataCardapioGestao" type="date"></label>
           <label class="grow">Título exibido no site<input id="tituloCardapioGestao" type="text" placeholder="Cardápio de hoje"></label>
           <label class="grow">Recado do dia<input id="observacaoCardapioGestao" type="text" placeholder="Ex.: pedidos até 12h"></label>
-          <label class="switch-label"><input id="publicarCardapioGestao" type="checkbox" checked><span></span> Publicado</label>
+          <label class="switch-label"><input id="publicarCardapioGestao" type="checkbox" checked><span></span> Publicar no site</label>
           <button id="copiarCardapioAnterior" class="secondary-btn" type="button">Copiar dia anterior</button>
           <button id="salvarCardapioGestao" class="primary-btn" type="button">Salvar no site</button>
         </div>
         <article class="surface daily-menu-text"><div class="surface-head"><div><p class="kicker">Composição da marmita</p><h3>Itens do cardápio de hoje</h3><p>Escreva um item por linha, ou toque em um item salvo abaixo para adicionar mais rápido.</p></div></div><textarea id="itensTextoCardapioGestao" rows="4" placeholder="Arroz&#10;Feijão&#10;Carne assada&#10;Salada" aria-label="Itens do cardápio de hoje"></textarea></article>
+        <article class="surface daily-menu-image">
+          <div class="surface-head">
+            <div>
+              <p class="kicker">Imagem do Instagram</p>
+              <h3>Use a arte somente para leitura</h3>
+              <p>Envie a imagem pronta do Instagram para identificar os itens. Ela fica apenas nesta tela e nunca aparece no site.</p>
+            </div>
+            <span id="statusImagemCardapioGestao" class="soft-pill">Nenhuma imagem</span>
+          </div>
+          <div class="menu-image-layout">
+            <div>
+              <label class="scan-upload menu-image-upload">Selecionar imagem do cardápio<input id="imagemCardapioGestao" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
+              <p class="menu-image-help">Use JPG, PNG ou WebP. Depois de ler, confira o texto e salve; o cliente verá somente a versão escrita.</p>
+            </div>
+            <div class="menu-image-preview-box" id="previewImagemCardapioBox" hidden>
+              <img id="previewImagemCardapioGestao" class="menu-image-preview" alt="Prévia da imagem do cardápio" loading="lazy" decoding="async">
+              <div class="menu-image-actions">
+                <button id="lerImagemCardapioGestao" class="secondary-btn" type="button">✦ Ler itens da imagem</button>
+                <button id="removerImagemCardapioGestao" class="text-btn danger" type="button">Remover imagem</button>
+              </div>
+            </div>
+          </div>
+          <p id="statusLeituraImagemCardapioGestao" class="menu-image-status" role="status">Selecione a arte para visualizar. Depois confira os itens lidos antes de salvar.</p>
+        </article>
         <article class="surface daily-menu-library">
           <div class="surface-head">
             <div><p class="kicker">Atalhos da cozinha</p><h3>Itens usados antes</h3><p>Os itens dos cardápios anteriores ficam salvos aqui uma única vez. Clique para reaproveitar no dia escolhido.</p></div>
@@ -190,7 +214,7 @@
           <p id="itensSalvosCardapioVazio" class="saved-menu-empty" role="status"></p>
         </article>
         <article class="surface">
-          <div class="surface-head"><div><p class="kicker">Ligado ao site</p><h3>Escolha o que aparece hoje</h3><p>Produtos desmarcados somem do cardápio público apenas nesta data.</p></div><div class="menu-bulk-actions"><button id="limparCardapio" class="text-btn" type="button">Limpar</button><button id="selecionarTodosCardapio" class="secondary-btn" type="button">Selecionar todos</button><a class="secondary-btn link-button" href="../index.html#cardapio" target="_blank" rel="noopener">Ver no site</a></div></div>
+          <div class="surface-head"><div><p class="kicker">Ligado ao site</p><h3>Escolha o que aparece hoje</h3><p>Se marcar produtos, apenas eles ficam liberados. Se nenhum for marcado, o catálogo continua completo e o texto do cardápio também é publicado.</p></div><div class="menu-bulk-actions"><button id="limparCardapio" class="text-btn" type="button">Limpar</button><button id="selecionarTodosCardapio" class="secondary-btn" type="button">Selecionar todos</button><a class="secondary-btn link-button" href="../index.html#cardapio" target="_blank" rel="noopener">Ver no site</a></div></div>
           <div id="produtosCardapioGestao" class="menu-product-grid"></div>
         </article>
       </section>
