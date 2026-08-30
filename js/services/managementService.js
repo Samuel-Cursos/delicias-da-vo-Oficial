@@ -3,6 +3,7 @@ import {
   onSnapshot, serverTimestamp, runTransaction
 } from "../core/firebase.js";
 import { dataLojaISO, horaLoja, numeroSeguro } from "./managementCore.js";
+import { deduplicarItensCardapio } from "./menuLibrary.js";
 
 export const estadoGestao = {
   pedidosSite: [],
@@ -329,12 +330,13 @@ export async function atualizarPedidoManualGestao(id, dados = {}) {
 }
 
 export async function salvarCardapioDia({ dataISO = dataLojaISO(), produtoIds = [], publicado = true, titulo = "", itens = [], observacao = "" } = {}) {
+  const itensUnicos = deduplicarItensCardapio(itens);
   await setDoc(doc(db, "cardapiosDiarios", dataISO), {
     dataISO,
     produtoIds: [...new Set(produtoIds.map(String))],
     publicado: Boolean(publicado),
     titulo: String(titulo || "Cardápio de hoje").trim().slice(0, 120),
-    itens: (Array.isArray(itens) ? itens : []).map(item => String(item || "").trim().slice(0, 120)).filter(Boolean).slice(0, 30),
+    itens: itensUnicos,
     observacao: String(observacao || "").trim().slice(0, 500),
     atualizadoEm: serverTimestamp()
   }, { merge: true });
