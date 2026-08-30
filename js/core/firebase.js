@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { getFirestore, collection, collectionGroup, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot, serverTimestamp, query, where, runTransaction, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+import { getFirestore, collection, collectionGroup, doc, getDoc, getDocs, setDoc as firebaseSetDoc, updateDoc as firebaseUpdateDoc, deleteDoc as firebaseDeleteDoc, addDoc as firebaseAddDoc, onSnapshot, serverTimestamp, query, where, runTransaction as firebaseRunTransaction, increment, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { getStorage, ref as storageRef, uploadBytes as firebaseUploadBytes, getDownloadURL, deleteObject as firebaseDeleteObject } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-storage.js";
+import { APP_CONFIG } from "./config.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQzlseF8cyjwPIvX3TjPCznZojDMV2SIo",
@@ -19,6 +20,21 @@ export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
 
-export { storageRef, uploadBytes, getDownloadURL, deleteObject };
+function bloquearEscritaNaPrevia() {
+  if (!APP_CONFIG.previewMode) return;
+  const erro = new Error("Esta é uma prévia segura. As alterações não são enviadas ao sistema oficial.");
+  erro.code = "preview/read-only";
+  throw erro;
+}
 
-export { signInWithPopup, signOut, onAuthStateChanged, collection, collectionGroup, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, onSnapshot, serverTimestamp, query, where, runTransaction, increment, Timestamp };
+export function setDoc(...args) { bloquearEscritaNaPrevia(); return firebaseSetDoc(...args); }
+export function updateDoc(...args) { bloquearEscritaNaPrevia(); return firebaseUpdateDoc(...args); }
+export function deleteDoc(...args) { bloquearEscritaNaPrevia(); return firebaseDeleteDoc(...args); }
+export function addDoc(...args) { bloquearEscritaNaPrevia(); return firebaseAddDoc(...args); }
+export function runTransaction(...args) { bloquearEscritaNaPrevia(); return firebaseRunTransaction(...args); }
+export function uploadBytes(...args) { bloquearEscritaNaPrevia(); return firebaseUploadBytes(...args); }
+export function deleteObject(...args) { bloquearEscritaNaPrevia(); return firebaseDeleteObject(...args); }
+
+export { storageRef, getDownloadURL };
+
+export { signInWithPopup, signOut, onAuthStateChanged, collection, collectionGroup, doc, getDoc, getDocs, onSnapshot, serverTimestamp, query, where, increment, Timestamp };

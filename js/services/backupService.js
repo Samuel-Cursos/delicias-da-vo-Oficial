@@ -16,6 +16,7 @@ const COLECOES_RAIZ = [
   "contadoresPedidos",
   "vendas",
   "usuarios",
+  "contasReceber",
   "movimentosFinanceiros",
   "custosProdutos",
   "fechamentosFinanceiros",
@@ -32,6 +33,41 @@ const COLECOES_RAIZ = [
   "convitesEquipe",
   "solicitacoesAcesso"
 ];
+
+const LIMITE_DOCUMENTOS_BACKUP = 10000;
+
+function caminhoPermitido(segmentos = []) {
+  if (segmentos.length === 2) return COLECOES_RAIZ.includes(segmentos[0]);
+  return segmentos.length === 4
+    && segmentos[0] === "pedidosSite"
+    && /^\d{4}-\d{2}-\d{2}$/.test(segmentos[1])
+    && segmentos[2] === "pedidos";
+}
+
+export function validarBackupCompleto(backup) {
+  if (!backup || typeof backup !== "object" || !Array.isArray(backup.documentos)) {
+    throw new Error("Arquivo de backup inválido.");
+  }
+  if (backup.aplicativo && backup.aplicativo !== "Delícias da Vó") {
+    throw new Error("Este arquivo não pertence à Delícias da Vó.");
+  }
+  if (backup.formato !== undefined && ![2, 3].includes(Number(backup.formato))) {
+    throw new Error("Formato de backup não reconhecido.");
+  }
+  if (backup.documentos.length > LIMITE_DOCUMENTOS_BACKUP) {
+    throw new Error(`O backup ultrapassa o limite seguro de ${LIMITE_DOCUMENTOS_BACKUP} documentos.`);
+  }
+  backup.documentos.forEach((item, indice) => {
+    if (!item || typeof item !== "object" || typeof item.caminho !== "string" || !item.dados || typeof item.dados !== "object" || Array.isArray(item.dados)) {
+      throw new Error(`Documento inválido na posição ${indice + 1}.`);
+    }
+    const segmentos = item.caminho.split("/").filter(Boolean);
+    if (!caminhoPermitido(segmentos) || segmentos.some(segmento => segmento === "." || segmento === ".." || segmento.length > 180)) {
+      throw new Error(`Caminho não permitido no backup: ${item.caminho}`);
+    }
+  });
+  return true;
+}
 
 function serializar(valor) {
   if (valor === null || valor === undefined) return valor;
@@ -104,9 +140,7 @@ export function baixarBackupJson(backup) {
 }
 
 export async function restaurarBackupCompleto(backup, progresso) {
-  if (!backup || !Array.isArray(backup.documentos)) {
-    throw new Error("Arquivo de backup inválido.");
-  }
+  validarBackupCompleto(backup);
 
   let concluido = 0;
   const total = backup.documentos.length;
@@ -115,9 +149,6 @@ export async function restaurarBackupCompleto(backup, progresso) {
     const bloco = backup.documentos.slice(indice,indice+20);
     await Promise.all(bloco.map(item => {
       const segmentos = String(item.caminho || "").split("/").filter(Boolean);
-      if (segmentos.length < 2 || segmentos.length % 2 !== 0) {
-        throw new Error(`Caminho inválido no backup: ${item.caminho}`);
-      }
       return setDoc(doc(db, ...segmentos), desserializar(item.dados), { merge:true });
     }));
     concluido += bloco.length;

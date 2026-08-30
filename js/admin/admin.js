@@ -1,4 +1,5 @@
 import { iniciarAuth } from "../core/auth.js";
+import { APP_CONFIG } from "../core/config.js";
 import { formatarMoeda, limparTexto, gerarId } from "../core/utils.js";
 import { produtos, observarProdutos, criarProdutosBase, salvarProduto, atualizarProduto, excluirProduto, statusEstoque } from "../services/productService.js";
 import { categorias, categoriasBase, observarCategorias, normalizarCategorias, categoriaPorId } from "../services/categoryService.js";
@@ -41,6 +42,14 @@ let arquivoBackupPendente = null;
 let erroCentralPedidos = null;
 
 iniciarAuth();
+
+if (APP_CONFIG.previewMode) {
+  const aviso = document.createElement("div");
+  aviso.className = "preview-safe-banner";
+  aviso.setAttribute("role", "status");
+  aviso.textContent = "Prévia segura: você pode navegar e conferir tudo, mas nenhuma alteração será enviada ao site oficial.";
+  document.body.prepend(aviso);
+}
 
 function iniciarAdminDepoisLogin() {
   observarProdutos(() => {
@@ -537,9 +546,8 @@ async function excluirProdutoAdmin(id) {
   const produto = produtos.find(p => p.id === id);
   if (!produto) return;
 
-  if (!confirm(`Excluir ${produto.nome}?`)) return;
-
-  await excluirProduto(id);
+  if (!confirm(`Arquivar ${produto.nome}? Ele sairá do site, mas continuará salvo para histórico e poderá ser reativado.`)) return;
+  await atualizarProduto(id, { ativo: false, arquivado: true, arquivadoEmMs: Date.now() });
 }
 
 function renderVendaRapida() {
@@ -1066,10 +1074,14 @@ function preencherConfiguracaoEmpresas() {
   const minimo = document.getElementById("empresaConfigMinimo");
   const entrega = document.getElementById("empresaConfigEntrega");
   const observacao = document.getElementById("empresaConfigObservacao");
+  const titulo = document.getElementById("empresaConfigTitulo");
+  const resposta = document.getElementById("empresaConfigResposta");
   if (ativo) ativo.checked = configuracaoEmpresas.ativo !== false;
   if (minimo) minimo.value = Math.max(5, Number(configuracaoEmpresas.pedidoMinimo || 5));
   if (entrega) entrega.value = configuracaoEmpresas.entregaTexto || "Grátis até 3 km • após 3 km, há taxa.";
   if (observacao) observacao.value = configuracaoEmpresas.observacao || "Valores, cardápio e condições são confirmados no atendimento.";
+  if (titulo) titulo.value = configuracaoEmpresas.titulo || "O almoço da equipe organizado, caseiro e sem complicação.";
+  if (resposta) resposta.value = configuracaoEmpresas.respostaPrazo || "Retorno pelo WhatsApp conforme a disponibilidade da loja.";
   const dias = new Set(Array.isArray(configuracaoEmpresas.diasAtendimento)
     ? configuracaoEmpresas.diasAtendimento
     : ["segunda", "terca", "quarta", "quinta", "sexta", "sabado"]);
@@ -1099,7 +1111,9 @@ async function salvarEmpresasNoSite() {
       pedidoMinimo,
       diasAtendimento,
       entregaTexto: limparTexto(document.getElementById("empresaConfigEntrega")?.value || ""),
-      observacao: limparTexto(document.getElementById("empresaConfigObservacao")?.value || "")
+      observacao: limparTexto(document.getElementById("empresaConfigObservacao")?.value || ""),
+      titulo: limparTexto(document.getElementById("empresaConfigTitulo")?.value || ""),
+      respostaPrazo: limparTexto(document.getElementById("empresaConfigResposta")?.value || "")
     });
     if (status) {
       status.style.display = "block";
@@ -1120,18 +1134,18 @@ async function salvarEmpresasNoSite() {
 function preencherConfiguracoesLoja() {
   const campos = {
     configNomeLoja: lojaConfig.nomeLoja || "Delícias da Vó",
-    configSlogan: lojaConfig.slogan || "Feito com carinho",
-    configInstagram: lojaConfig.instagram || "@deliciasda_vo",
+    configSlogan: lojaConfig.slogan || "Sabor caseiro que conquista!",
+    configInstagram: lojaConfig.instagram || "@deliciasdavo_alailda",
     configInstagramNome: lojaConfig.instagramNome || "Instagram da loja",
-    configInstagramUrl: lojaConfig.instagramUrl || "",
+    configInstagramUrl: lojaConfig.instagramUrl || "https://www.instagram.com/deliciasdavo_alailda/",
     configWhatsapp: lojaConfig.whatsapp || "5518991178906",
     configEndereco: lojaConfig.endereco || "",
     configEnderecoNome: lojaConfig.enderecoNome || "Endereço da loja",
     configEnderecoUrl: lojaConfig.enderecoUrl || "",
-    configHorario: lojaConfig.horario || "",
-    configEntrega: lojaConfig.entrega || "Taxa conforme distância",
+    configHorario: lojaConfig.horario || "Segunda a sexta, das 9h às 18h.",
+    configEntrega: lojaConfig.entrega || "Grátis até 3 km • acima disso, taxa conforme distância",
     configRetirada: lojaConfig.retirada || "Retirada na loja",
-    configTaxaAte3Km: Number(lojaConfig.taxasEntrega?.ate3Km ?? 5),
+    configTaxaAte3Km: 0,
     configTaxaAte5Km: Number(lojaConfig.taxasEntrega?.ate5Km ?? 7),
     configLimiteEntregaKm: Number(lojaConfig.taxasEntrega?.limiteKm ?? 5),
     configStatusLoja: lojaConfig.statusLoja || "aberta",
@@ -1175,7 +1189,7 @@ async function salvarConfiguracoesLoja() {
     entrega: limparTexto(document.getElementById("configEntrega").value),
     retirada: limparTexto(document.getElementById("configRetirada").value),
     taxasEntrega: {
-      ate3Km: numeroConfiguracao("configTaxaAte3Km", 5, 0, 500),
+      ate3Km: 0,
       ate5Km: numeroConfiguracao("configTaxaAte5Km", 7, 0, 500),
       limiteKm: numeroConfiguracao("configLimiteEntregaKm", 5, 3, 100)
     },

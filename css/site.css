@@ -1784,3 +1784,62 @@ nav a:hover,nav button:hover{transform:translateY(-2px);background:rgba(255,255,
   .empresas-proposta{margin-left:-2px;margin-right:-2px;margin-bottom:64px;padding:23px 15px;border-radius:25px}.empresas-form{padding:20px 15px;border-radius:20px}.empresas-form-grid{grid-template-columns:1fr}.empresas-form .campo-inteiro{grid-column:auto}.empresas-form input,.empresas-form select,.empresas-form textarea{min-height:48px;font-size:16px}.empresas-form textarea{min-height:110px}.empresas-dias-grid{grid-template-columns:repeat(3,1fr)}.empresas-endereco-grid{grid-template-columns:1fr}.empresas-cep-campo{grid-column:auto}.cep-input-row{grid-template-columns:1fr}.cep-input-row button{width:100%}
   .empresas-faq-lista{grid-template-columns:1fr}.empresas-faq{margin-bottom:60px}
 }
+
+/* Experiência empresarial V3 — briefing claro, formulário guiado e resumo vivo */
+.hero-empresas{
+  grid-template-columns:minmax(0,1.25fr) minmax(310px,.75fr);
+  gap:clamp(32px,6vw,84px);
+  align-items:center;
+  min-height:680px;
+  padding-block:clamp(72px,9vw,118px);
+  background:
+    radial-gradient(circle at 78% 18%,rgba(248,190,77,.18),transparent 28%),
+    radial-gradient(circle at 12% 90%,rgba(255,255,255,.08),transparent 30%),
+    linear-gradient(135deg,#35100c 0%,#591d14 54%,#72291d 100%);
+}
+.hero-empresas .hero-content h1{max-width:900px;font-size:clamp(2.55rem,5.4vw,5.1rem);line-height:.98;letter-spacing:-.062em}
+.hero-empresas .hero-content>p{max-width:780px;font-size:clamp(.98rem,1.4vw,1.13rem)}
+.empresa-briefing{position:relative;overflow:hidden;padding:30px;border:1px solid rgba(255,255,255,.2);border-radius:30px;background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.07));color:#fff;box-shadow:0 28px 80px rgba(24,5,2,.35);backdrop-filter:blur(18px)}
+.empresa-briefing:before{content:"";position:absolute;right:-55px;top:-70px;width:180px;height:180px;border-radius:50%;background:rgba(248,190,77,.18)}
+.empresa-briefing>p{position:relative;margin:0;color:#ffd980;font-size:.68rem;font-weight:950;letter-spacing:.14em;text-transform:uppercase}
+.empresa-briefing h2{position:relative;margin:8px 0 24px;font-size:1.55rem;line-height:1.14;letter-spacing:-.035em}
+.empresa-briefing ul{position:relative;display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.empresa-briefing li{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:15px;background:rgba(255,255,255,.07)}
+.empresa-briefing li>span{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:11px;background:#f5bb47;color:#4b1e14;font-size:.65rem;font-weight:950}
+.empresa-briefing li strong,.empresa-briefing li small{display:block}.empresa-briefing li strong{font-size:.83rem}.empresa-briefing li small{margin-top:2px;color:#e6cfc5;font-size:.67rem}
+.empresa-briefing-minimo{position:relative;display:flex;align-items:center;gap:13px;margin-top:22px;padding-top:20px;border-top:1px solid rgba(255,255,255,.14)}
+.empresa-briefing-resposta{position:relative;margin:16px 0 0;padding:10px 12px;border-radius:12px;background:rgba(255,212,119,.12);color:#f7dfb2!important;font-size:.68rem;line-height:1.45}
+.empresa-briefing-minimo strong{color:#ffd477;font-size:3.6rem;line-height:.85;letter-spacing:-.08em}.empresa-briefing-minimo span{color:#f4ded5;font-size:.72rem;font-weight:850;line-height:1.25;text-transform:uppercase;letter-spacing:.08em}
+.empresas-info-grid{margin-top:-50px}
+.empresas-beneficios-grid article{overflow:hidden;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.empresas-beneficios-grid article:hover{transform:translateY(-4px);border-color:#ddb98e;box-shadow:0 18px 38px rgba(83,37,20,.12)}
+.empresas-proposta-v2{grid-template-columns:minmax(280px,.67fr) minmax(0,1.33fr);background:linear-gradient(142deg,#3d130e,#642319 58%,#782d20)}
+.empresas-resumo-vivo{position:sticky;top:112px;color:#fff}
+.empresas-resumo-vivo>.empresas-eyebrow{color:#ffd477}
+.empresas-resumo-vivo h2{margin:8px 0 11px;font-size:clamp(1.8rem,3.5vw,2.7rem);line-height:1.06;letter-spacing:-.045em}
+.empresas-resumo-vivo>p{margin:0;color:#e8cec2;line-height:1.6}
+.empresas-resumo-cartao{display:grid;gap:1px;overflow:hidden;margin-top:24px;border:1px solid rgba(255,255,255,.15);border-radius:18px;background:rgba(255,255,255,.12)}
+.empresas-resumo-cartao>div{padding:12px 14px;background:rgba(49,12,7,.28)}
+.empresas-resumo-cartao small,.empresas-resumo-cartao strong{display:block}.empresas-resumo-cartao small{color:#ddc0b3;font-size:.61rem;font-weight:850;text-transform:uppercase;letter-spacing:.08em}.empresas-resumo-cartao strong{margin-top:4px;color:#fff7ef;font-size:.79rem;line-height:1.4}
+.empresas-resumo-vivo .empresas-regra-minima{margin-top:14px}
+.empresas-form-v2{display:grid;gap:18px;padding:clamp(20px,3.5vw,34px);background:#fffaf4}
+.empresa-etapa{display:flex;align-items:center;gap:11px;margin-top:5px;padding-bottom:11px;border-bottom:1px solid #eadbcd}
+.empresa-etapa:first-child{margin-top:0}
+.empresa-etapa>span{display:grid;width:34px;height:34px;flex:0 0 34px;place-items:center;border-radius:11px;background:#5b2118;color:#ffd477;font-size:.7rem;font-weight:950}
+.empresa-etapa strong,.empresa-etapa small{display:block}.empresa-etapa strong{color:#4e2119;font-size:.93rem}.empresa-etapa small{margin-top:2px;color:#8c7163;font-size:.67rem;line-height:1.4}
+.empresa-campo-isca{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}
+.empresa-privacidade{margin:0;padding:11px 13px;border-radius:12px;background:#f4eadf;color:#745b4e;font-size:.68rem;line-height:1.45}
+.empresas-form-v2>.campo-inteiro{display:block}
+.empresas-form-v2 .empresas-form-status{margin:0}
+.empresas-enviar:disabled{transform:none;opacity:.65;cursor:wait}
+
+@media(max-width:980px){
+  .hero-empresas{grid-template-columns:1fr;min-height:auto}.empresa-briefing{width:min(100%,600px)}
+  .empresas-proposta-v2{grid-template-columns:1fr}.empresas-resumo-vivo{position:static}
+}
+@media(max-width:600px){
+  .hero-empresas{padding-top:64px;padding-bottom:92px}.hero-empresas .hero-content h1{font-size:clamp(2.3rem,12vw,3.35rem)}
+  .empresa-briefing{padding:22px 18px;border-radius:23px}.empresa-briefing h2{font-size:1.3rem}
+  .empresas-proposta-v2{padding:22px 14px}.empresas-form-v2{gap:16px;padding:18px 14px}
+  .empresas-resumo-vivo h2{font-size:1.9rem}.empresas-resumo-cartao{grid-template-columns:1fr 1fr}
+}

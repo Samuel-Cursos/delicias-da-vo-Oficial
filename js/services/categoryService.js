@@ -14,6 +14,7 @@ export function normalizarCategorias(lista) {
   return (lista && lista.length ? lista : categoriasBase)
     .map(categoria => ({
       ...categoria,
+      ativa: categoria.ativa !== false,
       tituloSelecao: categoria.tituloSelecao || "Escolha uma opção"
     }))
     .sort((a, b) => (a.ordem || 0) - (b.ordem || 0));

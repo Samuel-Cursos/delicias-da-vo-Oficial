@@ -1,4 +1,5 @@
 import { db, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp } from "../core/firebase.js";
+import { APP_CONFIG } from "../core/config.js";
 
 export let encomendasFesta = [];
 
@@ -55,6 +56,15 @@ export async function registrarEncomendaFesta(dados) {
     atualizadoEm: serverTimestamp()
   };
 
+  if (APP_CONFIG.previewMode) {
+    const simulado = { id: pedidoRef.id, ...novoPedido, criadoEm: new Date(agora).toISOString(), atualizadoEm: new Date(agora).toISOString(), preview: true };
+    try {
+      const chave = `${APP_CONFIG.storagePreview}:festas`;
+      const anteriores = JSON.parse(localStorage.getItem(chave) || "[]");
+      localStorage.setItem(chave, JSON.stringify([simulado, ...anteriores].slice(0, 20)));
+    } catch {}
+    return simulado;
+  }
   await setDoc(pedidoRef, novoPedido);
   return { id: pedidoRef.id, ...novoPedido };
 }

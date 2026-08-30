@@ -50,6 +50,7 @@
 .site-status-card strong { color: #2f7d45; }
 .site-admin-shortcuts { margin-top: 24px; }
 .gestao-link { color: #ffd59d !important; }
+.preview-safe-banner{position:sticky;top:0;z-index:120;padding:10px 16px;background:#fff0c7;color:#68440a;border-bottom:1px solid #e0bb64;font-size:.78rem;font-weight:850;text-align:center}
 
 /* Módulos operacionais foram transferidos para /gestao e não fazem mais parte do editor do site. */
 #aba-encomendas,

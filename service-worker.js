@@ -1,17 +1,11 @@
-const CACHE_NAME = "delicias-da-vo-marmitas-empresariais-v2";
+const CACHE_NAME = "delicias-da-vo-public-v3";
 
 const ARQUIVOS_CACHE = [
   "/",
   "/index.html",
   "/manifest.json",
   "/css/site.css",
-  "/css/admin.css",
-  "/css/site-admin.css",
-  "/pages/admin.html",
-  "/js/admin/admin.js",
-  "/js/admin/categoryAdmin.js",
   "/js/storefront/site.js",
-  "/js/core/auth.js",
   "/js/core/config.js",
   "/js/core/firebase.js",
   "/js/core/templates.js",
@@ -30,15 +24,6 @@ const ARQUIVOS_CACHE = [
   "/js/services/businessProposal.js",
   "/js/services/businessRequestService.js",
   "/js/services/managementCore.js",
-  "/js/services/managementService.js",
-  "/js/services/backupService.js",
-  "/gestao/index.html",
-  "/gestao/manifest.json",
-  "/gestao/css/gestao.css",
-  "/gestao/css/scan.css",
-  "/gestao/css/gestao-v1-2.css",
-  "/gestao/css/gestao-v1-3.css",
-  "/gestao/js/gestao.js",
   "/assets/logo-delicias-da-vo.webp",
   "/assets/logo-social.png",
   "/assets/icon-192.png",
@@ -74,6 +59,11 @@ self.addEventListener("fetch", event => {
   const url = new URL(req.url);
 
   if (url.origin !== location.origin) return;
+
+  // Área administrativa e Gestão nunca entram no cache público. Isso evita
+  // abrir uma tela interna antiga em um aparelho compartilhado.
+  const rotaPublica = !url.pathname.startsWith("/pages/") && !url.pathname.startsWith("/gestao/") && !url.pathname.startsWith("/api/");
+  if (!rotaPublica) return;
 
   event.respondWith(
     fetch(req)

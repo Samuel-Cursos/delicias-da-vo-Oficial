@@ -1,6 +1,7 @@
 import {
   db, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp
 } from "../core/firebase.js";
+import { APP_CONFIG } from "../core/config.js";
 import { PEDIDO_MINIMO_EMPRESA, formatarEnderecoEmpresa, normalizarDiasEmpresa } from "./businessProposal.js";
 
 export const CONFIG_EMPRESAS_PADRAO = Object.freeze({
@@ -8,7 +9,9 @@ export const CONFIG_EMPRESAS_PADRAO = Object.freeze({
   pedidoMinimo: PEDIDO_MINIMO_EMPRESA,
   diasAtendimento: ["segunda", "terca", "quarta", "quinta", "sexta", "sabado"],
   entregaTexto: "Grátis até 3 km • após 3 km, há taxa.",
-  observacao: "Valores, cardápio e condições são confirmados no atendimento."
+  observacao: "Cardápio, valores, pagamento e demais condições são confirmados no atendimento.",
+  titulo: "O almoço da equipe organizado, caseiro e sem complicação.",
+  respostaPrazo: "Retorno pelo WhatsApp conforme a disponibilidade da loja."
 });
 
 export let configuracaoEmpresas = { ...CONFIG_EMPRESAS_PADRAO };
@@ -50,6 +53,8 @@ export async function salvarConfiguracaoEmpresas(dados = {}) {
     diasAtendimento: diasAtendimento.length ? diasAtendimento : [...CONFIG_EMPRESAS_PADRAO.diasAtendimento],
     entregaTexto: String(dados.entregaTexto || CONFIG_EMPRESAS_PADRAO.entregaTexto).trim().slice(0, 220),
     observacao: String(dados.observacao || CONFIG_EMPRESAS_PADRAO.observacao).trim().slice(0, 300),
+    titulo: String(dados.titulo || CONFIG_EMPRESAS_PADRAO.titulo).trim().slice(0, 180),
+    respostaPrazo: String(dados.respostaPrazo || CONFIG_EMPRESAS_PADRAO.respostaPrazo).trim().slice(0, 220),
     atualizadoEm: serverTimestamp()
   }, { merge: true });
 }
@@ -95,6 +100,15 @@ export async function registrarSolicitacaoEmpresa(dados = {}) {
     criadoEm: serverTimestamp(),
     atualizadoEm: serverTimestamp()
   };
+  if (APP_CONFIG.previewMode) {
+    const simulada = { id: `preview-${agora}`, ...solicitacao, criadoEm: new Date(agora).toISOString(), atualizadoEm: new Date(agora).toISOString(), preview: true };
+    try {
+      const chave = `${APP_CONFIG.storagePreview}:empresas`;
+      const anteriores = JSON.parse(localStorage.getItem(chave) || "[]");
+      localStorage.setItem(chave, JSON.stringify([simulada, ...anteriores].slice(0, 20)));
+    } catch {}
+    return simulada;
+  }
   await setDoc(referencia, solicitacao);
   return { id: referencia.id, ...solicitacao };
 }
@@ -107,6 +121,19 @@ export async function atualizarSolicitacaoEmpresa(id, dados = {}) {
   if (dados.quantidadeConfirmada !== undefined) permitido.quantidadeConfirmada = Math.max(0, Number(dados.quantidadeConfirmada || 0));
   if (dados.valorUnitario !== undefined) permitido.valorUnitario = Math.max(0, Number(dados.valorUnitario || 0));
   if (dados.dataInicioConfirmada !== undefined) permitido.dataInicioConfirmada = String(dados.dataInicioConfirmada || "").slice(0, 10);
+  if (dados.diasConfirmados !== undefined) permitido.diasConfirmados = normalizarDiasEmpresa(dados.diasConfirmados);
+  if (dados.horarioConfirmado !== undefined) permitido.horarioConfirmado = String(dados.horarioConfirmado || "").trim().slice(0, 100);
+  if (dados.proximoContato !== undefined) permitido.proximoContato = String(dados.proximoContato || "").slice(0, 10);
+  if (dados.frequenciaPagamento !== undefined) permitido.frequenciaPagamento = String(dados.frequenciaPagamento || "").trim().slice(0, 100);
+  if (dados.formaPagamento !== undefined) permitido.formaPagamento = String(dados.formaPagamento || "").trim().slice(0, 100);
+  if (dados.emailFinanceiro !== undefined) permitido.emailFinanceiro = String(dados.emailFinanceiro || "").trim().slice(0, 180);
+  if (dados.cnpj !== undefined) permitido.cnpj = String(dados.cnpj || "").trim().slice(0, 30);
+  if (dados.observacoesProducao !== undefined) permitido.observacoesProducao = String(dados.observacoesProducao || "").trim().slice(0, 1200);
+  if (dados.historico !== undefined) permitido.historico = (Array.isArray(dados.historico) ? dados.historico : []).slice(-50).map(item => ({
+    status: String(item.status || "").slice(0, 40),
+    texto: String(item.texto || "").slice(0, 300),
+    emMs: Math.max(0, Number(item.emMs || 0))
+  }));
   await updateDoc(doc(db, "solicitacoesEmpresas", id), {
     ...permitido,
     atualizadoEm: serverTimestamp()

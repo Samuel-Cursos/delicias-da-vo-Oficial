@@ -132,7 +132,7 @@ export function createProductAdminRow(p) {
   actions.className = 'actions';
   const btnEdit = document.createElement('button'); btnEdit.textContent = 'Editar'; btnEdit.addEventListener('click', () => window.abrirModalProduto && window.abrirModalProduto(p.id));
   const btnToggle = document.createElement('button'); btnToggle.textContent = p.ativo === false ? 'Ativar' : 'Desativar'; btnToggle.addEventListener('click', () => window.alternarAtivo && window.alternarAtivo(p.id));
-  const btnDel = document.createElement('button'); btnDel.textContent = 'Excluir'; btnDel.addEventListener('click', () => window.excluirProdutoAdmin && window.excluirProdutoAdmin(p.id));
+  const btnDel = document.createElement('button'); btnDel.textContent = 'Arquivar'; btnDel.title = 'Oculta o produto sem apagar o histórico'; btnDel.addEventListener('click', () => window.excluirProdutoAdmin && window.excluirProdutoAdmin(p.id));
   actions.appendChild(btnEdit); actions.appendChild(btnToggle); actions.appendChild(btnDel);
 
   row.appendChild(thumbWrap);

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Delícias da Vó | Configurações do Site</title>
+  <meta name="robots" content="noindex,nofollow,noarchive" />
 
   <meta name="theme-color" content="#47190f" />
   <link rel="icon" href="../assets/icon-192.png" />
@@ -99,6 +100,7 @@
             <p>Configure o que aparece no site. As solicitações recebidas são acompanhadas na Gestão.</p>
           </div>
           <div class="empresas-admin-actions">
+            <a class="secondary-btn" href="../index.html#empresas">Pré-visualizar no site</a>
             <a class="secondary-btn" href="../gestao/index.html#empresas">Abrir Empresas na Gestão</a>
             <button id="salvarConfigEmpresas" class="primary-btn" type="button">Salvar no site</button>
           </div>
@@ -142,6 +144,12 @@
           <article class="panel empresas-admin-card full">
             <h3>Informações mostradas ao cliente</h3>
             <div class="empresas-admin-form-grid">
+              <label>Título principal
+                <input id="empresaConfigTitulo" maxlength="180" placeholder="O almoço da equipe organizado, caseiro e sem complicação.">
+              </label>
+              <label>Expectativa de retorno
+                <input id="empresaConfigResposta" maxlength="220" placeholder="Retorno pelo WhatsApp conforme a disponibilidade da loja.">
+              </label>
               <label>Texto da entrega
                 <input id="empresaConfigEntrega" maxlength="220" placeholder="Grátis até 3 km • após 3 km, há taxa.">
               </label>
@@ -159,7 +167,7 @@
           <div>
             <p class="eyebrow">Catálogo</p>
             <h2>Produtos</h2>
-            <p>Crie, edite, desative ou exclua produtos.</p>
+            <p>Crie, edite, desative ou arquive produtos sem apagar o histórico.</p>
           </div>
 
           <button class="primary-btn" onclick="abrirModalProduto()">➕ Novo produto</button>
@@ -178,7 +186,6 @@
             <p>Gerencie os salgados vendidos por cento, sabores e disponibilidade.</p>
           </div>
           <div class="festas-head-actions">
-            <button id="btnMigrarFestas" class="secondary-btn festas-migrar-btn" onclick="migrarFestasParaFirestore()">☁️ Enviar produtos atuais para o Firestore</button>
             <button class="primary-btn festas-novo-btn" onclick="abrirModalFesta()">➕ Novo produto</button>
           </div>
         </div>
@@ -620,7 +627,7 @@
           <div class="panel">
             <h3>Identidade</h3>
             <label>Nome da loja<input id="configNomeLoja" placeholder="Delícias da Vó"></label>
-            <label>Slogan<input id="configSlogan" placeholder="Feito com carinho"></label>
+            <label>Slogan<input id="configSlogan" placeholder="Sabor caseiro que conquista!"></label>
             <label>Nome exibido do Instagram
               <input id="configInstagramNome" placeholder="Instagram da loja">
               <small>Este é o texto que o cliente verá no site.</small>
@@ -655,7 +662,8 @@
             <div class="config-taxas-entrega">
               <p>Taxas automáticas por distância</p>
               <label>Até 3 km (R$)
-                <input id="configTaxaAte3Km" type="number" inputmode="decimal" min="0" step="0.50" placeholder="5,00">
+                <input id="configTaxaAte3Km" type="number" inputmode="decimal" min="0" step="0.50" value="0" readonly aria-readonly="true">
+                <small>Benefício fixo: entrega grátis até 3 km.</small>
               </label>
               <label>Acima de 3 km até a distância máxima (R$)
                 <input id="configTaxaAte5Km" type="number" inputmode="decimal" min="0" step="0.50" placeholder="7,00">

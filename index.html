@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Delícias da Vó — Marmitas para Empresas</title>
-  <meta name="description" content="Comida caseira, marmitas, salgados, encomendas e marmitas para empresas da Delícias da Vó em Votuporanga." />
+  <title>Delícias da Vó | Comida caseira em Votuporanga</title>
+  <meta name="description" content="Peça comida caseira, encomendas para festas e marmitas para empresas em Votuporanga. Sabor caseiro que conquista!" />
   <link rel="canonical" href="https://delicias-da-vo.vercel.app/" />
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="pt_BR" />
@@ -21,6 +21,24 @@
   <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <link rel="preload" href="assets/logo-delicias-da-vo.webp" as="image" type="image/webp" />
   <link rel="stylesheet" href="css/site.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FoodEstablishment",
+    "name": "Delícias da Vó",
+    "url": "https://delicias-da-vo.vercel.app/",
+    "image": "https://delicias-da-vo.vercel.app/assets/logo-social.png",
+    "telephone": "+55 18 99117-8906",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Votuporanga",
+      "addressRegion": "SP",
+      "addressCountry": "BR"
+    },
+    "servesCuisine": "Comida caseira brasileira",
+    "slogan": "Sabor caseiro que conquista!"
+  }
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#cardapio">Ir direto para o cardápio</a>
@@ -35,7 +53,7 @@
         <span class="splash-spark spark-three" aria-hidden="true">•</span>
         <img src="assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="Delícias da Vó" class="splash-logo">
       </div>
-      <p>Comida feita com amor, do jeitinho de casa.</p>
+      <p>Sabor caseiro que conquista!</p>
       <div class="splash-loading" aria-label="Carregando"><span></span><span></span><span></span></div>
     </div>
   </div>
@@ -57,8 +75,8 @@
 
       window.setTimeout(() => {
         splash.classList.add("splash-saindo");
-        window.setTimeout(() => splash.remove(), 650);
-      }, 1650);
+        window.setTimeout(() => splash.remove(), 280);
+      }, 520);
     })();
   </script>
   <header class="topbar">
@@ -81,7 +99,7 @@
   <div id="areaPrincipal">
   <section class="hero">
     <div class="hero-content">
-      <span class="pill">Feito com carinho em Votuporanga ❤️</span>
+      <span class="pill">Sabor caseiro que conquista! ❤️</span>
       <h1>Comida de verdade, com aquele sabor de casa.</h1>
       <p>Escolha com calma, monte seu pedido em poucos toques e confirme direto pelo WhatsApp.</p>
       <div class="hero-actions">
@@ -107,7 +125,7 @@
   <main class="container">
     <section class="cards-resumo">
       <div><strong>Loja online</strong><span id="statusLojaTexto">Carregando status...</span></div>
-      <div class="card-resumo-entrega"><strong>🚚 Entrega</strong><span id="entregaTexto">R$ 5 até 3 km • R$ 7 até 5 km</span><small>Calculada pelo endereço no carrinho.</small></div>
+      <div class="card-resumo-entrega"><strong>🚚 Entrega</strong><span id="entregaTexto">Grátis até 3 km • acima disso, taxa conforme distância</span><small>Calculada pelo endereço no carrinho.</small></div>
       <div><strong>🏪 Retirada</strong><span id="retiradaTexto">Disponível na loja</span></div>
     </section>
 
@@ -191,191 +209,140 @@
 <section id="areaEmpresas" class="area-empresas" hidden>
   <section class="hero hero-empresas">
     <div class="hero-content">
-      <span class="pill">🏢 Exclusivo para empresas de Votuporanga</span>
-      <h1>Almoço caseiro para a equipe, sem complicação.</h1>
-      <p>Conte quantas pessoas precisam de almoço e como funciona a rotina da empresa. A Delícias da Vó prepara uma proposta personalizada para vocês.</p>
+      <span class="pill">🏢 Almoço empresarial em Votuporanga</span>
+      <h1 id="empresaTituloHero">O almoço da equipe organizado, caseiro e do jeito que a rotina pede.</h1>
+      <p>Você informa quantidade, dias e endereço. A Delícias da Vó avalia a rotina e retorna pelo WhatsApp com cardápio, disponibilidade e condições — sem compromisso.</p>
       <div class="hero-actions">
-        <a href="#propostaEmpresas" class="btn primary">Pedir uma proposta</a>
+        <a href="#propostaEmpresas" class="btn primary">Montar minha solicitação</a>
         <button class="btn secondary" type="button" onclick="voltarCardapioPrincipal()">← Voltar ao cardápio</button>
       </div>
       <div class="hero-trust" aria-label="Informações principais da oferta empresarial">
-        <span id="empresaMinimoHero">✓ Mínimo de 5 por dia</span>
+        <span id="empresaMinimoHero">✓ A partir de 5 por dia</span>
+        <span>✓ Dias e quantidade ajustáveis</span>
         <span>✓ Atendimento direto</span>
-        <span>✓ Condições sob consulta</span>
       </div>
     </div>
-
-    <div class="empresas-hero-painel" aria-label="Resumo da oferta para empresas">
-      <span class="empresas-hero-icone" aria-hidden="true">🏢</span>
-      <p>Pedido empresarial</p>
-      <strong id="empresaMinimoPainel">5+</strong>
-      <b>marmitas por dia</b>
-      <small>Valores, cardápio, frequência e entrega são confirmados no atendimento.</small>
-    </div>
+    <aside class="empresa-briefing" aria-label="O que será combinado na proposta">
+      <p>Proposta sob medida</p>
+      <h2>Uma rotina clara antes do primeiro almoço</h2>
+      <ul>
+        <li><span>01</span><div><strong>Equipe</strong><small>quantidade aproximada por dia</small></div></li>
+        <li><span>02</span><div><strong>Agenda</strong><small>dias e horário de recebimento</small></div></li>
+        <li><span>03</span><div><strong>Entrega</strong><small>endereço e condições da rota</small></div></li>
+      </ul>
+      <p id="empresaRespostaPrazo" class="empresa-briefing-resposta">Retorno pelo WhatsApp conforme a disponibilidade da loja.</p>
+      <div class="empresa-briefing-minimo"><strong id="empresaMinimoPainel">5+</strong><span>marmitas<br>por dia</span></div>
+    </aside>
   </section>
 
   <main class="container empresas-container">
     <section class="empresas-info-grid" aria-label="Resumo das marmitas empresariais">
-      <article><span aria-hidden="true">🍛</span><div><strong>Comida caseira</strong><p>O sabor da Delícias da Vó no almoço da equipe.</p></div></article>
-      <article><span aria-hidden="true">📅</span><div><strong>Rotina combinada</strong><p>Quantidade, dias e horário alinhados com a empresa.</p></div></article>
-      <article><span aria-hidden="true">💬</span><div><strong>Atendimento humano</strong><p>Proposta e confirmação feitas diretamente pelo WhatsApp.</p></div></article>
+      <article><span aria-hidden="true">🍛</span><div><strong>Comida com jeito de casa</strong><p>Uma opção acolhedora para o almoço da equipe.</p></div></article>
+      <article><span aria-hidden="true">🗓️</span><div><strong>Rotina flexível</strong><p>Escolha os dias e informe a quantidade aproximada.</p></div></article>
+      <article><span aria-hidden="true">🤝</span><div><strong>Contato sem enrolação</strong><p>Detalhes e confirmação alinhados direto com a loja.</p></div></article>
     </section>
 
     <section class="empresas-beneficios" aria-labelledby="tituloBeneficiosEmpresas">
       <div class="empresas-section-heading">
-        <span class="empresas-eyebrow">Feito para a rotina da empresa</span>
-        <h2 id="tituloBeneficiosEmpresas">Uma solução simples para cuidar do almoço da equipe</h2>
-        <p>Sem pacote engessado: primeiro entendemos a necessidade da empresa e depois combinamos os detalhes.</p>
+        <span class="empresas-eyebrow">O que a empresa ganha</span>
+        <h2 id="tituloBeneficiosEmpresas">Menos improviso no almoço. Mais previsibilidade para todo mundo.</h2>
+        <p>A modalidade empresarial organiza a demanda recorrente sem prometer um pacote engessado. Cada condição é confirmada na proposta.</p>
       </div>
       <div class="empresas-beneficios-grid">
-        <article><span>01</span><h3>Mais praticidade</h3><p>Centralize a conversa e organize a quantidade de marmitas para o dia.</p></article>
-        <article><span>02</span><h3>Planejamento claro</h3><p>Informe os dias, o horário desejado e a quantidade aproximada da equipe.</p></article>
-        <article><span>03</span><h3>Proposta personalizada</h3><p>Valores e condições são avaliados de acordo com a necessidade informada.</p></article>
-        <article><span>04</span><h3>Atendimento próximo</h3><p>Tire dúvidas e confirme tudo diretamente com a Delícias da Vó.</p></article>
+        <article><span>01</span><h3>Entrega programada</h3><p>Informe onde e em qual horário a equipe pretende receber. A disponibilidade é confirmada no atendimento.</p></article>
+        <article><span>02</span><h3>Dias escolhidos</h3><p>Segunda a sábado, todos os dias disponíveis ou somente os dias que fazem sentido para a empresa.</p></article>
+        <article><span>03</span><h3>Quantidade planejada</h3><p>Comece a partir do mínimo empresarial e alinhe alterações de quantidade diretamente com a loja.</p></article>
+        <article><span>04</span><h3>Condições transparentes</h3><p>Cardápio, valores, entrega, forma de pagamento e necessidades especiais entram na conversa antes da confirmação.</p></article>
       </div>
     </section>
 
     <section class="empresas-como-funciona" aria-labelledby="tituloComoFuncionaEmpresas">
       <div class="empresas-section-heading">
-        <span class="empresas-eyebrow">Como começar</span>
-        <h2 id="tituloComoFuncionaEmpresas">Da necessidade da empresa à proposta em 3 passos</h2>
+        <span class="empresas-eyebrow">Sem pedido no escuro</span>
+        <h2 id="tituloComoFuncionaEmpresas">Você envia a necessidade. A gente confirma o que é possível.</h2>
       </div>
       <ol>
-        <li><span>1</span><div><strong>Conte sobre a empresa</strong><p>Informe quantidade, frequência, bairro e horário desejado.</p></div></li>
-        <li><span>2</span><div><strong>Receba o atendimento</strong><p>A loja confere disponibilidade, cardápio, entrega e condições.</p></div></li>
-        <li><span>3</span><div><strong>Combine os detalhes</strong><p>Depois da confirmação, a rotina de pedidos fica alinhada com a empresa.</p></div></li>
+        <li><span>1</span><div><strong>Monte a rotina</strong><p>Preencha empresa, quantidade, dias, horário e local.</p></div></li>
+        <li><span>2</span><div><strong>Receba a proposta</strong><p>A Delícias da Vó avalia disponibilidade, cardápio, entrega e condições.</p></div></li>
+        <li><span>3</span><div><strong>Confirme pelo WhatsApp</strong><p>Nada fica fechado só por preencher o formulário.</p></div></li>
       </ol>
     </section>
 
-    <section id="propostaEmpresas" class="empresas-proposta" aria-labelledby="tituloPropostaEmpresas">
-      <div class="empresas-proposta-intro">
-        <span class="empresas-eyebrow">Sem compromisso</span>
-        <h2 id="tituloPropostaEmpresas">Peça uma proposta para sua empresa</h2>
-        <p>Preencha as informações principais. Ao continuar, o site prepara uma mensagem completa para enviar à Delícias da Vó pelo WhatsApp.</p>
-        <div class="empresas-regra-minima">
-          <strong>Pedido mínimo</strong>
-          <span id="empresaMinimoRegra">5 marmitas por dia</span>
+    <section id="propostaEmpresas" class="empresas-proposta empresas-proposta-v2" aria-labelledby="tituloPropostaEmpresas">
+      <aside class="empresas-resumo-vivo">
+        <span class="empresas-eyebrow">Sua necessidade</span>
+        <h2 id="tituloPropostaEmpresas">Monte um resumo para a equipe da loja</h2>
+        <p>O resumo muda enquanto você preenche. Assim dá para conferir tudo antes de abrir o WhatsApp.</p>
+        <div class="empresas-resumo-cartao" aria-live="polite">
+          <div><small>Quantidade</small><strong id="empresaResumoQuantidade">5 marmitas por dia</strong></div>
+          <div><small>Frequência</small><strong id="empresaResumoFrequencia">Escolha os dias</strong></div>
+          <div><small>Recebimento</small><strong id="empresaResumoRecebimento">Entrega na empresa</strong></div>
+          <div><small>Início</small><strong id="empresaResumoInicio">A combinar</strong></div>
         </div>
-        <div class="empresas-entrega-aviso">
-          <span aria-hidden="true">🚚</span>
-          <p><strong>Entrega em Votuporanga</strong><br><span id="empresaEntregaTexto">Grátis até 3 km • após 3 km, há taxa.</span></p>
-        </div>
+        <div class="empresas-regra-minima"><strong>Pedido mínimo</strong><span id="empresaMinimoRegra">5 marmitas por dia</span></div>
+        <div class="empresas-entrega-aviso"><span aria-hidden="true">🚚</span><p><strong>Entrega em Votuporanga</strong><br><span id="empresaEntregaTexto">Grátis até 3 km • após 3 km, há taxa.</span></p></div>
         <p id="empresaObservacaoConfig" class="empresas-observacao-config">Valores, cardápio e condições são confirmados no atendimento.</p>
-      </div>
+      </aside>
 
-      <form id="formEmpresas" class="empresas-form" onsubmit="enviarPropostaEmpresa(event)">
+      <form id="formEmpresas" class="empresas-form empresas-form-v2" onsubmit="enviarPropostaEmpresa(event)" novalidate>
+        <div class="empresa-etapa"><span>1</span><div><strong>Quem está falando?</strong><small>Dados para identificar e retornar o contato.</small></div></div>
         <div class="empresas-form-grid">
-          <label class="campo-inteiro">Nome da empresa <span aria-hidden="true">*</span>
-            <input id="empresaNome" required autocomplete="organization" placeholder="Ex.: Empresa Silva">
-          </label>
-          <label>Seu nome <span aria-hidden="true">*</span>
-            <input id="empresaResponsavel" required autocomplete="name" placeholder="Responsável pelo contato">
-          </label>
-          <label>Seu WhatsApp <span aria-hidden="true">*</span>
-            <input id="empresaWhatsapp" required inputmode="tel" autocomplete="tel" placeholder="(17) 99999-9999">
-          </label>
-          <label>Quantidade por dia <span aria-hidden="true">*</span>
-            <input id="empresaQuantidade" required type="number" min="5" step="1" value="5" inputmode="numeric">
-            <small id="empresaMinimoAjuda">Mínimo de 5 marmitas por dia.</small>
-          </label>
-          <label>Frequência pretendida <span aria-hidden="true">*</span>
-            <select id="empresaFrequencia" required onchange="atualizarFrequenciaEmpresa()">
-              <option value="">Selecione</option>
-              <option value="todos">Todos os dias (segunda a sábado)</option>
-              <option value="alguns">Alguns dias da semana</option>
-              <option value="especifico">Um dia específico da semana</option>
-              <option value="combinar">A combinar</option>
-            </select>
-          </label>
+          <label class="campo-inteiro">Nome da empresa <span aria-hidden="true">*</span><input id="empresaNome" required maxlength="160" autocomplete="organization" placeholder="Ex.: Empresa Silva"></label>
+          <label>Seu nome <span aria-hidden="true">*</span><input id="empresaResponsavel" required maxlength="120" autocomplete="name" placeholder="Responsável pelo contato"></label>
+          <label>WhatsApp com DDD <span aria-hidden="true">*</span><input id="empresaWhatsapp" required maxlength="16" inputmode="tel" autocomplete="tel" placeholder="(17) 99999-9999"></label>
+          <label class="empresa-campo-isca" aria-hidden="true">Não preencha<input id="empresaSite" tabindex="-1" autocomplete="off"></label>
+        </div>
+
+        <div class="empresa-etapa"><span>2</span><div><strong>Como é a rotina?</strong><small>Uma estimativa já ajuda. Tudo pode ser confirmado depois.</small></div></div>
+        <div class="empresas-form-grid">
+          <label>Quantidade por dia <span aria-hidden="true">*</span><input id="empresaQuantidade" required type="number" min="5" max="10000" step="1" value="5" inputmode="numeric"><small id="empresaMinimoAjuda">Mínimo de 5 marmitas por dia.</small></label>
+          <label>Frequência pretendida <span aria-hidden="true">*</span><select id="empresaFrequencia" required onchange="atualizarFrequenciaEmpresa()"><option value="">Selecione</option><option value="todos">Todos os dias disponíveis</option><option value="alguns">Alguns dias da semana</option><option value="especifico">Um dia específico da semana</option><option value="combinar">Ainda quero combinar</option></select></label>
           <div id="empresaDiasSemanaCampo" class="campo-inteiro empresas-opcao-dinamica" hidden>
             <span class="empresas-campo-titulo">Quais dias a empresa precisa? <b aria-hidden="true">*</b></span>
             <div id="empresaDiasSemana" class="empresas-dias-grid">
-              <label><input type="checkbox" value="segunda" data-label="Segunda-feira"><span>Seg</span></label>
-              <label><input type="checkbox" value="terca" data-label="Terça-feira"><span>Ter</span></label>
-              <label><input type="checkbox" value="quarta" data-label="Quarta-feira"><span>Qua</span></label>
-              <label><input type="checkbox" value="quinta" data-label="Quinta-feira"><span>Qui</span></label>
-              <label><input type="checkbox" value="sexta" data-label="Sexta-feira"><span>Sex</span></label>
-              <label><input type="checkbox" value="sabado" data-label="Sábado"><span>Sáb</span></label>
-            </div>
-            <small>Marque todos os dias em que a equipe precisa das marmitas.</small>
+              <label><input type="checkbox" value="segunda" data-label="Segunda-feira"><span>Seg</span></label><label><input type="checkbox" value="terca" data-label="Terça-feira"><span>Ter</span></label><label><input type="checkbox" value="quarta" data-label="Quarta-feira"><span>Qua</span></label><label><input type="checkbox" value="quinta" data-label="Quinta-feira"><span>Qui</span></label><label><input type="checkbox" value="sexta" data-label="Sexta-feira"><span>Sex</span></label><label><input type="checkbox" value="sabado" data-label="Sábado"><span>Sáb</span></label>
+            </div><small>Marque todos os dias desejados.</small>
           </div>
-          <label id="empresaDiaEspecificoCampo" class="campo-inteiro empresas-opcao-dinamica" hidden>Escolha o dia da semana <span aria-hidden="true">*</span>
-            <select id="empresaDiaEspecifico">
-              <option value="">Selecione o dia</option>
-              <option value="segunda">Segunda-feira</option>
-              <option value="terca">Terça-feira</option>
-              <option value="quarta">Quarta-feira</option>
-              <option value="quinta">Quinta-feira</option>
-              <option value="sexta">Sexta-feira</option>
-              <option value="sabado">Sábado</option>
-            </select>
-          </label>
-          <label>Como prefere receber? <span aria-hidden="true">*</span>
-            <select id="empresaRecebimento" required onchange="atualizarRecebimentoEmpresa()">
-              <option>Entrega na empresa</option>
-              <option>Retirada na loja</option>
-              <option>A combinar</option>
-            </select>
-          </label>
-          <div id="empresaEnderecoCampos" class="campo-inteiro empresas-endereco-campos">
-            <div class="empresas-endereco-titulo">
-              <div><strong>Endereço da empresa</strong><span>Informe o CEP para preencher rua, bairro e cidade automaticamente.</span></div>
-              <span aria-hidden="true">📍</span>
-            </div>
-            <div class="empresas-endereco-grid">
-              <label class="empresas-cep-campo">CEP <span aria-hidden="true">*</span>
-                <span class="cep-input-row">
-                  <input id="empresaCep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000">
-                  <button id="btnCepEmpresa" type="button" onclick="buscarCepEndereco('empresa')">Buscar CEP</button>
-                </span>
-                <small id="statusCepEmpresa" class="cep-status" aria-live="polite"></small>
-              </label>
-              <label>Rua <span aria-hidden="true">*</span>
-                <input id="empresaRua" autocomplete="address-line1" placeholder="Rua ou avenida">
-              </label>
-              <label>Número <span aria-hidden="true">*</span>
-                <input id="empresaNumero" autocomplete="address-line2" placeholder="Número">
-              </label>
-              <label>Bairro <span aria-hidden="true">*</span>
-                <input id="empresaBairro" autocomplete="address-level3" placeholder="Bairro">
-              </label>
-              <label>Complemento
-                <input id="empresaComplemento" autocomplete="address-line2" placeholder="Sala, bloco ou referência">
-              </label>
-              <label>Cidade
-                <input id="empresaCidade" autocomplete="address-level2" placeholder="Votuporanga">
-              </label>
-              <label>Estado
-                <input id="empresaUf" autocomplete="address-level1" maxlength="2" placeholder="SP">
-              </label>
-            </div>
-          </div>
-          <label>Horário desejado
-            <input id="empresaHorario" placeholder="Ex.: por volta das 11h30">
-          </label>
-          <label>Data prevista para começar
-            <input id="empresaDataInicio" type="date">
-          </label>
-          <label class="campo-inteiro">Observações
-            <textarea id="empresaObservacoes" rows="4" placeholder="Conte algo importante sobre a rotina, os dias ou a necessidade da equipe."></textarea>
-          </label>
+          <label id="empresaDiaEspecificoCampo" class="campo-inteiro empresas-opcao-dinamica" hidden>Escolha o dia <span aria-hidden="true">*</span><select id="empresaDiaEspecifico"><option value="">Selecione o dia</option><option value="segunda">Segunda-feira</option><option value="terca">Terça-feira</option><option value="quarta">Quarta-feira</option><option value="quinta">Quinta-feira</option><option value="sexta">Sexta-feira</option><option value="sabado">Sábado</option></select></label>
+          <label>Horário desejado<input id="empresaHorario" maxlength="100" placeholder="Ex.: por volta das 11h30"></label>
+          <label>Data prevista para começar<input id="empresaDataInicio" type="date"></label>
         </div>
+
+        <div class="empresa-etapa"><span>3</span><div><strong>Onde a equipe recebe?</strong><small>O CEP ajuda a preencher o endereço automaticamente.</small></div></div>
+        <div class="empresas-form-grid">
+          <label class="campo-inteiro">Como prefere receber? <span aria-hidden="true">*</span><select id="empresaRecebimento" required onchange="atualizarRecebimentoEmpresa()"><option>Entrega na empresa</option><option>Retirada na loja</option><option>A combinar</option></select></label>
+          <div id="empresaEnderecoCampos" class="campo-inteiro empresas-endereco-campos">
+            <div class="empresas-endereco-titulo"><div><strong>Endereço da empresa</strong><span>Informe o CEP e confira os dados preenchidos.</span></div><span aria-hidden="true">📍</span></div>
+            <div class="empresas-endereco-grid">
+              <label class="empresas-cep-campo">CEP <span aria-hidden="true">*</span><span class="cep-input-row"><input id="empresaCep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000"><button id="btnCepEmpresa" type="button" onclick="buscarCepEndereco('empresa')">Buscar CEP</button></span><small id="statusCepEmpresa" class="cep-status" aria-live="polite"></small></label>
+              <label>Rua <span aria-hidden="true">*</span><input id="empresaRua" maxlength="160" autocomplete="address-line1" placeholder="Rua ou avenida"></label>
+              <label>Número <span aria-hidden="true">*</span><input id="empresaNumero" maxlength="30" autocomplete="address-line2" placeholder="Número"></label>
+              <label>Bairro <span aria-hidden="true">*</span><input id="empresaBairro" maxlength="100" autocomplete="address-level3" placeholder="Bairro"></label>
+              <label>Complemento<input id="empresaComplemento" maxlength="180" autocomplete="address-line3" placeholder="Sala, bloco ou referência"></label>
+              <label>Cidade<input id="empresaCidade" maxlength="100" autocomplete="address-level2" placeholder="Votuporanga"></label>
+              <label>Estado<input id="empresaUf" autocomplete="address-level1" maxlength="2" placeholder="SP"></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="empresa-etapa"><span>4</span><div><strong>Algo importante?</strong><small>Restrições, talheres, bebidas e forma de pagamento serão avaliados na proposta.</small></div></div>
+        <label class="campo-inteiro">Observações<textarea id="empresaObservacoes" maxlength="1200" rows="4" placeholder="Ex.: restrições alimentares, mudança de quantidade em alguns dias ou outra necessidade da equipe."></textarea></label>
+        <p class="empresa-privacidade">Usaremos os dados somente para responder esta solicitação e organizar o atendimento.</p>
         <p id="statusPropostaEmpresa" class="empresas-form-status" aria-live="polite"></p>
-        <button class="empresas-enviar" type="submit"><span aria-hidden="true">💬</span> Pedir proposta pelo WhatsApp</button>
-        <small class="empresas-form-nota">A solicitação fica registrada na Gestão e o WhatsApp abre para o envio da mensagem. Isso ainda não confirma o pedido.</small>
+        <button class="empresas-enviar" type="submit"><span aria-hidden="true">💬</span> Revisar e abrir no WhatsApp</button>
+        <small class="empresas-form-nota">Preencher não confirma compra, preço ou contrato. A solicitação entra na Gestão e a confirmação acontece no atendimento.</small>
       </form>
     </section>
 
     <section class="empresas-faq" aria-labelledby="tituloFaqEmpresas">
-      <div class="empresas-section-heading">
-        <span class="empresas-eyebrow">Dúvidas frequentes</span>
-        <h2 id="tituloFaqEmpresas">Antes de pedir sua proposta</h2>
-      </div>
+      <div class="empresas-section-heading"><span class="empresas-eyebrow">Dúvidas frequentes</span><h2 id="tituloFaqEmpresas">O que vale saber antes de enviar</h2></div>
       <div class="empresas-faq-lista">
-        <details><summary>Qual é o pedido mínimo?</summary><p>O mínimo atual é de 5 marmitas por dia para a modalidade empresarial.</p></details>
-        <details><summary>O valor é igual ao pedido comum?</summary><p>Os valores e as condições são informados em uma proposta personalizada, conforme quantidade e frequência.</p></details>
-        <details><summary>A Delícias da Vó entrega na empresa?</summary><p>Sim, a entrega pode ser combinada em Votuporanga. Até 3 km a entrega é grátis; depois disso, há taxa.</p></details>
-        <details><summary>Já preciso fechar o pedido ao preencher?</summary><p>Não. O formulário apenas inicia a conversa pelo WhatsApp. A empresa decide depois de receber os detalhes.</p></details>
+        <details><summary>Qual é o pedido mínimo?</summary><p>O mínimo atual é de 5 marmitas por dia na modalidade empresarial.</p></details>
+        <details><summary>Cardápio e valor já ficam definidos?</summary><p>Não. Cardápio, valor e condições dependem da quantidade, frequência e disponibilidade e são confirmados na proposta.</p></details>
+        <details><summary>É possível escolher somente alguns dias?</summary><p>Sim. Você pode indicar dias específicos de segunda a sábado ou deixar a frequência a combinar.</p></details>
+        <details><summary>A entrega é feita na empresa?</summary><p>Pode ser. Em Votuporanga, a entrega é grátis até 3 km; acima disso, a taxa é avaliada conforme a distância.</p></details>
+        <details><summary>Posso alterar a quantidade depois?</summary><p>Informe uma estimativa agora. Prazos e regras para alterações são combinados no atendimento.</p></details>
+        <details><summary>E restrições, talheres, bebidas ou pagamento?</summary><p>Conte a necessidade nas observações. A disponibilidade e as condições serão confirmadas pela Delícias da Vó.</p></details>
       </div>
     </section>
   </main>
@@ -457,7 +424,7 @@
       <div class="formulario">
       <p id="perfilClienteAviso" class="perfil-cliente-aviso" aria-live="polite">Entre com Google para reutilizar seus dados nas próximas compras.</p>
       <input id="nomeCliente" aria-label="Nome do cliente" placeholder="Nome" autocomplete="name" />
-      <input id="telefoneCliente" aria-label="WhatsApp do cliente" inputmode="tel" placeholder="WhatsApp (opcional)" autocomplete="tel" />
+      <input id="telefoneCliente" aria-label="WhatsApp do cliente" inputmode="tel" placeholder="WhatsApp com DDD" autocomplete="tel" required />
       <select id="tipoPedido" aria-label="Como deseja receber o pedido" onchange="atualizarEnderecoPedidoNormal()">
         <option>Retirada na loja</option>
         <option>Entrega</option>
@@ -663,7 +630,7 @@
   <footer class="site-footer">
     <div class="footer-brand">
       <img src="assets/logo-delicias-da-vo.webp" width="1000" height="1000" alt="Delícias da Vó">
-      <div><strong>Delícias da Vó</strong><span>Comida caseira feita com carinho</span></div>
+      <div><strong>Delícias da Vó</strong><span>Sabor caseiro que conquista!</span></div>
     </div>
     <div class="footer-info">
       <a id="footerEndereco" href="#" target="_blank" rel="noopener" hidden>📍 Endereço da loja</a>

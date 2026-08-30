@@ -1,0 +1,13 @@
+{
+  "name": "delicias-da-vo-empresas-preview",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/preview-server.mjs",
+    "build": "node scripts/build-static-worker.mjs",
+    "test": "node --test js/services/*.test.js",
+    "check": "find js gestao/js api scripts -type f \\( -name '*.js' -o -name '*.mjs' \\) -print0 | xargs -0 -n1 node --check"
+  },
+  "displayName": "Del\u00edcias da V\u00f3 \u2014 Marmitas para Empresas"
+}
