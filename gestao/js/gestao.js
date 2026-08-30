@@ -27,6 +27,10 @@ import {
 import {
   atualizarSolicitacaoEmpresa, excluirSolicitacaoEmpresa
 } from "../../js/services/businessRequestService.js";
+import {
+  adicionarItemCardapio, bibliotecaItensCardapio, chaveItemCardapio,
+  deduplicarItensCardapio, itensTextoCardapio
+} from "../../js/services/menuLibrary.js";
 
 const $ = id => document.getElementById(id);
 const adminEmails = APP_CONFIG.admins.map(email => email.toLowerCase());
@@ -478,15 +482,36 @@ function renderCardapio() {
   const data = $("dataCardapioGestao")?.value || dataLojaISO();
   const registro = estadoGestao.cardapios.find(item => item.id === data || item.dataISO === data);
   if ($("tituloCardapioGestao")) $("tituloCardapioGestao").value = registro?.titulo || "Cardápio de hoje";
-  if ($("itensTextoCardapioGestao")) $("itensTextoCardapioGestao").value = Array.isArray(registro?.itens) ? registro.itens.join("\n") : "";
+  if ($("itensTextoCardapioGestao")) $("itensTextoCardapioGestao").value = deduplicarItensCardapio(registro?.itens || []).join("\n");
   if ($("observacaoCardapioGestao")) $("observacaoCardapioGestao").value = registro?.observacao || "";
   if ($("publicarCardapioGestao")) $("publicarCardapioGestao").checked = registro?.publicado !== false;
   const selecionados = new Set(registro?.produtoIds || estadoGestao.produtos.filter(item => item.ativo !== false).map(item => item.id));
   $("produtosCardapioGestao").innerHTML = estadoGestao.produtos.filter(item => item.ativo !== false).map(produto => `<label class="menu-check"><input type="checkbox" value="${escapar(produto.id)}" ${selecionados.has(produto.id) ? "checked" : ""}><span class="emoji">${escapar(produto.emoji || "🍽️")}</span><span><strong>${escapar(produto.nome)}</strong><small>${formatarMoedaGestao(produto.preco)}</small></span></label>`).join("") || '<div class="empty-state">Cadastre produtos no painel.</div>';
+  renderItensSalvosCardapio();
   const alerta = $("alertaCardapioGestao");
   if (alerta) {
     alerta.textContent = registro?.publicado && selecionados.size ? `Publicado para ${textoData(data)} • ${selecionados.size} produto(s) liberado(s).` : `Este cardápio ainda não está publicado para ${textoData(data)}.`;
     alerta.className = `menu-publication-alert ${registro?.publicado && selecionados.size ? "published" : "needs-attention"}`;
+  }
+}
+
+function renderItensSalvosCardapio() {
+  const container = $("itensSalvosCardapio");
+  if (!container) return;
+  const biblioteca = bibliotecaItensCardapio(estadoGestao.cardapios);
+  const atuais = new Set(itensTextoCardapio($("itensTextoCardapioGestao")?.value || "").map(chaveItemCardapio));
+  const termo = chaveItemCardapio($("buscaItensSalvosCardapio")?.value || "");
+  const filtrados = biblioteca.filter(item => !termo || chaveItemCardapio(item).includes(termo));
+  const contador = $("contadorItensSalvosCardapio");
+  if (contador) contador.textContent = `${biblioteca.length} ${biblioteca.length === 1 ? "item salvo" : "itens salvos"}`;
+  container.innerHTML = filtrados.map(item => {
+    const adicionado = atuais.has(chaveItemCardapio(item));
+    return `<button class="saved-menu-item ${adicionado ? "is-added" : ""}" type="button" data-cardapio-item-add="${escapar(item)}" ${adicionado ? "disabled" : ""} aria-label="${adicionado ? `${escapar(item)} já está no cardápio de hoje` : `Adicionar ${escapar(item)} ao cardápio de hoje`}"><span class="saved-menu-item-icon" aria-hidden="true">${adicionado ? "✓" : "+"}</span><span><strong>${escapar(item)}</strong><small>${adicionado ? "Já está no dia" : "Adicionar hoje"}</small></span></button>`;
+  }).join("");
+  const vazio = $("itensSalvosCardapioVazio");
+  if (vazio) {
+    vazio.hidden = Boolean(filtrados.length);
+    vazio.textContent = biblioteca.length ? "Nenhum item encontrado com essa busca." : "Salve um cardápio com seus itens para criar atalhos reutilizáveis aqui.";
   }
 }
 
@@ -1323,6 +1348,16 @@ function lidarAcao(acao) {
 }
 
 document.addEventListener("click", evento => {
+  const itemCardapio = evento.target.closest("[data-cardapio-item-add]");
+  if (itemCardapio) {
+    const campo = $("itensTextoCardapioGestao");
+    if (!campo) return;
+    campo.value = adicionarItemCardapio(campo.value, itemCardapio.dataset.cardapioItemAdd);
+    renderItensSalvosCardapio();
+    campo.focus();
+    campo.setSelectionRange(campo.value.length, campo.value.length);
+    return;
+  }
   const fechar = evento.target.closest("[data-modal-close]");
   if (fechar) return fecharModal();
   const destino = evento.target.closest("[data-go]")?.dataset.go;
@@ -1341,7 +1376,7 @@ $("usuarioGestaoBotao").addEventListener("click", () => {
   $("sairContaModal").addEventListener("click", () => signOut(auth));
 });
 $("acaoRapida").addEventListener("click", () => lidarAcao(paginaAtual === "estoque" ? "novo-insumo" : paginaAtual === "compras" ? "nova-compra" : paginaAtual === "financeiro" ? "novo-movimento" : "novo-pedido"));
-[["buscaPedidos", renderPedidos], ["filtroOrigemPedidos", renderPedidos], ["filtroStatusPedidos", renderPedidos], ["buscaBalcao", renderBalcao], ["buscaEncomendas", renderEncomendas], ["filtroEncomendas", renderEncomendas], ["buscaEmpresas", renderEmpresas], ["filtroEmpresas", renderEmpresas], ["buscaFinanceiro", renderFinanceiro], ["buscaClientes", renderClientes]].forEach(([id, funcao]) => $(id)?.addEventListener(id.startsWith("busca") ? "input" : "change", funcao));
+[["buscaPedidos", renderPedidos], ["filtroOrigemPedidos", renderPedidos], ["filtroStatusPedidos", renderPedidos], ["buscaBalcao", renderBalcao], ["buscaEncomendas", renderEncomendas], ["filtroEncomendas", renderEncomendas], ["buscaEmpresas", renderEmpresas], ["filtroEmpresas", renderEmpresas], ["buscaFinanceiro", renderFinanceiro], ["buscaClientes", renderClientes], ["buscaItensSalvosCardapio", renderItensSalvosCardapio]].forEach(([id, funcao]) => $(id)?.addEventListener(id.startsWith("busca") ? "input" : "change", funcao));
 $("descontoBalcao").addEventListener("input", renderCarrinhoBalcao);
 $("pagamentoBalcao").addEventListener("change", () => { $("pagamentosMistosBalcao").hidden = $("pagamentoBalcao").value !== "Pagamento misto"; atualizarSomaMistaBalcao(); });
 document.querySelectorAll("#pagamentosMistosBalcao [data-pay]").forEach(campo => campo.addEventListener("input", atualizarSomaMistaBalcao));
@@ -1351,6 +1386,7 @@ document.querySelectorAll("[data-delivery-filter]").forEach(botao => botao.addEv
 document.querySelectorAll("[data-stock-tab]").forEach(botao => botao.addEventListener("click", () => { abaEstoqueAtual = botao.dataset.stockTab; renderEstoque(); }));
 $("dataCardapioGestao").value = dataLojaISO();
 $("dataCardapioGestao").addEventListener("change", renderCardapio);
+$("itensTextoCardapioGestao").addEventListener("input", renderItensSalvosCardapio);
 $("selecionarTodosCardapio").addEventListener("click", () => document.querySelectorAll("#produtosCardapioGestao input").forEach(campo => { campo.checked = true; }));
 $("limparCardapio").addEventListener("click", () => {
   $("produtosCardapioGestao").querySelectorAll("input").forEach(campo => { campo.checked = false; });
@@ -1370,13 +1406,14 @@ $("copiarCardapioAnterior").addEventListener("click", () => {
   if (!registro) return toast("Não encontrei um cardápio salvo no dia anterior.", "error");
   $("tituloCardapioGestao").value = registro.titulo || "Cardápio de hoje";
   $("observacaoCardapioGestao").value = registro.observacao || "";
-  $("itensTextoCardapioGestao").value = Array.isArray(registro.itens) ? registro.itens.join("\n") : "";
+  $("itensTextoCardapioGestao").value = deduplicarItensCardapio(registro.itens || []).join("\n");
+  renderItensSalvosCardapio();
   $("publicarCardapioGestao").checked = registro.publicado !== false;
   const ids = new Set(registro.produtoIds || []);
   $("produtosCardapioGestao").querySelectorAll("input").forEach(campo => { campo.checked = ids.has(campo.value); });
   toast(`Cardápio de ${textoData(dataAnterior)} copiado como rascunho.`, "success");
 });
-$("salvarCardapioGestao").addEventListener("click", async () => { const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value); if ($("publicarCardapioGestao").checked && !produtoIds.length) return toast("Escolha pelo menos um produto ou desative a publicação.", "error"); try { await salvarCardapioDia({ dataISO: $("dataCardapioGestao").value, produtoIds, publicado: $("publicarCardapioGestao").checked, titulo: $("tituloCardapioGestao").value, itens: $("itensTextoCardapioGestao").value.split("\n"), observacao: $("observacaoCardapioGestao").value }); toast("Cardápio atualizado no site.", "success"); } catch (erro) { toast(erro.message, "error"); } });
+$("salvarCardapioGestao").addEventListener("click", async () => { const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value); if ($("publicarCardapioGestao").checked && !produtoIds.length) return toast("Escolha pelo menos um produto ou desative a publicação.", "error"); try { await salvarCardapioDia({ dataISO: $("dataCardapioGestao").value, produtoIds, publicado: $("publicarCardapioGestao").checked, titulo: $("tituloCardapioGestao").value, itens: itensTextoCardapio($("itensTextoCardapioGestao").value), observacao: $("observacaoCardapioGestao").value }); toast("Cardápio atualizado no site.", "success"); } catch (erro) { toast(erro.message, "error"); } });
 const periodo = periodoPadrao();
 [["financeiroInicio", periodo.inicio], ["financeiroFim", periodo.fim], ["relatorioInicio", periodo.inicio], ["relatorioFim", periodo.fim]].forEach(([id, valor]) => { $(id).value = valor; });
 $("aplicarPeriodoFinanceiro").addEventListener("click", renderFinanceiro);
