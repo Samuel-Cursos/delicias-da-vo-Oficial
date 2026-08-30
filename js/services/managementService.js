@@ -76,8 +76,8 @@ export function iniciarObservadoresGestao(aoMudar, acesso = {}) {
     }) : null);
     adicionar("pedidosManuais", collection(db, "pedidosManuais"), aoMudar);
     adicionar("encomendas", collection(db, "encomendasFesta"), aoMudar);
-    adicionar("solicitacoesEmpresas", collection(db, "solicitacoesEmpresas"), aoMudar);
   }
+  if (permitido("empresas")) adicionar("solicitacoesEmpresas", collection(db, "solicitacoesEmpresas"), aoMudar);
   if (permitido("caixa", "financeiro", "relatorios")) adicionar("vendas", collection(db, "vendas"), aoMudar);
   if (permitido("clientes")) adicionar("usuarios", collection(db, "usuarios"), aoMudar);
   if (permitido("financeiro", "caixa", "relatorios")) adicionar("movimentosFinanceiros", collection(db, "movimentosFinanceiros"), aoMudar);
@@ -101,13 +101,15 @@ export function iniciarObservadoresGestao(aoMudar, acesso = {}) {
     adicionar("solicitacoesAcesso", collection(db, "solicitacoesAcesso"), aoMudar);
   }
 
-  cancelar.push(onSnapshot(doc(db, "configuracoes", "operacao"), snapshot => {
-    estadoGestao.configuracaoOperacao = snapshot.exists() ? snapshot.data() : {};
-    aoMudar?.(estadoGestao, { nome: "configuracaoOperacao" });
-  }, erro => {
-    estadoGestao.erros.configuracaoOperacao = erro;
-    aoMudar?.(estadoGestao, { nome: "configuracaoOperacao", erro });
-  }));
+  if (permitido("pedidos", "cozinha", "entregas", "empresas", "caixa", "estoque", "compras", "financeiro", "clientes", "relatorios", "configuracoes")) {
+    cancelar.push(onSnapshot(doc(db, "configuracoes", "operacao"), snapshot => {
+      estadoGestao.configuracaoOperacao = snapshot.exists() ? snapshot.data() : {};
+      aoMudar?.(estadoGestao, { nome: "configuracaoOperacao" });
+    }, erro => {
+      estadoGestao.erros.configuracaoOperacao = erro;
+      aoMudar?.(estadoGestao, { nome: "configuracaoOperacao", erro });
+    }));
+  }
 
   return () => cancelar.forEach(parar => parar?.());
 }

@@ -33,6 +33,10 @@ service cloud.firestore {
       return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.entregas == true);
     }
 
+    function podeEmpresas() {
+      return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.empresas == true);
+    }
+
     function podeCaixa() {
       return isAdmin() || (equipeAtiva() && get(/databases/$(database)/documents/equipe/$(request.auth.uid)).data.permissoes.caixa == true);
     }
@@ -212,7 +216,7 @@ service cloud.firestore {
         && request.resource.data.numero is string
         && request.resource.data.numero.size() <= 40
         && request.resource.data.numeroFormatado == request.resource.data.numero
-        && request.resource.data.status == "registrado"
+        && request.resource.data.status in ["registrado", "aguardando_confirmacao"]
         && request.resource.data.loja is string
         && request.resource.data.loja.size() <= 120
         && request.resource.data.cliente is map
@@ -343,6 +347,31 @@ service cloud.firestore {
         );
     }
 
+    function atualizacaoSolicitacaoEmpresaValida() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "status", "visualizado", "notasInternas", "quantidadeConfirmada", "valorUnitario",
+          "dataInicioConfirmada", "diasConfirmados", "horarioConfirmado", "proximoContato",
+          "frequenciaPagamento", "formaPagamento", "emailFinanceiro", "cnpj",
+          "observacoesProducao", "historico", "atualizadoEm"
+        ])
+        && request.resource.data.status in ["nova", "em_contato", "proposta_enviada", "aguardando_resposta", "aprovada", "recusada", "pausada", "encerrada"]
+        && request.resource.data.visualizado is bool
+        && (!request.resource.data.keys().hasAny(["notasInternas"]) || (request.resource.data.notasInternas is string && request.resource.data.notasInternas.size() <= 2000))
+        && (!request.resource.data.keys().hasAny(["quantidadeConfirmada"]) || (request.resource.data.quantidadeConfirmada is number && request.resource.data.quantidadeConfirmada >= 0 && request.resource.data.quantidadeConfirmada <= 10000))
+        && (!request.resource.data.keys().hasAny(["valorUnitario"]) || (request.resource.data.valorUnitario is number && request.resource.data.valorUnitario >= 0 && request.resource.data.valorUnitario <= 100000))
+        && (!request.resource.data.keys().hasAny(["dataInicioConfirmada"]) || (request.resource.data.dataInicioConfirmada is string && request.resource.data.dataInicioConfirmada.size() <= 10))
+        && (!request.resource.data.keys().hasAny(["diasConfirmados"]) || (request.resource.data.diasConfirmados is list && request.resource.data.diasConfirmados.size() <= 6))
+        && (!request.resource.data.keys().hasAny(["horarioConfirmado"]) || (request.resource.data.horarioConfirmado is string && request.resource.data.horarioConfirmado.size() <= 100))
+        && (!request.resource.data.keys().hasAny(["proximoContato"]) || (request.resource.data.proximoContato is string && request.resource.data.proximoContato.size() <= 10))
+        && (!request.resource.data.keys().hasAny(["frequenciaPagamento"]) || (request.resource.data.frequenciaPagamento is string && request.resource.data.frequenciaPagamento.size() <= 100))
+        && (!request.resource.data.keys().hasAny(["formaPagamento"]) || (request.resource.data.formaPagamento is string && request.resource.data.formaPagamento.size() <= 100))
+        && (!request.resource.data.keys().hasAny(["emailFinanceiro"]) || (request.resource.data.emailFinanceiro is string && request.resource.data.emailFinanceiro.size() <= 180))
+        && (!request.resource.data.keys().hasAny(["cnpj"]) || (request.resource.data.cnpj is string && request.resource.data.cnpj.size() <= 30))
+        && (!request.resource.data.keys().hasAny(["observacoesProducao"]) || (request.resource.data.observacoesProducao is string && request.resource.data.observacoesProducao.size() <= 1200))
+        && (!request.resource.data.keys().hasAny(["historico"]) || (request.resource.data.historico is list && request.resource.data.historico.size() <= 50))
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
     match /usuarios/{uid} {
       allow create: if isAdmin() || (logado() && request.auth.uid == uid && perfilNovoValido(uid));
       allow read: if logado() && (request.auth.uid == uid || isAdmin() || podeClientes());
@@ -368,7 +397,7 @@ service cloud.firestore {
     }
 
     match /configuracoes/{id} {
-      allow read: if true;
+      allow read: if id in ["loja", "empresas"] || isAdmin() || podeSite() || (id == "operacao" && podeConfiguracoes());
       allow write: if isAdmin()
         || (id == "operacao" && podeConfiguracoes())
         || (id != "operacao" && podeSite());
@@ -426,8 +455,8 @@ service cloud.firestore {
 
     match /solicitacoesEmpresas/{solicitacaoId} {
       allow create: if isAdmin() || solicitacaoEmpresaValida();
-      allow read: if podeConsultarPedidos();
-      allow update: if podePedidos();
+      allow read: if podeEmpresas();
+      allow update: if podeEmpresas() && atualizacaoSolicitacaoEmpresaValida();
       allow delete: if isAdmin();
     }
 

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#46180f">
+  <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Delícias da Vó Gestão</title>
   <link rel="icon" href="../assets/icon-192.png">
   <link rel="apple-touch-icon" href="../assets/icon-192.png">
@@ -49,7 +50,7 @@
         <button class="nav-item" type="button" data-page="balcao" data-permission="caixa"><span>▣</span> Balcão</button>
         <button class="nav-item" type="button" data-page="entregas" data-permission="entregas"><span>➜</span> Entregas <b id="badgeEntregas" class="nav-badge" hidden>0</b></button>
         <button class="nav-item" type="button" data-page="encomendas" data-permission="pedidos"><span>◇</span> Encomendas</button>
-        <button class="nav-item" type="button" data-page="empresas" data-permission="pedidos"><span>▧</span> Empresas <b id="badgeEmpresas" class="nav-badge" hidden>0</b></button>
+        <button class="nav-item" type="button" data-page="empresas" data-permission="empresas"><span>▧</span> Empresas <b id="badgeEmpresas" class="nav-badge" hidden>0</b></button>
 
         <p class="nav-label">Gestão</p>
         <button class="nav-item" type="button" data-page="caixa" data-permission="caixa"><span>▱</span> Caixa</button>
@@ -120,6 +121,13 @@
           </article>
         </div>
 
+        <div class="business-health-grid">
+          <button id="dashboardCardapioStatus" class="surface business-health-card" type="button" data-go="cardapio"><span>Cardápio de hoje</span><strong id="dashboardCardapioTitulo">Verificando…</strong><small id="dashboardCardapioTexto">Confira antes de abrir a loja.</small></button>
+          <button class="surface business-health-card" type="button" data-go="pedidos"><span>Aguardando WhatsApp</span><strong id="dashboardPedidosNaoConfirmados">0</strong><small>pedidos ainda não confirmados</small></button>
+          <button class="surface business-health-card" type="button" data-go="empresas"><span>Empresas para acompanhar</span><strong id="dashboardEmpresasPendentes">0</strong><small id="dashboardEmpresasTexto">novas ou com retorno pendente</small></button>
+          <button class="surface business-health-card" type="button" data-go="empresas"><span>Produção empresarial</span><strong id="dashboardEmpresasHoje">0</strong><small>marmitas previstas hoje</small></button>
+        </div>
+
         <div class="dashboard-grid">
           <article class="surface span-2">
             <div class="surface-head"><div><p class="kicker">Fluxo ao vivo</p><h3>Pedidos que precisam de ação</h3></div><button class="text-btn" type="button" data-go="pedidos">Ver todos →</button></div>
@@ -142,9 +150,9 @@
 
       <section id="page-pedidos" class="page" data-page="pedidos">
         <div class="page-toolbar">
-          <div class="search-field"><span>⌕</span><input id="buscaPedidos" type="search" placeholder="Buscar cliente, número ou telefone"></div>
+          <div class="search-field"><span>⌕</span><input id="buscaPedidos" type="search" aria-label="Buscar pedidos" placeholder="Buscar cliente, número ou telefone"></div>
           <select id="filtroOrigemPedidos" aria-label="Filtrar origem"><option value="todos">Todas as origens</option><option value="site">Site</option><option value="manual">Atendimento</option><option value="festa">Encomendas</option></select>
-          <select id="filtroStatusPedidos" aria-label="Filtrar status"><option value="abertos">Pedidos abertos</option><option value="todos">Todos</option><option value="registrado">Novos</option><option value="confirmado">Confirmados</option><option value="producao">Em produção</option><option value="pronto">Prontos</option><option value="saiu_entrega">Em entrega</option><option value="entregue">Entregues</option><option value="cancelado">Cancelados</option></select>
+          <select id="filtroStatusPedidos" aria-label="Filtrar status"><option value="abertos">Pedidos abertos</option><option value="todos">Todos</option><option value="aguardando_confirmacao">Aguardando WhatsApp</option><option value="registrado">Novos</option><option value="confirmado">Confirmados</option><option value="producao">Em produção</option><option value="pronto">Prontos</option><option value="saiu_entrega">Em entrega</option><option value="entregue">Entregues</option><option value="cancelado">Cancelados</option></select>
           <button class="primary-btn" type="button" data-action="novo-pedido">＋ Novo pedido</button>
         </div>
         <div class="order-summary-row" id="resumoPedidosFaixas"></div>
@@ -163,16 +171,18 @@
       </section>
 
       <section id="page-cardapio" class="page" data-page="cardapio">
+        <div id="alertaCardapioGestao" class="menu-publication-alert" role="status"></div>
         <div class="page-toolbar cardapio-toolbar">
           <label>Data do cardápio<input id="dataCardapioGestao" type="date"></label>
           <label class="grow">Título exibido no site<input id="tituloCardapioGestao" type="text" placeholder="Cardápio de hoje"></label>
           <label class="grow">Recado do dia<input id="observacaoCardapioGestao" type="text" placeholder="Ex.: pedidos até 12h"></label>
           <label class="switch-label"><input id="publicarCardapioGestao" type="checkbox" checked><span></span> Publicado</label>
+          <button id="copiarCardapioAnterior" class="secondary-btn" type="button">Copiar dia anterior</button>
           <button id="salvarCardapioGestao" class="primary-btn" type="button">Salvar no site</button>
         </div>
         <article class="surface daily-menu-text"><div class="surface-head"><div><p class="kicker">Composição da marmita</p><h3>Itens do cardápio de hoje</h3><p>Escreva um item por linha, por exemplo: arroz, feijão, carne e salada.</p></div></div><textarea id="itensTextoCardapioGestao" rows="4" placeholder="Arroz&#10;Feijão&#10;Carne assada&#10;Salada"></textarea></article>
         <article class="surface">
-          <div class="surface-head"><div><p class="kicker">Ligado ao site</p><h3>Escolha o que aparece hoje</h3><p>Produtos desmarcados somem do cardápio público apenas nesta data.</p></div><button id="selecionarTodosCardapio" class="secondary-btn" type="button">Selecionar todos</button></div>
+          <div class="surface-head"><div><p class="kicker">Ligado ao site</p><h3>Escolha o que aparece hoje</h3><p>Produtos desmarcados somem do cardápio público apenas nesta data.</p></div><div class="menu-bulk-actions"><button id="limparCardapio" class="text-btn" type="button">Limpar</button><button id="selecionarTodosCardapio" class="secondary-btn" type="button">Selecionar todos</button><a class="secondary-btn link-button" href="../index.html#cardapio" target="_blank" rel="noopener">Ver no site</a></div></div>
           <div id="produtosCardapioGestao" class="menu-product-grid"></div>
         </article>
       </section>
@@ -181,7 +191,7 @@
         <div class="page-toolbar"><button id="digitalizarVendaGestao" class="secondary-btn" data-action="digitalizar-venda" type="button" hidden>📷 Ler venda manuscrita</button></div>
         <div class="pos-layout">
           <article class="surface pos-catalog">
-            <div class="surface-head"><div><p class="kicker">Venda rápida</p><h3>Produtos disponíveis</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaBalcao" type="search" placeholder="Buscar produto"></div></div>
+            <div class="surface-head"><div><p class="kicker">Venda rápida</p><h3>Produtos disponíveis</h3></div><div class="search-field compact"><span>⌕</span><input id="buscaBalcao" type="search" aria-label="Buscar produto no balcão" placeholder="Buscar produto"></div></div>
             <div id="produtosBalcao" class="pos-products"></div>
           </article>
           <aside class="surface pos-cart" aria-label="Venda atual do balcão">
@@ -202,28 +212,32 @@
       </section>
 
       <section id="page-encomendas" class="page" data-page="encomendas">
-        <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaEncomendas" type="search" placeholder="Buscar encomenda ou cliente"></div><select id="filtroEncomendas"><option value="abertas">Próximas e abertas</option><option value="preparo">Na janela de preparo</option><option value="agendadas">Agendadas para depois</option><option value="todas">Todas</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div>
+        <div class="page-toolbar"><div class="search-field"><span>⌕</span><input id="buscaEncomendas" type="search" aria-label="Buscar encomendas" placeholder="Buscar encomenda ou cliente"></div><select id="filtroEncomendas" aria-label="Filtrar encomendas"><option value="abertas">Próximas e abertas</option><option value="preparo">Na janela de preparo</option><option value="agendadas">Agendadas para depois</option><option value="todas">Todas</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div>
         <div class="schedule-explainer surface"><span aria-hidden="true">◷</span><div><strong>Agenda inteligente</strong><p>Encomendas distantes ficam guardadas aqui. Elas só entram em Pedidos e Cozinha quando chegar a antecedência configurada.</p></div></div>
         <div id="listaEncomendasGestao" class="appointment-list"></div>
       </section>
 
       <section id="page-empresas" class="page" data-page="empresas">
         <div class="page-toolbar">
-          <div class="search-field"><span>⌕</span><input id="buscaEmpresas" type="search" placeholder="Buscar empresa, responsável ou telefone"></div>
+          <div class="search-field"><span>⌕</span><input id="buscaEmpresas" type="search" aria-label="Buscar empresas" placeholder="Buscar empresa, responsável ou telefone"></div>
           <select id="filtroEmpresas" aria-label="Filtrar atendimentos empresariais">
             <option value="abertas">Abertas</option>
             <option value="todas">Todas</option>
             <option value="nova">Novas</option>
             <option value="em_contato">Em contato</option>
+            <option value="proposta_enviada">Proposta enviada</option>
+            <option value="aguardando_resposta">Aguardando resposta</option>
             <option value="aprovada">Aprovadas</option>
+            <option value="pausada">Pausadas</option>
+            <option value="encerrada">Encerradas</option>
             <option value="recusada">Recusadas</option>
           </select>
         </div>
         <div class="company-summary-row">
           <article><span>Novas</span><strong id="empresasNovas">0</strong></article>
-          <article><span>Em contato</span><strong id="empresasContato">0</strong></article>
-          <article><span>Aprovadas</span><strong id="empresasAprovadas">0</strong></article>
-          <article><span>Recusadas</span><strong id="empresasRecusadas">0</strong></article>
+          <article><span>Em negociação</span><strong id="empresasContato">0</strong></article>
+          <article><span>Rotinas ativas</span><strong id="empresasAprovadas">0</strong></article>
+          <article><span>Retornos vencidos</span><strong id="empresasRecusadas">0</strong></article>
         </div>
         <div class="schedule-explainer surface company-explainer"><span aria-hidden="true">🏢</span><div><strong>Atendimento empresarial</strong><p>O formulário registra a solicitação antes de abrir o WhatsApp. Aqui você confere os dados, acompanha a conversa e confirma quando o acordo estiver fechado.</p></div></div>
         <div id="statusEmpresasGestao" class="surface company-sync-status" hidden></div>

@@ -110,6 +110,31 @@
 .company-contact-actions a { flex: 1; min-height: 40px; padding: 10px; border-radius: 11px; background: #e2f2e8; color: #276645; font-size: .7rem; font-weight: 900; text-align: center; text-decoration: none; }
 .company-delete { margin-right: auto; color: var(--red)!important; }
 
+/* Sinais rápidos para a abertura do dia e continuidade comercial. */
+.business-health-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.business-health-card { display: flex; min-height: 104px; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; padding: 15px; border: 1px solid var(--line); color: var(--text); text-align: left; cursor: pointer; }
+.business-health-card:hover { border-color: #d5ad63; transform: translateY(-1px); }
+.business-health-card > span { color: var(--muted); font-size: .66rem; font-weight: 850; }
+.business-health-card > strong { color: var(--wine); font-size: 1.32rem; line-height: 1; }
+.business-health-card > small { color: var(--muted); font-size: .67rem; line-height: 1.35; }
+.business-health-card.needs-attention { border-color: #e0b5aa; background: linear-gradient(145deg, #fffaf8, #fff0eb); }
+.business-health-card.needs-attention > strong { color: var(--red); }
+.business-health-card.published { border-color: #b9d9c2; background: linear-gradient(145deg, #fbfffb, #edf8ef); }
+.business-health-card.published > strong { color: #286b47; }
+.menu-publication-alert { display: flex; min-height: 42px; align-items: center; margin-bottom: 12px; padding: 10px 13px; border: 1px solid #e4c98d; border-radius: 13px; background: #fff8e6; color: #72500f; font-size: .73rem; font-weight: 800; }
+.menu-publication-alert.published { border-color: #b9d9c2; background: #eef8f0; color: #286b47; }
+.menu-publication-alert.needs-attention { border-color: #e0b5aa; background: #fff1ed; color: #8e3027; }
+.menu-bulk-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; }
+.link-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.company-followup { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 9px; padding: 9px 10px; border-radius: 12px; background: #fff7e4; color: #75500d; font-size: .62rem; line-height: 1.35; }
+.company-followup b { color: var(--wine); font-size: .62rem; text-align: right; }
+.company-timeline { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 13px; background: #fffaf3; }
+.company-timeline legend { padding: 0 5px; color: var(--muted); font-size: .65rem; font-weight: 850; }
+.company-timeline > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 7px 0; border-bottom: 1px solid #f0e4d8; }
+.company-timeline > div:last-child { border-bottom: 0; }
+.company-timeline strong { color: var(--wine); font-size: .68rem; }
+.company-timeline span { color: var(--muted); font-size: .62rem; text-align: right; }
+
 @media (max-width: 760px) {
   .team-invite-hero { align-items: stretch; flex-direction: column; padding: 18px; }
   .team-invite-hero .primary-btn { width: 100%; }
@@ -122,4 +147,12 @@
   .company-routine { grid-template-columns: 1fr; }
   .company-detail-grid { grid-template-columns: 1fr; }
   .company-contact-actions { flex-direction: column; }
+  .business-health-grid { grid-template-columns: 1fr 1fr; }
+  .menu-bulk-actions { justify-content: flex-start; }
+  .company-followup { flex-direction: column; }
+  .company-followup b { text-align: left; }
+}
+
+@media (max-width: 460px) {
+  .business-health-grid { grid-template-columns: 1fr; }
 }

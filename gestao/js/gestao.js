@@ -6,7 +6,7 @@ import { APP_CONFIG } from "../../js/core/config.js";
 import { registrarVendaRapida } from "../../js/services/salesService.js";
 import { salvarMovimentoFinanceiro, salvarCustoProduto, salvarFechamentoFinanceiro } from "../../js/services/financeService.js";
 import { lerRegistroComIA } from "../../js/services/documentAiService.js";
-import { gerarBackupCompleto, baixarBackupJson, restaurarBackupCompleto } from "../../js/services/backupService.js";
+import { gerarBackupCompleto, baixarBackupJson, restaurarBackupCompleto, validarBackupCompleto } from "../../js/services/backupService.js";
 import {
   estadoGestao, limparEstadoGestao, iniciarObservadoresGestao, atualizarStatusPedidoGestao,
   salvarPedidoManual, atualizarPedidoManualGestao, salvarCardapioDia, salvarInsumo, movimentarInsumo,
@@ -220,6 +220,10 @@ function liberarSistema(user) {
     if (evento?.erro) {
       $("conexaoGestao").classList.add("offline");
       $("conexaoGestao").lastChild.textContent = " Falha ao sincronizar";
+    } else if (Object.keys(estadoGestao.erros || {}).length) {
+      $("conexaoGestao").classList.add("offline");
+      $("conexaoGestao").lastChild.textContent = " Falha em uma área";
+      renderTudo();
     } else {
       $("conexaoGestao").classList.remove("offline");
       $("conexaoGestao").lastChild.textContent = " Sincronizado";
@@ -272,8 +276,13 @@ async function processarUsuario(user) {
 }
 
 function navegar(pagina) {
-  const botao = document.querySelector(`.nav-item[data-page="${pagina}"]`);
-  if (!botao || botao.hidden) pagina = "dashboard";
+  let botao = document.querySelector(`.nav-item[data-page="${pagina}"]`);
+  const podeAbrir = botao && !botao.hidden && (botao.dataset.adminOnly === "true" ? isAdmin : pode(botao.dataset.permission || "dashboard"));
+  if (!podeAbrir) {
+    if (pagina !== "dashboard" && usuarioAtual) toast("Seu acesso não inclui essa área.", "error");
+    pagina = "dashboard";
+    botao = document.querySelector('.nav-item[data-page="dashboard"]');
+  }
   paginaAtual = pagina;
   document.querySelectorAll(".page").forEach(item => item.classList.toggle("active", item.dataset.page === pagina));
   document.querySelectorAll(".nav-item").forEach(item => item.classList.toggle("active", item.dataset.page === pagina));
@@ -319,7 +328,7 @@ function htmlPedidoCard(pedido) {
   return `<article class="order-card ${["registrado", "aguardando_confirmacao"].includes(pedido.status) ? "new-order" : ""}" data-order="${escapar(pedido.chave)}">
     <div class="order-identification"><div class="order-code"><span class="origin-pill">${escapar(pedido.origemNome)}</span><span class="status-pill ${status.classe}">${status.nome}</span><span class="timer-pill ${classePrazo(prazo)}">${escapar(prazo.texto)}</span></div><h3>${escapar(pedido.numeroExibicao)}</h3><p><b>${escapar(pedido.clienteNome)}</b>${pedido.clienteTelefone ? ` • ${escapar(pedido.clienteTelefone)}` : ""}</p><div class="order-meta"><span class="soft-pill">${escapar(pedido.tipoAtendimento)}</span><span class="soft-pill">${escapar(pedido.horaOperacao || "Sem horário")}</span><span class="soft-pill">${formatarMoedaGestao(pedido.valor)}</span></div></div>
     <div class="order-items">${htmlItens(pedido)}${pedido.observacao || pedido.observacoes ? `<p class="note">${escapar(pedido.observacao || pedido.observacoes)}</p>` : ""}</div>
-    <div class="order-actions"><select data-order-status>${["registrado", "confirmado", "producao", "pronto", "saiu_entrega", "entregue", "cancelado"].map(valor => `<option value="${valor}" ${pedido.status === valor ? "selected" : ""}>${infoStatus(valor).nome}</option>`).join("")}</select>${proximo ? `<button class="main-action" data-next="${proximo}">${acao}</button>` : ""}<button class="cancel-action" data-detail>Ver detalhes</button></div>
+    <div class="order-actions"><select data-order-status>${["aguardando_confirmacao", "registrado", "confirmado", "producao", "pronto", "saiu_entrega", "entregue", "cancelado"].map(valor => `<option value="${valor}" ${pedido.status === valor ? "selected" : ""}>${infoStatus(valor).nome}</option>`).join("")}</select>${proximo ? `<button class="main-action" data-next="${proximo}">${acao}</button>` : ""}<button class="cancel-action" data-detail>Ver detalhes</button></div>
   </article>`;
 }
 
@@ -375,6 +384,23 @@ function renderDashboard() {
   const encomendas = pedidos.filter(item => item.origemTipo === "festa" && item.dataOperacao >= hoje && !statusFinal(item.status)).sort((a, b) => a.dataOperacao.localeCompare(b.dataOperacao)).slice(0, 5);
   $("dashboardEncomendas").className = `compact-list ${encomendas.length ? "" : "empty-state"}`;
   $("dashboardEncomendas").innerHTML = encomendas.length ? encomendas.map(item => { const janela = avaliarJanelaEncomenda(item, antecedencia, hoje); return `<div class="compact-row"><span class="appointment-date">${textoData(item.dataOperacao)}</span><div class="row-main"><strong>${escapar(item.clienteNome)} — ${escapar(item.numeroExibicao)}</strong><small>${item.itens.map(produto => `${produto.quantidade}× ${produto.nome}`).join(" • ")}</small><span class="schedule-window ${janela.preparoLiberado ? "available" : ""}">${escapar(janela.texto)}</span></div><span class="row-value">${formatarMoedaGestao(item.valor)}</span></div>`; }).join("") : "Nenhuma encomenda próxima.";
+
+  const menuHoje = estadoGestao.cardapios.find(item => item.id === hoje || item.dataISO === hoje);
+  const menuPublicado = Boolean(menuHoje?.publicado && Array.isArray(menuHoje.itens) && menuHoje.itens.some(Boolean));
+  $("dashboardCardapioTitulo").textContent = menuPublicado ? (menuHoje.titulo || "Publicado") : "Ainda não publicado";
+  $("dashboardCardapioTexto").textContent = menuPublicado ? `${menuHoje.itens.filter(Boolean).length} itens descritos para hoje.` : "Abra Cardápio do dia e publique antes de divulgar.";
+  $("dashboardCardapioStatus").classList.toggle("needs-attention", !menuPublicado);
+
+  const empresas = estadoGestao.solicitacoesEmpresas || [];
+  const pendentesEmpresa = empresas.filter(item => ["nova", "em_contato", "proposta_enviada", "aguardando_resposta"].includes(item.status));
+  const diaSemanaHoje = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"][new Date(`${hoje}T12:00:00-03:00`).getDay()];
+  const empresasHoje = empresas.filter(item => item.status === "aprovada" && (!item.dataInicioConfirmada || item.dataInicioConfirmada <= hoje) && (item.diasConfirmados || item.diasSemana || []).includes(diaSemanaHoje));
+  const quantidadeEmpresasHoje = empresasHoje.reduce((soma, item) => soma + numeroSeguro(item.quantidadeConfirmada || item.quantidade), 0);
+  const naoConfirmados = pedidos.filter(item => ["aguardando_confirmacao", "registrado"].includes(item.status)).length;
+  $("dashboardPedidosNaoConfirmados").textContent = naoConfirmados;
+  $("dashboardEmpresasPendentes").textContent = pendentesEmpresa.length;
+  $("dashboardEmpresasTexto").textContent = pendentesEmpresa.length ? "novas ou com retorno pendente" : "nenhum retorno pendente";
+  $("dashboardEmpresasHoje").textContent = quantidadeEmpresasHoje;
 }
 
 function renderPedidos() {
@@ -388,8 +414,13 @@ function renderPedidos() {
     const statusOk = statusFiltro === "todos" || (statusFiltro === "abertos" ? !statusFinal(pedido.status) : pedido.status === statusFiltro || (statusFiltro === "cancelado" && pedido.status === "cancelada"));
     return texto.includes(termo) && origemOk && statusOk;
   });
-  const faixas = ["registrado", "confirmado", "producao", "pronto", "saiu_entrega", "entregue"];
-  $("resumoPedidosFaixas").innerHTML = faixas.map(status => `<div class="summary-chip"><strong>${todos.filter(item => status === "registrado" ? ["registrado", "aguardando_confirmacao"].includes(item.status) : item.status === status).length}</strong><span>${infoStatus(status).nome}</span></div>`).join("");
+  const faixas = ["aguardando_confirmacao", "confirmado", "producao", "pronto", "saiu_entrega", "entregue"];
+  $("resumoPedidosFaixas").innerHTML = faixas.map(status => {
+    const quantidade = status === "aguardando_confirmacao"
+      ? todos.filter(item => ["registrado", "aguardando_confirmacao"].includes(item.status)).length
+      : todos.filter(item => item.status === status).length;
+    return `<div class="summary-chip"><strong>${quantidade}</strong><span>${infoStatus(status).nome}</span></div>`;
+  }).join("");
   $("listaPedidosGestao").innerHTML = lista.length ? lista.map(htmlPedidoCard).join("") : '<div class="surface empty-state">Nenhum pedido encontrado com esses filtros.</div>';
   $("listaPedidosGestao").querySelectorAll(".order-card").forEach(card => bindCardPedido(card, todos.find(item => item.chave === card.dataset.order)));
 }
@@ -452,6 +483,11 @@ function renderCardapio() {
   if ($("publicarCardapioGestao")) $("publicarCardapioGestao").checked = registro?.publicado !== false;
   const selecionados = new Set(registro?.produtoIds || estadoGestao.produtos.filter(item => item.ativo !== false).map(item => item.id));
   $("produtosCardapioGestao").innerHTML = estadoGestao.produtos.filter(item => item.ativo !== false).map(produto => `<label class="menu-check"><input type="checkbox" value="${escapar(produto.id)}" ${selecionados.has(produto.id) ? "checked" : ""}><span class="emoji">${escapar(produto.emoji || "🍽️")}</span><span><strong>${escapar(produto.nome)}</strong><small>${formatarMoedaGestao(produto.preco)}</small></span></label>`).join("") || '<div class="empty-state">Cadastre produtos no painel.</div>';
+  const alerta = $("alertaCardapioGestao");
+  if (alerta) {
+    alerta.textContent = registro?.publicado && selecionados.size ? `Publicado para ${textoData(data)} • ${selecionados.size} produto(s) liberado(s).` : `Este cardápio ainda não está publicado para ${textoData(data)}.`;
+    alerta.className = `menu-publication-alert ${registro?.publicado && selecionados.size ? "published" : "needs-attention"}`;
+  }
 }
 
 function produtosDisponiveis() {
@@ -615,7 +651,11 @@ function renderEncomendas() {
 const statusEmpresas = {
   nova: { nome: "Nova", classe: "novo" },
   em_contato: { nome: "Em contato", classe: "confirmado" },
+  proposta_enviada: { nome: "Proposta enviada", classe: "confirmado" },
+  aguardando_resposta: { nome: "Aguardando resposta", classe: "attention" },
   aprovada: { nome: "Aprovada", classe: "concluido" },
+  pausada: { nome: "Pausada", classe: "attention" },
+  encerrada: { nome: "Encerrada", classe: "cancelado" },
   recusada: { nome: "Recusada", classe: "cancelado" }
 };
 
@@ -633,13 +673,16 @@ function enderecoSolicitacaoEmpresa(item = {}) {
 
 function proximaAcaoEmpresa(item = {}) {
   if (item.status === "nova") return ["em_contato", "Iniciar contato"];
-  if (item.status === "em_contato") return ["aprovada", "Confirmar acordo"];
+  if (item.status === "em_contato") return ["proposta_enviada", "Marcar proposta enviada"];
+  if (item.status === "proposta_enviada") return ["aguardando_resposta", "Aguardar retorno"];
+  if (item.status === "aguardando_resposta") return ["aprovada", "Confirmar acordo"];
   return ["", ""];
 }
 
 async function atualizarEmpresaRapido(item, status) {
   try {
-    await atualizarSolicitacaoEmpresa(item.id, { status, visualizado: true });
+    const historico = [...(item.historico || []), { status, texto: `Status alterado para ${infoStatusEmpresa(status).nome}`, emMs: Date.now() }];
+    await atualizarSolicitacaoEmpresa(item.id, { status, visualizado: true, historico });
     toast(status === "aprovada" ? "Acordo empresarial confirmado." : "Atendimento atualizado.", "success");
   } catch (erro) {
     toast(erro.message || "Não foi possível atualizar a empresa.", "error");
@@ -663,12 +706,21 @@ function abrirDetalhesEmpresa(item) {
     ${item.horario ? `<p class="company-customer-note"><b>Horário desejado:</b> ${escapar(item.horario)}</p>` : ""}
     ${item.observacoes ? `<p class="company-customer-note"><b>Observações da empresa:</b> ${escapar(item.observacoes)}</p>` : ""}
     <div class="form-grid">
-      <label>Status do atendimento<select id="empresaGestaoStatus"><option value="nova" ${item.status === "nova" ? "selected" : ""}>Nova</option><option value="em_contato" ${item.status === "em_contato" ? "selected" : ""}>Em contato</option><option value="aprovada" ${item.status === "aprovada" ? "selected" : ""}>Aprovada</option><option value="recusada" ${item.status === "recusada" ? "selected" : ""}>Recusada</option></select></label>
+      <label>Status do atendimento<select id="empresaGestaoStatus">${Object.entries(statusEmpresas).map(([status, info]) => `<option value="${status}" ${item.status === status ? "selected" : ""}>${info.nome}</option>`).join("")}</select></label>
       <label>Quantidade confirmada por dia<input id="empresaGestaoQuantidade" type="number" min="5" step="1" value="${numeroSeguro(item.quantidadeConfirmada || item.quantidade || 5)}"></label>
       <label>Valor combinado por marmita (R$)<input id="empresaGestaoValor" type="number" min="0" step="0.01" value="${valor > 0 ? valor.toFixed(2) : ""}" placeholder="Opcional"></label>
       <label>Data de início confirmada<input id="empresaGestaoInicio" type="date" value="${escapar(item.dataInicioConfirmada || item.dataInicio || "")}"></label>
-      <label class="full">Anotações internas<textarea id="empresaGestaoNotas" rows="4" placeholder="Condições combinadas, retorno pendente ou observações internas">${escapar(item.notasInternas || "")}</textarea></label>
+      <label>Dias confirmados<input id="empresaGestaoDias" value="${escapar((item.diasConfirmados || item.diasSemana || []).join(", "))}" placeholder="segunda, quarta, sexta"></label>
+      <label>Próximo contato<input id="empresaGestaoProximoContato" type="date" value="${escapar(item.proximoContato || "")}"></label>
+      <label>Horário confirmado<input id="empresaGestaoHorario" value="${escapar(item.horarioConfirmado || item.horario || "")}" placeholder="Ex.: 11h30"></label>
+      <label>Forma de pagamento<input id="empresaGestaoPagamento" value="${escapar(item.formaPagamento || "")}" placeholder="A combinar"></label>
+      <label>Frequência de pagamento<input id="empresaGestaoFrequenciaPagamento" value="${escapar(item.frequenciaPagamento || "")}" placeholder="Diário, semanal, mensal..."></label>
+      <label>E-mail financeiro<input id="empresaGestaoEmail" type="email" value="${escapar(item.emailFinanceiro || "")}" placeholder="financeiro@empresa.com"></label>
+      <label>CNPJ (opcional)<input id="empresaGestaoCnpj" value="${escapar(item.cnpj || "")}" placeholder="00.000.000/0000-00"></label>
+      <label class="full">Anotações internas<textarea id="empresaGestaoNotas" rows="3" placeholder="Condições combinadas, retorno pendente ou observações internas">${escapar(item.notasInternas || "")}</textarea></label>
+      <label class="full">Observação para produção<textarea id="empresaGestaoProducao" rows="3" placeholder="Embalagem, restrições ou detalhes que a cozinha precisa lembrar">${escapar(item.observacoesProducao || "")}</textarea></label>
     </div>
+    ${Array.isArray(item.historico) && item.historico.length ? `<fieldset class="company-timeline"><legend>Histórico do atendimento</legend>${item.historico.slice(-8).reverse().map(evento => `<div><strong>${escapar(infoStatusEmpresa(evento.status).nome)}</strong><span>${escapar(evento.texto || "Atualização registrada")} • ${evento.emMs ? textoData(new Date(evento.emMs).toISOString().slice(0,10)) : ""}</span></div>`).join("")}</fieldset>` : ""}
     <div class="company-contact-actions">${telefone ? `<a href="https://wa.me/${telefone}" target="_blank" rel="noopener">Abrir WhatsApp</a>` : ""}${mapa ? `<a href="${mapa}" target="_blank" rel="noopener">Abrir no Maps</a>` : ""}</div>
     <div class="modal-actions">${isAdmin ? '<button id="excluirEmpresaGestao" class="cancel company-delete" type="button">Excluir teste</button>' : ""}<button class="cancel" type="button" data-modal-close>Voltar</button><button type="submit">Salvar atendimento</button></div>
   </form>`, "Marmitas para empresas");
@@ -683,7 +735,16 @@ function abrirDetalhesEmpresa(item) {
         quantidadeConfirmada: Math.max(5, Math.round(numeroSeguro($("empresaGestaoQuantidade").value))),
         valorUnitario: Math.max(0, numeroSeguro($("empresaGestaoValor").value)),
         dataInicioConfirmada: $("empresaGestaoInicio").value,
-        notasInternas: $("empresaGestaoNotas").value
+        diasConfirmados: $("empresaGestaoDias").value.split(",").map(dia => dia.trim().toLowerCase()).filter(Boolean),
+        proximoContato: $("empresaGestaoProximoContato").value,
+        horarioConfirmado: $("empresaGestaoHorario").value,
+        formaPagamento: $("empresaGestaoPagamento").value,
+        frequenciaPagamento: $("empresaGestaoFrequenciaPagamento").value,
+        emailFinanceiro: $("empresaGestaoEmail").value,
+        cnpj: $("empresaGestaoCnpj").value,
+        notasInternas: $("empresaGestaoNotas").value,
+        observacoesProducao: $("empresaGestaoProducao").value,
+        historico: [...(item.historico || []), { status: $("empresaGestaoStatus").value, texto: "Atendimento atualizado", emMs: Date.now() }]
       });
       fecharModal();
       toast("Atendimento empresarial salvo.", "success");
@@ -708,10 +769,11 @@ function renderEmpresas() {
   const termo = String($("buscaEmpresas")?.value || "").trim().toLowerCase();
   const filtro = $("filtroEmpresas")?.value || "abertas";
   const contagem = status => todas.filter(item => item.status === status).length;
+  const hoje = dataLojaISO();
   $("empresasNovas").textContent = contagem("nova");
-  $("empresasContato").textContent = contagem("em_contato");
+  $("empresasContato").textContent = todas.filter(item => ["em_contato", "proposta_enviada", "aguardando_resposta"].includes(item.status)).length;
   $("empresasAprovadas").textContent = contagem("aprovada");
-  $("empresasRecusadas").textContent = contagem("recusada");
+  $("empresasRecusadas").textContent = todas.filter(item => item.proximoContato && item.proximoContato < hoje && !["aprovada", "recusada", "encerrada"].includes(item.status)).length;
 
   const statusSincronizacao = $("statusEmpresasGestao");
   const erro = estadoGestao.erros.solicitacoesEmpresas;
@@ -724,7 +786,7 @@ function renderEmpresas() {
     const texto = `${item.empresa || ""} ${item.responsavel || ""} ${item.telefone || ""} ${item.numero || ""}`.toLowerCase();
     if (termo && !texto.includes(termo)) return false;
     if (filtro === "todas") return true;
-    if (filtro === "abertas") return !["aprovada", "recusada"].includes(item.status);
+    if (filtro === "abertas") return !["aprovada", "recusada", "encerrada"].includes(item.status);
     return item.status === filtro;
   });
 
@@ -737,8 +799,9 @@ function renderEmpresas() {
       <div class="company-card-head"><div><span class="status-pill ${info.classe}">${info.nome}</span><small>${escapar(item.numero || "Solicitação empresarial")}</small></div><span class="company-quantity"><b>${numeroSeguro(item.quantidade)}</b> por dia</span></div>
       <h3>${escapar(item.empresa || "Empresa")}</h3>
       <p>${escapar(item.responsavel || "Responsável não informado")} • ${escapar(item.telefone || "Sem telefone")}</p>
-      <div class="company-routine"><span>Frequência<strong>${escapar(item.frequencia || "A combinar")}</strong></span><span>Início<strong>${item.dataInicio ? textoData(item.dataInicio) : "A combinar"}</strong></span></div>
+      <div class="company-routine"><span>Frequência<strong>${escapar(item.frequencia || "A combinar")}</strong></span><span>Início<strong>${item.dataInicioConfirmada || item.dataInicio ? textoData(item.dataInicioConfirmada || item.dataInicio) : "A combinar"}</strong></span></div>
       <div class="company-delivery"><b>${escapar(item.recebimento || "A combinar")}</b><span>${escapar(endereco || "Endereço não informado")}</span></div>
+      <div class="company-followup"><span>${item.proximoContato ? `Próximo contato: ${escapar(textoData(item.proximoContato))}` : "Defina o próximo contato"}</span><b>${item.status === "aprovada" ? `${numeroSeguro(item.quantidadeConfirmada || item.quantidade)} marmitas previstas` : "Aguardando negociação"}</b></div>
       <div class="card-actions">${telefone ? `<a class="map-action" href="https://wa.me/${telefone}" target="_blank" rel="noopener">WhatsApp</a>` : ""}<button class="map-action" type="button" data-company-detail>Detalhes</button>${proximoStatus ? `<button class="status-action" type="button" data-company-next="${proximoStatus}">${proximaAcao}</button>` : ""}</div>
     </article>`;
   }).join("") : '<div class="surface empty-state">Nenhuma empresa encontrada neste filtro.</div>';
@@ -950,18 +1013,20 @@ async function selecionarBackupGestao(evento) {
   if (!arquivo) return $("arquivoBackupGestaoStatus").textContent = "Nenhum arquivo selecionado.";
   try {
     const dados = JSON.parse(await arquivo.text());
-    if (!Array.isArray(dados.documentos)) throw new Error("Arquivo incompatível.");
+    validarBackupCompleto(dados);
     arquivoBackupPendente = dados;
-    $("arquivoBackupGestaoStatus").textContent = `${arquivo.name} • ${dados.documentos.length} documento(s)`;
+    $("arquivoBackupGestaoStatus").textContent = `${arquivo.name} • ${dados.documentos.length} documento(s) verificados`;
     $("restaurarBackupGestao").disabled = false;
   } catch (erro) {
-    $("arquivoBackupGestaoStatus").textContent = "Este arquivo não é um backup válido da Delícias da Vó.";
+    $("arquivoBackupGestaoStatus").textContent = erro.message || "Este arquivo não é um backup válido da Delícias da Vó.";
   }
 }
 
 async function restaurarBackupGestao() {
   if (!arquivoBackupPendente) return;
   if (!confirm(`Restaurar ${arquivoBackupPendente.documentos.length} documento(s)? Os documentos existentes com o mesmo caminho serão atualizados.`)) return;
+  const confirmacao = prompt("Para confirmar a restauração, digite RESTAURAR:");
+  if (confirmacao !== "RESTAURAR") return toast("Restauração cancelada.", "error");
   const botao = $("restaurarBackupGestao");
   botao.disabled = true;
   try {
@@ -1190,11 +1255,12 @@ function abrirCliente(cliente) { abrirModal(cliente.nome || "Cliente", `<div cla
 
 function abrirObservacaoCliente(cliente) { if (!cliente.uid) return toast("Este cliente ainda não possui perfil Google para salvar uma observação.", "error"); abrirModal("Observação do cliente", `<form id="formObservacaoCliente" class="modal-form"><p>${escapar(cliente.nome)}</p><label>Observação interna<textarea id="clienteObservacao" rows="5" placeholder="Preferências, cuidados ou informações úteis">${escapar(cliente.observacaoGestao || "")}</textarea></label><div class="modal-actions"><button class="cancel" type="button" data-modal-close>Cancelar</button><button type="submit">Salvar</button></div></form>`, "Clientes"); $("formObservacaoCliente").addEventListener("submit", async evento => { evento.preventDefault(); try { await salvarObservacaoCliente(cliente.uid, $("clienteObservacao").value); fecharModal(); toast("Observação salva.", "success"); } catch (erro) { toast(erro.message, "error"); } }); }
 
-const permissoesLista = ["pedidos", "cozinha", "entregas", "caixa", "estoque", "compras", "financeiro", "clientes", "relatorios", "configuracoes", "site"];
+const permissoesLista = ["pedidos", "cozinha", "entregas", "empresas", "caixa", "estoque", "compras", "financeiro", "clientes", "relatorios", "configuracoes", "site"];
 const permissoesDetalhes = {
   pedidos: ["Pedidos", "Pedidos do site, WhatsApp e atendimento"],
   cozinha: ["Cozinha", "Fila e andamento do preparo"],
   entregas: ["Entregas", "Endereços, rotas e conclusão"],
+  empresas: ["Empresas", "Solicitações, conversas e rotinas empresariais"],
   caixa: ["Caixa e balcão", "Vendas rápidas e conferência diária"],
   estoque: ["Estoque", "Insumos, fichas e perdas"],
   compras: ["Compras", "Fornecedores e entrada de mercadorias"],
@@ -1206,13 +1272,13 @@ const permissoesDetalhes = {
 };
 const cargosEquipe = ["Atendimento", "Operação", "Cozinha", "Caixa", "Entregador", "Estoque e compras", "Gerente", "Editor do site"];
 const presetsEquipe = {
-  Atendimento: { pedidos: true, clientes: true },
-  Operação: { pedidos: true, cozinha: true, entregas: true, clientes: true },
+  Atendimento: { pedidos: true, empresas: true, clientes: true },
+  Operação: { pedidos: true, cozinha: true, entregas: true, empresas: true, clientes: true },
   Cozinha: { cozinha: true },
   Caixa: { pedidos: true, caixa: true, clientes: true },
   Entregador: { entregas: true },
   "Estoque e compras": { estoque: true, compras: true },
-  Gerente: { pedidos: true, cozinha: true, entregas: true, caixa: true, estoque: true, compras: true, financeiro: true, clientes: true, relatorios: true, configuracoes: true },
+  Gerente: { pedidos: true, cozinha: true, entregas: true, empresas: true, caixa: true, estoque: true, compras: true, financeiro: true, clientes: true, relatorios: true, configuracoes: true },
   "Editor do site": { site: true }
 };
 function permissoesDoCargo(cargo = "Atendimento") { const preset = presetsEquipe[cargo] || {}; return Object.fromEntries(permissoesLista.map(nome => [nome, Boolean(preset[nome])])); }
@@ -1286,6 +1352,30 @@ document.querySelectorAll("[data-stock-tab]").forEach(botao => botao.addEventLis
 $("dataCardapioGestao").value = dataLojaISO();
 $("dataCardapioGestao").addEventListener("change", renderCardapio);
 $("selecionarTodosCardapio").addEventListener("click", () => document.querySelectorAll("#produtosCardapioGestao input").forEach(campo => { campo.checked = true; }));
+$("limparCardapio").addEventListener("click", () => {
+  $("produtosCardapioGestao").querySelectorAll("input").forEach(campo => { campo.checked = false; });
+  $("publicarCardapioGestao").checked = false;
+  const alerta = $("alertaCardapioGestao");
+  if (alerta) {
+    alerta.textContent = "Rascunho limpo. Salve quando quiser retirar o cardápio do site.";
+    alerta.className = "menu-publication-alert needs-attention";
+  }
+});
+$("copiarCardapioAnterior").addEventListener("click", () => {
+  const dataAtual = $("dataCardapioGestao").value;
+  const anterior = new Date(`${dataAtual}T12:00:00Z`);
+  anterior.setUTCDate(anterior.getUTCDate() - 1);
+  const dataAnterior = anterior.toISOString().slice(0, 10);
+  const registro = estadoGestao.cardapios.find(item => item.id === dataAnterior || item.dataISO === dataAnterior);
+  if (!registro) return toast("Não encontrei um cardápio salvo no dia anterior.", "error");
+  $("tituloCardapioGestao").value = registro.titulo || "Cardápio de hoje";
+  $("observacaoCardapioGestao").value = registro.observacao || "";
+  $("itensTextoCardapioGestao").value = Array.isArray(registro.itens) ? registro.itens.join("\n") : "";
+  $("publicarCardapioGestao").checked = registro.publicado !== false;
+  const ids = new Set(registro.produtoIds || []);
+  $("produtosCardapioGestao").querySelectorAll("input").forEach(campo => { campo.checked = ids.has(campo.value); });
+  toast(`Cardápio de ${textoData(dataAnterior)} copiado como rascunho.`, "success");
+});
 $("salvarCardapioGestao").addEventListener("click", async () => { const produtoIds = [...document.querySelectorAll("#produtosCardapioGestao input:checked")].map(campo => campo.value); if ($("publicarCardapioGestao").checked && !produtoIds.length) return toast("Escolha pelo menos um produto ou desative a publicação.", "error"); try { await salvarCardapioDia({ dataISO: $("dataCardapioGestao").value, produtoIds, publicado: $("publicarCardapioGestao").checked, titulo: $("tituloCardapioGestao").value, itens: $("itensTextoCardapioGestao").value.split("\n"), observacao: $("observacaoCardapioGestao").value }); toast("Cardápio atualizado no site.", "success"); } catch (erro) { toast(erro.message, "error"); } });
 const periodo = periodoPadrao();
 [["financeiroInicio", periodo.inicio], ["financeiroFim", periodo.fim], ["relatorioInicio", periodo.inicio], ["relatorioFim", periodo.fim]].forEach(([id, valor]) => { $(id).value = valor; });

@@ -24,16 +24,18 @@ export function renderCategoriasAdmin() {
     const row = document.createElement('div'); row.className = 'categoria-admin';
     const info = document.createElement('div');
     const strong = document.createElement('strong'); strong.textContent = `${categoria.emoji || '🏷️'} ${categoria.nome}`; info.appendChild(strong);
-    const meta = document.createElement('p'); meta.textContent = `Ordem: ${categoria.ordem || 0} · ${categoria.ativa ? 'Ativa' : 'Inativa'} · ${categoria.tituloSelecao || 'Escolha uma opção'}`; info.appendChild(meta);
+    const ativa = categoria.ativa !== false;
+    const meta = document.createElement('p'); meta.textContent = `Ordem: ${categoria.ordem || 0} · ${ativa ? 'Ativa' : 'Inativa'} · ${categoria.tituloSelecao || 'Escolha uma opção'}`; info.appendChild(meta);
 
     const actions = document.createElement('div'); actions.className = 'actions';
     const btnEdit = document.createElement('button'); btnEdit.textContent = 'Editar'; btnEdit.addEventListener('click', () => abrirModalCategoria(categoria.id));
-    const btnToggle = document.createElement('button'); btnToggle.textContent = categoria.ativa ? 'Desativar' : 'Ativar'; btnToggle.addEventListener('click', async () => {
-      await salvarCategoria({ ...categoria, ativa: !categoria.ativa });
+    const btnToggle = document.createElement('button'); btnToggle.textContent = ativa ? 'Desativar' : 'Ativar'; btnToggle.addEventListener('click', async () => {
+      await salvarCategoria({ ...categoria, ativa: !ativa });
     });
-    const btnDel = document.createElement('button'); btnDel.textContent = 'Excluir'; btnDel.addEventListener('click', async () => {
-      if (!confirm(`Excluir a categoria "${categoria.nome}"?`)) return;
-      await excluirCategoria(categoria.id);
+    const btnDel = document.createElement('button'); btnDel.textContent = 'Arquivar'; btnDel.title = 'Desativa a categoria sem apagar o histórico'; btnDel.addEventListener('click', async () => {
+      if (!ativa) return;
+      if (!confirm(`Arquivar a categoria "${categoria.nome}"? Os produtos não serão apagados.`)) return;
+      await salvarCategoria({ ...categoria, ativa: false });
     });
     actions.appendChild(btnEdit); actions.appendChild(btnToggle); actions.appendChild(btnDel);
 

@@ -1,4 +1,5 @@
 import { db, collection, doc, setDoc, onSnapshot, serverTimestamp } from "../core/firebase.js";
+import { APP_CONFIG } from "../core/config.js";
 
 const FUSO_LOJA = "America/Sao_Paulo";
 
@@ -105,7 +106,7 @@ export async function gerarPedidoSite(dadosPedido) {
     id: pedidoRef.id,
     numero: numeroFormatado,
     numeroFormatado,
-    status: dadosPedido.status || "registrado",
+    status: dadosPedido.status || "aguardando_confirmacao",
     dataISO,
     dataBR,
     horaBR,
@@ -113,6 +114,15 @@ export async function gerarPedidoSite(dadosPedido) {
     criadoEm: serverTimestamp()
   };
 
+  if (APP_CONFIG.previewMode) {
+    const simulado = { ...pedidoFinal, criadoEm: new Date(agora).toISOString(), preview: true };
+    try {
+      const chave = `${APP_CONFIG.storagePreview}:pedidos`;
+      const anteriores = JSON.parse(localStorage.getItem(chave) || "[]");
+      localStorage.setItem(chave, JSON.stringify([simulado, ...anteriores].slice(0, 20)));
+    } catch {}
+    return simulado;
+  }
   await setDoc(pedidoRef, pedidoFinal);
   return pedidoFinal;
 }

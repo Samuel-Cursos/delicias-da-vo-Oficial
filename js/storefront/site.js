@@ -25,6 +25,7 @@ let taxaEntregaAtual = null;
 let timerCalculoEntrega = null;
 let solicitacaoEntregaAtual = 0;
 let timerCepEmpresa = null;
+const formularioEmpresaAbertoEm = Date.now();
 
 window.addEventListener("perfil-cliente-atualizado", event => {
   const perfil = event.detail?.perfil || null;
@@ -669,7 +670,7 @@ function normalizarUrlExterna(valor = "") {
 }
 
 function configuracaoTaxasEntrega() {
-  const ate3Km = Math.max(0, Number(lojaConfig.taxasEntrega?.ate3Km ?? 5));
+  const ate3Km = 0;
   const ate5Km = Math.max(0, Number(lojaConfig.taxasEntrega?.ate5Km ?? 7));
   const limiteKm = Math.max(3, Number(lojaConfig.taxasEntrega?.limiteKm ?? 5));
   return { ate3Km, ate5Km, limiteKm };
@@ -677,7 +678,7 @@ function configuracaoTaxasEntrega() {
 
 function textoFaixasEntrega() {
   const taxas = configuracaoTaxasEntrega();
-  return `${formatarMoeda(taxas.ate3Km)} até 3 km • ${formatarMoeda(taxas.ate5Km)} até ${taxas.limiteKm.toLocaleString("pt-BR")} km`;
+  return `Grátis até 3 km • ${formatarMoeda(taxas.ate5Km)} de 3 km até ${taxas.limiteKm.toLocaleString("pt-BR")} km`;
 }
 
 
@@ -769,11 +770,9 @@ function renderCardapioDiaSite() {
   const section = document.getElementById("cardapioDiaSite");
   if (!section) return;
 
-  const cardapioAtualTemItens = Array.isArray(cardapioDiarioAtual?.itens) && cardapioDiarioAtual.itens.some(Boolean);
-  const cardapio = cardapioAtualTemItens ? cardapioDiarioAtual : (lojaConfig.cardapioDia || {});
-  const itens = Array.isArray(cardapio.itens) ? cardapio.itens.filter(Boolean) : [];
-
-  const publicado = cardapioAtualTemItens ? cardapio.publicado === true : cardapio.ativo === true;
+  const cardapio = cardapioDiarioAtual;
+  const itens = Array.isArray(cardapio?.itens) ? cardapio.itens.filter(Boolean) : [];
+  const publicado = cardapio?.publicado === true;
   if (!publicado || !itens.length) {
     section.style.display = "none";
     return;
@@ -1667,6 +1666,12 @@ async function finalizarPedidoImpl() {
     return;
   }
 
+  if (telefone.replace(/\D/g, "").length < 10) {
+    alert("Digite um WhatsApp válido com DDD para a loja conseguir confirmar o pedido.");
+    document.getElementById("telefoneCliente")?.focus();
+    return;
+  }
+
   if (tipo === "Entrega" && (!rua || !numeroEndereco || !bairro)) {
     alert("Preencha a rua, o número e o bairro para entrega.");
     return;
@@ -1796,7 +1801,7 @@ function configurarBotoesAreas(areaAtiva = "principal") {
   }
 }
 
-function alternarAreaPublica(areaAtiva) {
+function alternarAreaPublica(areaAtiva, atualizarUrl = true) {
   const areaPrincipal = document.getElementById("areaPrincipal");
   const areaEmpresas = document.getElementById("areaEmpresas");
   const areaFestas = document.getElementById("areaFestas");
@@ -1805,6 +1810,11 @@ function alternarAreaPublica(areaAtiva) {
   if (areaEmpresas) areaEmpresas.hidden = areaAtiva !== "empresas";
   if (areaFestas) areaFestas.hidden = areaAtiva !== "festas";
   configurarBotoesAreas(areaAtiva);
+  if (atualizarUrl) {
+    const hashDestino = areaAtiva === "empresas" ? "#empresas" : areaAtiva === "festas" ? "#festas" : `${location.pathname}${location.search}`;
+    if (areaAtiva === "principal") history.pushState({ area: "principal" }, "", hashDestino);
+    else if (location.hash !== hashDestino) history.pushState({ area: areaAtiva }, "", hashDestino);
+  }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1839,6 +1849,7 @@ function atualizarFrequenciaEmpresa() {
   const campoEspecifico = document.getElementById("empresaDiaEspecificoCampo");
   if (campoDias) campoDias.hidden = tipo !== "alguns";
   if (campoEspecifico) campoEspecifico.hidden = tipo !== "especifico";
+  atualizarResumoEmpresa();
 }
 
 function atualizarRecebimentoEmpresa() {
@@ -1848,6 +1859,29 @@ function atualizarRecebimentoEmpresa() {
   ["empresaCep", "empresaRua", "empresaNumero", "empresaBairro"].forEach(id => {
     const campo = document.getElementById(id);
     if (campo) campo.required = entrega;
+  });
+  atualizarResumoEmpresa();
+}
+
+function atualizarResumoEmpresa() {
+  const quantidade = Math.max(0, Number(document.getElementById("empresaQuantidade")?.value || 0));
+  const tipo = document.getElementById("empresaFrequencia")?.value || "";
+  const dias = diasSelecionadosEmpresa();
+  const frequencia = tipo ? descreverFrequenciaEmpresa(tipo, dias) : "Escolha os dias";
+  const recebimento = document.getElementById("empresaRecebimento")?.value || "A combinar";
+  const dataInicio = document.getElementById("empresaDataInicio")?.value || "";
+  const inicio = dataInicio
+    ? new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${dataInicio}T12:00:00Z`))
+    : "A combinar";
+  const valores = {
+    empresaResumoQuantidade: `${quantidade || Math.max(5, Number(configuracaoEmpresas.pedidoMinimo || 5))} marmitas por dia`,
+    empresaResumoFrequencia: frequencia,
+    empresaResumoRecebimento: recebimento,
+    empresaResumoInicio: inicio
+  };
+  Object.entries(valores).forEach(([id, valor]) => {
+    const elemento = document.getElementById(id);
+    if (elemento) elemento.textContent = valor;
   });
 }
 
@@ -1867,7 +1901,9 @@ function aplicarConfiguracaoEmpresas(configuracao = configuracaoEmpresas) {
     empresaMinimoRegra: `${minimo} marmitas por dia`,
     empresaMinimoAjuda: `Mínimo de ${minimo} marmitas por dia.`,
     empresaEntregaTexto: configuracao.entregaTexto || "Grátis até 3 km • após 3 km, há taxa.",
-    empresaObservacaoConfig: configuracao.observacao || "Valores, cardápio e condições são confirmados no atendimento."
+    empresaObservacaoConfig: configuracao.observacao || "Valores, cardápio e condições são confirmados no atendimento.",
+    empresaTituloHero: configuracao.titulo || "O almoço da equipe organizado, caseiro e do jeito que a rotina pede.",
+    empresaRespostaPrazo: configuracao.respostaPrazo || "Retorno pelo WhatsApp conforme a disponibilidade da loja."
   };
   Object.entries(textos).forEach(([id, texto]) => {
     const elemento = document.getElementById(id);
@@ -1898,6 +1934,7 @@ function aplicarConfiguracaoEmpresas(configuracao = configuracaoEmpresas) {
     : "Todos os dias disponíveis";
   atualizarFrequenciaEmpresa();
   atualizarRecebimentoEmpresa();
+  atualizarResumoEmpresa();
 }
 
 function abrirAreaEmpresas() {
@@ -1941,6 +1978,17 @@ async function enviarPropostaEmpresa(event) {
   document.querySelectorAll("#formEmpresas [aria-invalid='true']").forEach(campo => {
     campo.removeAttribute("aria-invalid");
   });
+
+  if (document.getElementById("empresaSite")?.value) return;
+  if (Date.now() - formularioEmpresaAbertoEm < 1400) {
+    return informarErroPropostaEmpresa("Espere um instante e confira os dados antes de continuar.", "empresaNome");
+  }
+  try {
+    const ultimoEnvio = Number(localStorage.getItem("deliciasEmpresaUltimoEnvio") || 0);
+    if (ultimoEnvio && Date.now() - ultimoEnvio < 20000) {
+      return informarErroPropostaEmpresa("Sua solicitação acabou de ser preparada. Aguarde alguns segundos antes de enviar outra.", "statusPropostaEmpresa");
+    }
+  } catch {}
 
   const frequenciaTipo = limparTexto(document.getElementById("empresaFrequencia")?.value || "");
   const diasSemana = diasSelecionadosEmpresa();
@@ -1991,7 +2039,9 @@ async function enviarPropostaEmpresa(event) {
     const urlWhatsapp = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
     if (status) {
       status.className = "empresas-form-status sucesso";
-      status.textContent = `Solicitação ${solicitacao.numero} registrada. Confira e envie a mensagem no WhatsApp.`;
+      status.textContent = APP_CONFIG.previewMode
+        ? `Teste concluído na prévia (${solicitacao.numero}). Nenhum dado oficial foi alterado; confira a mensagem no WhatsApp.`
+        : `Solicitação ${solicitacao.numero} registrada. Confira e envie a mensagem no WhatsApp.`;
       if (!janelaWhatsapp) {
         const link = document.createElement("a");
         link.href = urlWhatsapp;
@@ -2001,14 +2051,24 @@ async function enviarPropostaEmpresa(event) {
         status.append(" ", link);
       }
     }
+    try { localStorage.setItem("deliciasEmpresaUltimoEnvio", String(Date.now())); } catch {}
     if (janelaWhatsapp) janelaWhatsapp.location.replace(urlWhatsapp);
   } catch (erro) {
-    janelaWhatsapp?.close();
     console.error("Não foi possível registrar a solicitação empresarial:", erro);
+    const numeroFallback = `DV-E-WEB-${String(Date.now()).slice(-6)}`;
+    const mensagem = montarMensagemPropostaEmpresa({ ...dados, numero: numeroFallback });
+    const urlWhatsapp = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
     if (status) {
       status.className = "empresas-form-status erro";
-      status.textContent = "Não foi possível registrar na Gestão. Tente novamente para não perder a solicitação.";
+      status.textContent = "A Gestão está indisponível agora, mas sua mensagem está pronta. Envie pelo WhatsApp para não perder o contato.";
+      const link = document.createElement("a");
+      link.href = urlWhatsapp;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Abrir WhatsApp";
+      status.append(" ", link);
     }
+    if (janelaWhatsapp) janelaWhatsapp.location.replace(urlWhatsapp);
   } finally {
     if (botao) {
       botao.disabled = false;
@@ -2016,6 +2076,33 @@ async function enviarPropostaEmpresa(event) {
     }
   }
 }
+
+function aplicarMascaraTelefone(campo) {
+  const digitos = campo.value.replace(/\D/g, "").slice(0, 11);
+  if (digitos.length <= 2) campo.value = digitos;
+  else if (digitos.length <= 6) campo.value = `(${digitos.slice(0, 2)}) ${digitos.slice(2)}`;
+  else if (digitos.length <= 10) campo.value = `(${digitos.slice(0, 2)}) ${digitos.slice(2, 6)}-${digitos.slice(6)}`;
+  else campo.value = `(${digitos.slice(0, 2)}) ${digitos.slice(2, 7)}-${digitos.slice(7)}`;
+}
+
+document.querySelectorAll("#telefoneCliente, #telefoneFestaCliente, #telefonePerfilCliente, #empresaWhatsapp").forEach(campo => {
+  campo.addEventListener("input", () => aplicarMascaraTelefone(campo));
+});
+document.querySelectorAll("#empresaQuantidade, #empresaDataInicio, #empresaDiaEspecifico, #empresaDiasSemana input").forEach(campo => {
+  campo.addEventListener("change", atualizarResumoEmpresa);
+  campo.addEventListener("input", atualizarResumoEmpresa);
+});
+
+function sincronizarAreaPeloHash() {
+  if (["#empresas", "#propostaEmpresas"].includes(location.hash)) {
+    alternarAreaPublica("empresas", false);
+    if (location.hash === "#propostaEmpresas") setTimeout(() => document.getElementById("propostaEmpresas")?.scrollIntoView({ behavior: "smooth" }), 50);
+  } else if (location.hash === "#festas") alternarAreaPublica("festas", false);
+  else alternarAreaPublica("principal", false);
+}
+window.addEventListener("hashchange", sincronizarAreaPeloHash);
+window.addEventListener("popstate", sincronizarAreaPeloHash);
+sincronizarAreaPeloHash();
 
 
 let encomendaFesta = carregarLocal("deliciasFestaPedido", []);
